@@ -628,12 +628,12 @@ const ROSTER=[
   {name:'Ty',team:'wc',jersey:0xffffff,ftp:330,player:true,discR:true,discF:true},
   {name:'Vojck',team:'pardus',jersey:0xf2c230,discR:true},
   {name:'Sašík',team:'pardus',jersey:0xf2c230},
-  {name:'Hasič',team:'dukla',jersey:0x222222,discR:true},
-  {name:'Bečka',team:'dukla',jersey:0x222222},
-  {name:'Rýša',team:'sparta',jersey:0x7a1f2b},
-  {name:'Robík',team:'sparta',jersey:0x7a1f2b},
-  {name:'Kysela',team:'favorit',jersey:0xd62828},
-  {name:'Jaroš',team:'favorit',jersey:0xd62828,discR:true},
+  {name:'Vacek',team:'dukla',jersey:0x222222,discR:true},
+  {name:'Bittner',team:'dukla',jersey:0x222222},
+  {name:'Ganna',team:'sparta',jersey:0x7a1f2b},
+  {name:'Milan',team:'sparta',jersey:0x7a1f2b},
+  {name:'Pogačar',team:'favorit',jersey:0xd62828},
+  {name:'Van der Poel',team:'favorit',jersey:0xd62828,discR:true},
   {name:'Parťák',team:'wc',jersey:0xffffff,partner:true,discR:true},
 ].map(r=>Object.assign({helmet:TEAMS[r.team].helmet,frame:TEAMS[r.team].frame,accent:TEAMS[r.team].accent,ftp:325},r));
 const riders=ROSTER.map(r=>{const o=Object.assign({aero:!!r.player,shoe:0xffffff,skin:[0xe2b48c,0xd9a37c,0xeec3a0][Math.floor(Math.random()*3)]},r);return Object.assign({},o,{model:makeRider(o)});});
@@ -1242,7 +1242,7 @@ function elimLabel(R,i){return R.finished?(i===0?'🏆 vítěz':'finále'):R.out
 // ---------- MADISON: teams of two, hand-sling exchanges, sprints every 10 laps (5-3-2-1, last double), +20 per lap gained ----------
 function nextSprintLine(s){for(let k=1;k*MAD_EVERY<=MAD_LAPS;k++){const L=START_S+k*MAD_EVERY*L0;if(L>s+0.5)return L;}return FIN;}
 function setupMadison(){const by=n=>riders.find(r=>r.name===n),P=PARTNER();
-  const pairs=[['wc',player,P],['pardus',by('Vojck'),by('Sašík')],['dukla',by('Hasič'),by('Bečka')],['sparta',by('Rýša'),by('Robík')],['favorit',by('Kysela'),by('Jaroš')]];
+  const pairs=[['wc',player,P],['pardus',by('Vojck'),by('Sašík')],['dukla',by('Vacek'),by('Bittner')],['sparta',by('Ganna'),by('Milan')],['favorit',by('Pogačar'),by('Van der Poel')]];
   MT=pairs.map(([key,a,b],i)=>{Object.assign(a,{s:SF-1.2-(i>>1)*2.3,w:i%2?1.9:0.8,v:0,resting:false});Object.assign(b,{s:SF+14+i*6,w:3.4+(i%2)*0.5,v:7,resting:true,targetW:3.6});
     a.targetW=a.w;a.targetWp=a.w;a.h=surfY(a.s,a.w);b.h=surfY(b.s,b.w);b.targetWp=b.w;
     return {key,name:TEAMS[key].name,act:a,rest:b,pts:0,spPts:0,lapNet:0,stintT:0,want:false,slings:0,done:0,prevS:a.s,me:key==='wc',sprints:[]};});
