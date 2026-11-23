@@ -127,7 +127,7 @@ tr.me td{color:#ffd166;font-weight:800}
       Krytý dřevěný ovál <b>153,846 m</b> (6,5 kola na kilometr) s klopením až <b>52°</b> v hale 70 × 40 m. Ostré zatáčky s přechodnicemi, krátké rovinky.<br><br>
       <b>Přejeď prstem doleva/doprava kdekoliv</b> (A/D) = výška na klopení<br><b>Posuvník vpravo</b> (W/S, mezerník) = síla: volno → tempo → sprint<br>V háku za soupeřem automaticky držíš jeho kolo – zrychluje a zpomaluje s ním a bere ti to energii.<br><b>👀</b> (Q, drž) – otočíš hlavu dozadu<br>
       <b>CAM</b> (C) – za jezdcem / z kola<br>Když najedeš do soupeře nebo mu zajedeš pod kolo, <b>spadneš a závod pro tebe končí</b>.<br><br>
-      🧔 Starej šéf tě v zatáčce sleduje dalekohledem, řve a občas hodí <b>pivo</b> – uhni, jinak padáš. Za výsledky dostáváš 🎖️ vojenské kredity.<br><b>Madison:</b> jezdíš ve dvojici s parťákem (P). Když ho dojedeš, ťukni 🤝 PŘEDAT (E) – trefa do zelené = silnější vrh. Sprinty každých 10 kol (5-3-2-1, poslední dvojnásob), ujetí balíku o kolo +20.<br><b>Vylučovačka:</b> 2 kola neutrálně, pak každá 2 kola vypadává ten, kdo projede cílovou čáru poslední (rozhoduje zadní kolo). Poslední dva jedou finálový sprint. Balík jede pohromadě, vedle sebe – drž se uprostřed a <b>💪 LOKET</b> (F) odstrčí soupeře vedle tebe.<br>Pevný převod: <b>žádná brzda, žádné volnoběžky</b>. Nahoře je kolo delší, ze sjezdu nabereš rychlost. V zatáčce pod ~24 km/h sjíždíš dolů. Na modrý pás nesmíš.
+      🧔 Starej šéf tě v zatáčce sleduje dalekohledem, řve a ve scratchi a kilometru občas hodí <b>pivo</b> – uhni, jinak padáš. Za výsledky dostáváš 🎖️ vojenské kredity.<br><b>Madison:</b> jezdíš ve dvojici s parťákem (P). Když ho dojedeš, ťukni 🤝 PŘEDAT (E) – trefa do zelené = silnější vrh. Sprinty každých 10 kol (5-3-2-1, poslední dvojnásob), ujetí balíku o kolo +20.<br><b>Vylučovačka:</b> 2 kola neutrálně, pak každá 2 kola vypadává ten, kdo projede cílovou čáru poslední (rozhoduje zadní kolo). Poslední dva jedou finálový sprint. Balík jede pohromadě, vedle sebe – drž se uprostřed a <b>💪 LOKET</b> (F) odstrčí soupeře vedle tebe.<br>Pevný převod: <b>žádná brzda, žádné volnoběžky</b>. Nahoře je kolo delší, ze sjezdu nabereš rychlost. V zatáčce pod ~24 km/h sjíždíš dolů. Na modrý pás nesmíš.
     </div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin-bottom:12px;text-align:left">📱 Hra je otevřená v prohlížeči Instagramu. Ovládání by mělo fungovat, ale nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes">
@@ -1132,7 +1132,7 @@ function updateBoss(dt){if(!RCOACH)return;RCOACH.g.updateMatrixWorld();
   if(phase!=='race')return;
   const gb=gapTo(player,{s:RCOACH.s});const near=gb>6&&gb<55;   // boss is ahead of us, in view
   yellT-=dt;if(yellT<=0&&near){yellT=5+Math.random()*4;const l=bossLine();if(l)bossSay(l,true);}
-  throwT-=dt;if(mode!=='kilo'&&raceTime>12&&throwT<=0&&gb>14&&gb<40){throwT=throwBeer()?14+Math.random()*16:1;}
+  throwT-=dt;if((mode==='scratch'||mode==='kilo')&&raceTime>12&&throwT<=0&&gb>14&&gb<40){throwT=throwBeer()?14+Math.random()*16:1;}
   updateCans(dt);}
 
 // ---------- ELBOW: a short hard shove into the rider beside you ----------
