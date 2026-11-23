@@ -567,6 +567,7 @@ function makePerson(x,z,col,face,sit){const g=new THREE.Group();const pants=mat(
   g.position.set(x,surfY(0,-BAND),z);g.rotation.y=face;scene.add(g);return g;}
 function freeSpot(margin,tries){const poly=infieldPoly(margin);for(let i=0;i<(tries||60);i++){const x=(Math.random()-.5)*60,z=(Math.random()-.5)*30;if(inPoly(x,z,poly)&&Math.hypot(x-STAIR.cx,z-STAIR.cz)>4.5)return [x,z];}return null;}
 // infield layout following the sketch: booths 3–14 with benches, round podium 15, rollers (*) and hanging stands (o)
+const OBST={cols:[],rollers:[],hangs:[]};
 function buildInfield(){
   const y0=INF_Y+0.01;
   const ply=mat(0xe6d3a3),edge=mat(0xc4a46c),benchM=mat(0xc8a066),legM=mat(0x6e6e6e);
@@ -587,13 +588,16 @@ function buildInfield(){
   const rim=new THREE.Mesh(new THREE.TorusGeometry(1,0.012,4,60),mat(0xdddddd));rim.rotation.x=PI/2;rim.scale.set(6.0,2.6,1);rim.position.set(1.5,y0+0.225,1.2);scene.add(rim);
   // bikes standing on rollers (*)
   const bikeCols=[[0x111111,0xc6ff1a],[0xffffff,0x2b5fb4],[0xd62828,0x111111],[0x1d3557,0xffffff],[0x333333,0xffd166],[0xeeeeee,0xe63946],[0x7a1f2b,0xf2c230],[0x151515,0xd62828],[0xf2c230,0x1a1d24]];
-  const rollers=[[21.6,-3.4],[21.6,-2.5],[21.6,-1.6],[23.4,-2.4],[23.4,-1.0],[23.4,0.4],[-22.4,-1.5],[-22.4,0],[-22.4,1.6]];
+  const along=(k,i)=>[STAIR.cx+STAIR.ux*k+STAIR.vx*i,STAIR.cz+STAIR.uz*k+STAIR.vz*i];
+  const rollers=[[20.6,-5.0],[20.6,-6.0],[20.6,-7.0],along(-3.7,0),along(-4.7,0),along(-5.7,0),[-22.4,-1.5],[-22.4,0],[-22.4,1.6]];
   rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
     const fr=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,1.5),mat(0xd62828));fr.position.y=0.05;g.add(fr);
     for(const dz of [-0.5,0,0.5]){const r=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.44,10),mat(0x2b5fb4));r.rotation.z=PI/2;r.position.set(0,0.11,dz);g.add(r);}
     const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:false,aero:i%4===1});b.g.position.y=0.13;g.add(b.g);});
   // stands with hanging bikes (o)
+  OBST.cols=cols;OBST.rollers=rollers;
   const hangs=[[8.0,-6.8],[9.6,-6.8],[11.2,-6.8],[12.8,-6.8],[14.4,-6.8],[10.4,5.6],[11.7,5.6],[13.0,5.6],[14.4,5.6]];
+  OBST.hangs=hangs;
   hangs.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
     const base=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.05,0.6),mat(0x333333));base.position.y=0.025;g.add(base);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,2.1,6),mat(0x555555));pole.position.y=1.05;g.add(pole);
@@ -1190,14 +1194,47 @@ function startRescue(){
   const end=new THREE.Vector3(PODX+6.8,0,0.3);JUDGES.localToWorld(end);end.y=INF_Y;
   RESC={st:'run',t:0,crew,stretcher:st,fig,meds:[m1,m2],end,walk:0};
   showMsg('🚑<small>Záchranka běží!</small>',2);}
+// ---------- walking paths on the infield (go around booths, stairwell, rollers, judges) ----------
+const NAV={x0:-32,z0:-14,c:0.5,nx:128,nz:56,grid:null};
+function onCarpet(x,z){const a=(x-1.5)/6.0,b=(z-1.2)/2.6;return a*a+b*b<1;}
+function buildNav(){const poly=infieldPoly(0.15);const g=new Uint8Array(NAV.nx*NAV.nz);JUDGES.updateMatrixWorld();const inv=new THREE.Matrix4().copy(JUDGES.matrixWorld).invert();const v=new THREE.Vector3();
+  for(let j=0;j<NAV.nz;j++)for(let i=0;i<NAV.nx;i++){const x=NAV.x0+(i+0.5)*NAV.c,z=NAV.z0+(j+0.5)*NAV.c;let b=!inPoly(x,z,poly);
+    if(!b)for(const [xc,zs] of OBST.cols)if(x>xc-2.1&&x<xc+2.1&&z>zs[0]-0.55&&z<zs[3]+0.55){b=true;break;}
+    if(!b){const dx=x-STAIR.cx,dz=z-STAIR.cz;if(Math.abs(dx*STAIR.ux+dz*STAIR.uz)<3.2&&Math.abs(dx*STAIR.vx+dz*STAIR.vz)<1.9)b=true;}
+    if(!b)for(const [rx,rz] of OBST.rollers)if(Math.hypot(x-rx,z-rz)<1.15){b=true;break;}
+    if(!b)for(const [hx,hz] of OBST.hangs)if(Math.hypot(x-hx,z-hz)<0.8){b=true;break;}
+    if(!b){v.set(x,INF_Y,z).applyMatrix4(inv);if(v.x>-1.4&&v.x<PODX+1.0&&v.z>-3.5&&v.z<3.6)b=true;}
+    g[j*NAV.nx+i]=b?1:0;}
+  NAV.grid=g;}
+function navCell(x,z){return [clamp(Math.floor((x-NAV.x0)/NAV.c),0,NAV.nx-1),clamp(Math.floor((z-NAV.z0)/NAV.c),0,NAV.nz-1)];}
+function nearestFree(ci,cj){const g=NAV.grid;if(!g[cj*NAV.nx+ci])return [ci,cj];for(let r=1;r<20;r++)for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=NAV.nx||j>=NAV.nz)continue;if(!g[j*NAV.nx+i])return [i,j];}return [ci,cj];}
+function findPath(from,to){if(!NAV.grid)buildNav();const g=NAV.grid,W=NAV.nx,N=W*NAV.nz;
+  const [si,sj]=nearestFree(...navCell(from.x,from.z)),[ti,tj]=nearestFree(...navCell(to.x,to.z));const S=sj*W+si,T=tj*W+ti;
+  const gs=new Float32Array(N).fill(1e9),came=new Int32Array(N).fill(-1),open=[S],inOpen=new Uint8Array(N);gs[S]=0;inOpen[S]=1;
+  const h=k=>Math.hypot((k%W)-ti,((k/W)|0)-tj);let it=0;
+  while(open.length&&it++<20000){let bi=0,bf=1e9;for(let q=0;q<open.length;q++){const f=gs[open[q]]+h(open[q]);if(f<bf){bf=f;bi=q;}}const cur=open.splice(bi,1)[0];inOpen[cur]=0;if(cur===T)break;
+    const ci=cur%W,cj=(cur/W)|0;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const i=ci+di,j=cj+dj;if(i<0||j<0||i>=W||j>=NAV.nz)continue;const k=j*W+i;if(g[k])continue;
+      if(di&&dj&&(g[cj*W+i]||g[j*W+ci]))continue;const ng=gs[cur]+(di&&dj?1.414:1);if(ng<gs[k]){gs[k]=ng;came[k]=cur;if(!inOpen[k]){open.push(k);inOpen[k]=1;}}}}
+  const cells=[];let k=T;if(came[k]<0&&k!==S)return [to.clone()];while(k>=0&&k!==S){cells.push(k);k=came[k];}cells.reverse();
+  let pts=cells.map(k=>new THREE.Vector3(NAV.x0+((k%W)+0.5)*NAV.c,INF_Y,NAV.z0+(((k/W)|0)+0.5)*NAV.c));
+  // string pulling: drop waypoints that can be skipped in a straight line
+  const clear=(a,b)=>{const n=Math.ceil(a.distanceTo(b)/0.2);for(let q=1;q<n;q++){const x=a.x+(b.x-a.x)*q/n,z=a.z+(b.z-a.z)*q/n;const [i,j]=navCell(x,z);if(g[j*W+i])return false;}return true;};
+  const out=[];let a=from.clone();for(let q=0;q<pts.length;q++){if(q===pts.length-1||!clear(a,pts[q+1])){out.push(pts[q]);a=pts[q];}}
+  out.push(to.clone());return out;}
 function rescueTarget(){const f=frameAt(player.s);const o=BAND*Math.cos(8*deg)+0.75;return new THREE.Vector3(f.px-f.nx*o,INF_Y,f.pz-f.nz*o);}
 function updateRescue(dt){if(!RESC)return;const R=RESC;R.t+=dt;const c=R.crew;
   const moveTo=(tg,spd)=>{const d=new THREE.Vector3(tg.x-c.position.x,0,tg.z-c.position.z),L=d.length();if(L>0.05){c.rotation.y=Math.atan2(d.x,d.z);c.position.addScaledVector(d,Math.min(spd*dt,L)/L);R.walk+=dt*spd*3.2;}return L;};
-  if(R.st==='run'){if(moveTo(rescueTarget(),4.6)<0.3){R.st='pick';R.t=0;}}
+  const follow=(spd)=>{if(!R.path||!R.path.length)return 0;const L=moveTo(R.path[0],spd);if(L<0.35&&R.path.length>1){R.path.shift();return 1;}return R.path.length>1?1:L;};
+  if(R.st==='run'){if(!R.path){R.path=findPath(c.position,rescueTarget());}if(follow(4.6)<0.3){R.st='pick';R.t=0;R.path=null;}}
   else if(R.st==='pick'){if(R.t>1.1&&!R.fig.visible){R.fig.visible=true;player.model.g.visible=false;tone(330,0.2,0.08,'triangle');}if(R.t>1.6){R.st='carry';R.t=0;}}
-  else if(R.st==='carry'){if(moveTo(R.end,2.3)<0.2){R.st='down';R.t=0;const pod=new THREE.Vector3(PODX,0,0);JUDGES.localToWorld(pod);c.rotation.y=Math.atan2(pod.x-c.position.x,pod.z-c.position.z);}}
-  else if(R.st==='down'){R.stretcher.position.y=Math.max(0.45,R.stretcher.position.y-dt*0.6);const k=Math.min(1,R.t/0.8);R.meds[0].g.position.set(1.15*k,0,1.5-0.4*k);R.meds[1].g.position.set(-1.15*k,0,-1.5+1.2*k);if(R.t>0.8)R.st='done';}
-  const moving=R.st==='run'||R.st==='carry';for(const m of R.meds)m.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(R.walk+i*PI)*0.7:0);}
+  else if(R.st==='carry'){if(!R.path)R.path=findPath(c.position,R.end);if(follow(2.3)<0.2){R.st='down';R.t=0;const pod=new THREE.Vector3(PODX,0,0);JUDGES.localToWorld(pod);c.rotation.y=Math.atan2(pod.x-c.position.x,pod.z-c.position.z);}}
+  else if(R.st==='down'){R.stretcher.userData.base=Math.max(0.45,(R.stretcher.userData.base??0.82)-dt*0.6);const k=Math.min(1,R.t/0.8);R.meds[0].g.position.set(1.15*k,0,1.5-0.4*k);R.meds[1].g.position.set(-1.15*k,0,-1.5+1.2*k);if(R.t>0.8)R.st='done';}
+  // step up onto the central carpet instead of walking through it
+  const fy=c.rotation.y;let hs=0;for(const m of R.meds){const lz=m.g.position.z,lx=m.g.position.x;const wx=c.position.x+Math.sin(fy)*lz+Math.cos(fy)*lx,wz=c.position.z+Math.cos(fy)*lz-Math.sin(fy)*lx;
+    const ty=onCarpet(wx,wz)?0.22:0;m.g.position.y+=(ty-m.g.position.y)*Math.min(1,dt*10);hs+=m.g.position.y;}
+  R.stretcher.userData.base=R.stretcher.userData.base??R.stretcher.position.y;
+  const moving=R.st==='run'||R.st==='carry';for(const m of R.meds)m.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(R.walk+i*PI)*0.7:0);
+  R.stretcher.position.y=R.stretcher.userData.base+hs/2;}
 function clearRescue(){if(RESC){scene.remove(RESC.crew);RESC=null;}}
 const _rl=new THREE.Vector3(),_rc=new THREE.Vector3();
 function rescueCam(dt){const c=RESC.crew.position;if(RESC.st==='run'){const pp=new THREE.Vector3();player.model.g.getWorldPosition(pp);_rl.copy(c).add(pp).multiplyScalar(0.5);}else _rl.copy(c);_rl.y+=0.9;
