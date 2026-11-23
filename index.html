@@ -2,7 +2,14 @@
 <html lang="cs">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a1423">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Motol">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
 <title>Motol Simulator</title>
 <meta name="description" content="3D dráhová cyklistika na Velodromu Praha-Motol. Scratch, kilometr, loktování a sprint – hraj zdarma v prohlížeči.">
 <meta property="og:type" content="website">
@@ -109,6 +116,7 @@ tr.me td{color:#ffd166;font-weight:800}
       <div class="btn s" data-k="cam" style="font-size:13px">CAM</div>
       <div class="btn s" data-k="look" style="font-size:18px">👀</div>
       <div class="btn s" data-k="mute" style="font-size:16px" id="muteBtn">🔊</div>
+      <div class="btn s" data-k="fs" style="font-size:20px" id="fsBtn" title="Celá obrazovka (F)">⛶</div>
     </div>
     <div id="hbar"><div id="hbDot"></div><div id="hbTarget"></div></div>
     <div id="hbHint">◀ ▶ přejeď prstem kdekoliv = výška na dráze</div>
@@ -673,11 +681,17 @@ function beep(hi){tone(hi?1320:660,hi?0.5:0.18,0.15,'square');}
 // ---------- input ----------
 const keys={};let camMode=0;
 let muted=false;try{muted=localStorage.getItem('motol_mute')==='1';}catch(e){}
-function press(k,on){if(k==='mute'){if(on){muted=!muted;$('muteBtn').textContent=muted?'🔇':'🔊';try{localStorage.setItem('motol_mute',muted?'1':'0');speechSynthesis.cancel();}catch(e){}}return;}if(k==='cam'){if(on)camMode=(camMode+1)%2;return;}keys[k]=on;}
+function isFS(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
+function toggleFS(){const d=document.documentElement;try{if(isFS()){(document.exitFullscreen||document.webkitExitFullscreen).call(document);}
+  else if(d.requestFullscreen||d.webkitRequestFullscreen){const r=(d.requestFullscreen||d.webkitRequestFullscreen).call(d,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{});}
+  else showMsg('<small>Pro celou obrazovku: Sdílet ⬆️ → Přidat na plochu a spouštěj hru z ikony</small>',3.5);}catch(e){}}
+if(navigator.standalone||matchMedia('(display-mode: standalone),(display-mode: fullscreen)').matches){const b=document.getElementById('fsBtn');if(b)b.style.display='none';}
+function press(k,on){if(k==='fs'){if(!on)toggleFS();return;}if(k==='mute'){if(on){muted=!muted;$('muteBtn').textContent=muted?'🔇':'🔊';try{localStorage.setItem('motol_mute',muted?'1':'0');speechSynthesis.cancel();}catch(e){}}return;}if(k==='cam'){if(on)camMode=(camMode+1)%2;return;}keys[k]=on;}
 document.querySelectorAll('.btn').forEach(b=>{const k=b.dataset.k;
   b.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&'ontouchstart' in window)return;e.preventDefault();b.classList.add('on');press(k,true);try{b.setPointerCapture(e.pointerId);}catch(_){}});
   const up=()=>{b.classList.remove('on');press(k,false);};
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);});
+document.addEventListener('keydown',e=>{if(e.code==='KeyF'&&!e.repeat)toggleFS();});
 const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'sprint',KeyQ:'look'};
 const GAMEKEYS=['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS','KeyQ','KeyC'];
 document.addEventListener('click',()=>{const a=document.activeElement;if(a&&a.blur&&a!==document.body)a.blur();},true);
