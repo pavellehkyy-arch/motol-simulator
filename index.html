@@ -84,6 +84,7 @@ tr.me td{color:#ffd166;font-weight:800}
   </div>
   <canvas id="map"></canvas>
   <div id="draft">V HÁKU</div>
+  <div id="keyHelp" style="display:none;position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:700;background:rgba(10,20,35,.6);padding:5px 10px;border-radius:8px;white-space:nowrap">⌨️ A/D nebo ←/→ výška · W/S nebo ↑/↓ síla · mezerník sprint · Q ohlédnutí · C kamera</div>
   <div id="tr" class="panel">
     <div class="small" id="posLbl">Pořadí</div><div class="big" id="pos">1/8</div>
     <div class="mid" id="lap">Kolo 1/10</div>
@@ -790,7 +791,7 @@ function playerControl(dt){
     if(mode==='scratch'&&e>=0.12)for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0.3&&g<14&&g<gap&&Math.abs(o.w-R.w)<0.75){gap=g;ah=o;}}
     if(ah){const cl=R.v-ah.v;if(gap>4.5&&!(cl>0.4&&gap/cl<2.2))ah=null;}   // far away and not closing fast -> not yet
     if(!ah&&R.latched)R.latched=false;
-    if(ah&&!R.latched&&e>=0.8&&gap>2.4&&R.v-ah.v>0.8&&R.catchT>1.0){R.latched=true;setEffort(0.6);keys.sprint=false;if(msgT<=0)showMsg('<small>🔗 Zahákl ses – regeneruješ</small>',1.2);}
+    if(ah&&!R.latched&&!keys.sprint&&e>=0.8&&gap>2.4&&R.v-ah.v>0.8&&R.catchT>1.0){R.latched=true;setEffort(0.6);if(msgT<=0)showMsg('<small>🔗 Zahákl ses – regeneruješ</small>',1.2);}
     if(ah&&e>=0.8&&!R.latched)ah=null;
     if(ah){R.follow=ah;const vT=ah.v+(gap-1.9)*0.5;const cda=R.cda*(1-R.draft);
       const brake=vT<R.v-0.3;const Pt=clamp((0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+(brake?900:260)*(vT-R.v)*(brake?R.v/6:1),-2600,raceTime<6?480:1150);R.fP=(R.fP==null?Pt:R.fP+(Pt-R.fP)*Math.min(1,dt*6));R.power=R.fP;}
@@ -799,11 +800,11 @@ function playerControl(dt){
     R.power=effortPower(e);}
   let sd=0;if(keys.left)sd-=1;if(keys.right)sd+=1;
   // slot into the slipstream: when you close on a rider and aren't steering, line up behind his wheel
-  if(sd||drag)R.latched=false;
+  if(sd||drag){R.latched=false;R.noMagT=2.5;}else R.noMagT=Math.max(0,(R.noMagT||0)-dt);
   R.catchT=(e>=0.8&&!R.follow)?(R.catchT||0)+dt:0;   // sprinting freely for a while = you are chasing someone down
-  if(!sd&&!drag&&!R.finished&&mode==='scratch'){let tg=null,tgap=1e9;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>-1.8&&g<10&&g<tgap&&Math.abs(o.w-R.targetWp)<0.85){tgap=g;tg=o;}}
+  if(!sd&&!drag&&!R.finished&&mode==='scratch'&&R.noMagT<=0&&!keys.sprint){let tg=null,tgap=1e9;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>-1.8&&g<10&&g<tgap&&Math.abs(o.w-R.targetWp)<0.85){tgap=g;tg=o;}}
     if(tg&&tgap>2.5)R.targetWp+=clamp(tg.w-R.targetWp,-0.8*dt,0.8*dt);}   // only before wheels overlap, gently
-  if(sd)R.targetWp=clamp(R.targetWp+sd*1.7*dt,-(BAND-0.08),TW-0.4);
+  if(sd)R.targetWp=clamp(R.targetWp+sd*2.2*dt,-(BAND-0.08),TW-0.4);
   const st=clamp(R.targetWp-R.w,-1.9*dt,1.9*dt);R.w+=st;R.dw=st/dt;
   R.intent=Math.abs(R.targetWp-R.w)>0.05?Math.sign(R.targetWp-R.w):0;
   if(R.w<-0.05&&!R.finished&&msgT<=0)showMsg('<small>⚠️ Modrý pás – tady se nepředjíždí, brzdí tě to!</small>',0.7);
@@ -983,6 +984,7 @@ $('cerAgain').onclick=()=>startRace();$('cerMenu').onclick=()=>$('menuBtn').oncl
 $('menuBtn').onclick=()=>{clearCeremony();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();};
 
 if(/Instagram|FBAN|FBAV/i.test(navigator.userAgent))$('iabHint').style.display='block';
+if(!('ontouchstart' in window))$('keyHelp').style.display='block';
 // ---------- loop ----------
 resetRiders();
 let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1){window.__R=riders;window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
