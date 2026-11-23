@@ -91,6 +91,7 @@ tr.me td{color:#ffd166;font-weight:800}
     <div class="mid" id="time">0:00.0</div>
   </div>
   <div id="msg"></div>
+  <div id="boss" style="position:absolute;top:96px;left:50%;transform:translateX(-50%);max-width:88vw;background:rgba(242,210,27,.95);color:#111;font-size:14px;font-weight:700;padding:6px 12px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.4);opacity:0;transition:opacity .25s;text-align:center"></div>
 </div>
 
 <div id="ctl">
@@ -98,6 +99,7 @@ tr.me td{color:#ffd166;font-weight:800}
     <div style="display:flex;gap:8px">
       <div class="btn s" data-k="cam" style="font-size:13px">CAM</div>
       <div class="btn s" data-k="look" style="font-size:18px">👀</div>
+      <div class="btn s" data-k="mute" style="font-size:16px" id="muteBtn">🔊</div>
     </div>
     <div id="hbar"><div id="hbDot"></div><div id="hbTarget"></div></div>
     <div id="hbHint">◀ ▶ přejeď prstem kdekoliv = výška na dráze</div>
@@ -109,12 +111,13 @@ tr.me td{color:#ffd166;font-weight:800}
 <div id="menu" class="screen">
   <div class="card">
     <h1>MOTOL<br><span>SIMULATOR</span></h1>
-    <div class="sub">Dráhová cyklistika 3D · Velodrom Praha-Motol · v0.3</div>
+    <div class="sub">Dráhová cyklistika 3D · Velodrom Praha-Motol · v0.4</div>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(80,100,40,.55);border:1px solid #c6ff1a;border-radius:12px;padding:7px 14px;margin-bottom:12px;font-weight:800"><span style="font-size:20px">🎖️</span><span style="font-size:12px;opacity:.85;text-transform:uppercase;letter-spacing:.05em">Vojenské kredity</span><span id="vkTotal" style="font-size:20px;color:#c6ff1a">0</span></div>
     <div class="info">
       Krytý dřevěný ovál <b>153,846 m</b> (6,5 kola na kilometr) s klopením až <b>52°</b> v hale 70 × 40 m. Ostré zatáčky s přechodnicemi, krátké rovinky.<br><br>
       <b>Přejeď prstem doleva/doprava kdekoliv</b> (A/D) = výška na klopení<br><b>Posuvník vpravo</b> (W/S, mezerník) = síla: volno → tempo → sprint<br>V háku za soupeřem automaticky držíš jeho kolo – zrychluje a zpomaluje s ním a bere ti to energii.<br><b>👀</b> (Q, drž) – otočíš hlavu dozadu<br>
       <b>CAM</b> (C) – za jezdcem / z kola<br>Když najedeš do soupeře nebo mu zajedeš pod kolo, <b>spadneš a závod pro tebe končí</b>.<br><br>
-      Pevný převod: <b>žádná brzda, žádné volnoběžky</b>. Nahoře je kolo delší, ze sjezdu nabereš rychlost. V zatáčce pod ~24 km/h sjíždíš dolů. Na modrý pás nesmíš.
+      🧔 Starej šéf tě v zatáčce sleduje dalekohledem, řve a občas hodí <b>pivo</b> – uhni, jinak padáš. Za výsledky dostáváš 🎖️ vojenské kredity.<br>Pevný převod: <b>žádná brzda, žádné volnoběžky</b>. Nahoře je kolo delší, ze sjezdu nabereš rychlost. V zatáčce pod ~24 km/h sjíždíš dolů. Na modrý pás nesmíš.
     </div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin-bottom:12px;text-align:left">📱 Hra je otevřená v prohlížeči Instagramu. Ovládání by mělo fungovat, ale nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes">
@@ -125,7 +128,8 @@ tr.me td{color:#ffd166;font-weight:800}
 </div>
 
 <div id="ceremony" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:12px 14px 18px;pointer-events:none;text-align:center">
-  <div class="panel" style="display:inline-block;margin-bottom:10px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
+  <div class="panel" style="display:inline-block;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
+  <div id="cerVK" style="font-size:12.5px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
   <div style="font-size:12px;font-weight:700;margin-bottom:10px;text-shadow:0 1px 4px rgba(0,0,0,.8)">🧔 Ťukni na starého šéfa – zhodnotí tvoji jízdu · 📺 televize = výsledky</div>
   <div class="modes" style="pointer-events:auto;max-width:420px;margin:0 auto"><button class="go" id="cerAgain">Jet znovu</button><button class="go alt" id="cerMenu">Menu</button></div>
 </div>
@@ -575,7 +579,7 @@ function buildInfield(){
   const rim=new THREE.Mesh(new THREE.TorusGeometry(1,0.012,4,60),mat(0xdddddd));rim.rotation.x=PI/2;rim.scale.set(6.0,2.6,1);rim.position.set(1.5,y0+0.225,1.2);scene.add(rim);
   // bikes standing on rollers (*)
   const bikeCols=[[0x111111,0xc6ff1a],[0xffffff,0x2b5fb4],[0xd62828,0x111111],[0x1d3557,0xffffff],[0x333333,0xffd166],[0xeeeeee,0xe63946],[0x7a1f2b,0xf2c230],[0x151515,0xd62828],[0xf2c230,0x1a1d24]];
-  const rollers=[[21.6,-3.4],[21.6,-2.5],[21.6,-1.6],[25.6,-1.6],[25.6,-0.2],[25.6,1.2],[-23.1,-1.5],[-23.1,0],[-23.1,1.6]];
+  const rollers=[[21.6,-3.4],[21.6,-2.5],[21.6,-1.6],[23.4,-2.4],[23.4,-1.0],[23.4,0.4],[-22.4,-1.5],[-22.4,0],[-22.4,1.6]];
   rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
     const fr=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,1.5),mat(0xd62828));fr.position.y=0.05;g.add(fr);
     for(const dz of [-0.5,0,0.5]){const r=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.44,10),mat(0x2b5fb4));r.rotation.z=PI/2;r.position.set(0,0.11,dz);g.add(r);}
@@ -648,7 +652,8 @@ function beep(hi){tone(hi?1320:660,hi?0.5:0.18,0.15,'square');}
 
 // ---------- input ----------
 const keys={};let camMode=0;
-function press(k,on){if(k==='cam'){if(on)camMode=(camMode+1)%2;return;}keys[k]=on;}
+let muted=false;try{muted=localStorage.getItem('motol_mute')==='1';}catch(e){}
+function press(k,on){if(k==='mute'){if(on){muted=!muted;$('muteBtn').textContent=muted?'🔇':'🔊';try{localStorage.setItem('motol_mute',muted?'1':'0');speechSynthesis.cancel();}catch(e){}}return;}if(k==='cam'){if(on)camMode=(camMode+1)%2;return;}keys[k]=on;}
 document.querySelectorAll('.btn').forEach(b=>{const k=b.dataset.k;
   b.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&'ontouchstart' in window)return;e.preventDefault();b.classList.add('on');press(k,true);try{b.setPointerCapture(e.pointerId);}catch(_){}});
   const up=()=>{b.classList.remove('on');press(k,false);};
@@ -748,6 +753,7 @@ function botAI(R,dt){
     if(g<gapA&&g<70){gapA=g;anyA=o;}
     if(g<gap&&g<40&&Math.abs(o.w-R.w)<0.9){gap=g;ahead=o;}}
   let front=-1e9;for(const o of riders)if(o.model.g.visible&&!o.crashed&&o.s>front)front=o.s;const gapFront=front-R.s;
+  for(const c of cans){if(c.t<-0.3)continue;const g=gapTo(R,c);if(g>0&&g<22&&Math.abs(c.w-R.w)<0.9)wreck={w:c.w,crash:{t:0}};}
   const sprinting=toGo<R.sprintAt&&R.energy>2;
   if(R.attackT>0)R.attackT-=dt;
   else if(lapsLeft>1.6&&lapsLeft<9&&R.energy>75&&Math.random()<dt/45*R.aggr)R.attackT=6+Math.random()*7;
@@ -850,7 +856,7 @@ function resolveContacts(dt){
   thudT-=dt;elbowMsgT-=dt;
 }
 let crashT=0;
-const CAUSE={rear:'Najel jsi zezadu do soupeře',hit:'Někdo do tebe narazil zezadu',hook:'Zahákl ses o kolo soupeře',band:'Vytlačili tě na modrý pás',barrier:'Vytlačili tě na mantinel',pile:'Najel jsi do ležícího jezdce'};
+const CAUSE={rear:'Najel jsi zezadu do soupeře',hit:'Někdo do tebe narazil zezadu',hook:'Zahákl ses o kolo soupeře',band:'Vytlačili tě na modrý pás',barrier:'Vytlačili tě na mantinel',pile:'Najel jsi do ležícího jezdce',beer:'Najel jsi na šéfovo pivo'};
 function crashRider(R,cause){if(R.crashed||R.finished||!R.model.g.visible)return;
   R.crashed=true;R.crash={cause,t:0,v:R.v*0.92,vw:(R.dw||0)*0.4-0.5,yaw:0,spin:(Math.random()<.5?-1:1)*(1.5+Math.random()*1.5)};
   tone(85+Math.random()*30,0.45,0.3,'sawtooth');
@@ -945,7 +951,9 @@ function makeStanding(R,rank){const g=new THREE.Group();const KM2=kitMats(R.team
 let cerObjs=[],confetti=null,cerT=0;const _cp=new THREE.Vector3(),_cl=new THREE.Vector3();
 function clearCeremony(){$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
 function startCeremony(){
-  showResults(false);phase='ceremony';cerT=0;
+  if(mode==='kilo'){const pb=bestKilo();player.isPB=player.finished&&(!pb||player.time<pb);}
+  showResults(false);phase='ceremony';cerT=0;clearCans();$('boss').style.opacity=0;
+  const E=earnedCredits();lastEarned=E.n;const tot=addVK(E.n);
   const list=standings().filter(r=>!r.crashed&&r.finished);const top=list.slice(0,3);
   const pos={1:[0,1.0],2:[1.1,0.7],3:[-1.1,0.5]};
   top.forEach((R,i)=>{const f=makeStanding(R,i+1);f.position.set(PODX,pos[i+1][1],pos[i+1][0]);f.rotation.y=PI/2;JUDGES.add(f);cerObjs.push(f);});
@@ -957,21 +965,22 @@ function startCeremony(){
     col.set([0xd62828,0xffd166,0x2b5fb4,0xffffff,0x4dde88][i%5]);im.setColorAt(i,col);}
   JUDGES.updateMatrixWorld();confetti={mesh:im,parts};scene.add(im);
   const me=player.finished&&!player.crashed?list.indexOf(player)+1:0;
+  $('cerVK').innerHTML='🎖️ +'+E.n+' vojenských kreditů <span style="opacity:.75;font-weight:600">('+E.why.join(', ')+')</span> · celkem '+tot.toLocaleString('cs-CZ');
   $('cerTitle').textContent=mode==='kilo'?'⏱️ Kilometr · '+fmt(player.time):me===1?'🏆 Vyhrál jsi!':me>0&&me<=3?'🥈 Jsi na bedně – '+me+'. místo':me>0?'Dojel jsi '+me+'.':'🚑 DNF – vyhlášení bez tebe';
   $('hud').style.display='none';$('ctl').style.display='none';$('ceremony').style.display='block';
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
 const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,1,1),_pp=new THREE.Vector3(),_e3=new THREE.Euler();
 function updateCeremony(dt){cerT+=dt;JUDGES.updateMatrixWorld();animCoach(dt);
-  _cp.set(PODX+8.6,2.2,0.1+Math.sin(cerT*0.25)*0.4);JUDGES.localToWorld(_cp);_cl.set(PODX,1.45,0.1);JUDGES.localToWorld(_cl);
+  _cp.set(PODX+10.8,2.3,0.05+Math.sin(cerT*0.25)*0.3);JUDGES.localToWorld(_cp);_cl.set(PODX,1.45,0.1);JUDGES.localToWorld(_cl);
   camera.up.set(0,1,0);camera.position.lerp(_cp,Math.min(1,dt*3));camera.lookAt(_cl);
   if(confetti){const {mesh,parts}=confetti;parts.forEach((p,i)=>{p.y-=p.vy*dt;p.r+=p.vr*dt;if(p.y<0.05)p.y=4+Math.random()*2.5;_pp.set(p.x+Math.sin(cerT+i)*0.2,p.y,p.z);JUDGES.localToWorld(_pp);_e3.set(p.r,p.r*0.7,0);_q.setFromEuler(_e3);_m4.compose(_pp,_q,_sc);mesh.setMatrixAt(i,_m4);});mesh.instanceMatrix.needsUpdate=true;}}
 // ---------- "Starej šéf": cartoon coach next to the podium ----------
-var COACH;
+var COACH,RCOACH;
 function coachJacketTex(){const c=mkCanvas(256,128),g=c.getContext('2d');g.fillStyle='#f2d21b';g.fillRect(0,0,256,128);
   g.fillStyle='#161616';g.fillRect(0,44,256,26);g.fillRect(52,0,22,128);g.fillRect(182,0,22,128);g.fillStyle='#1f5fbf';g.fillRect(0,74,256,8);
   g.fillStyle='#161616';g.fillRect(0,0,256,8);g.fillStyle='#f2d21b';g.font='900 20px system-ui';g.textAlign='center';g.fillText('ŠÉF',128,64);
   g.fillStyle='#ffffff';g.fillRect(0,96,256,32);g.fillStyle='#1f5fbf';g.font='900 18px system-ui';g.fillText('TRENÉR',128,118);return new THREE.CanvasTexture(c);}
-function buildCoach(){
+function makeCoach(){
   const g=new THREE.Group();const skin=new THREE.MeshLambertMaterial({color:0xd9a77f}),pants=mat(0x1c1c22),jac=new THREE.MeshLambertMaterial({map:coachJacketTex()}),sleeve=mat(0xf2d21b),cuff=mat(0x161616);
   for(const sx of [-0.11,0.11]){const l=limb(pants,0.075,G_THIGH);place(l,V(sx,0.95,0),V(sx,0.08,0));g.add(l);const sh=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.28),mat(0x111111));sh.position.set(sx,0.04,0.05);g.add(sh);}
   const torso=new THREE.Mesh(G_TORSO,jac);torso.scale.set(0.21,0.62,0.16);torso.position.y=1.26;g.add(torso);
@@ -994,20 +1003,96 @@ function buildCoach(){
     const cf=limb(cuff,0.046,G_LIMB);place(cf,V(0,-0.24,0),V(0,-0.28,0));el.add(cf);
     const hand=new THREE.Mesh(new THREE.SphereGeometry(0.045,10,8),skin);hand.position.y=-0.31;el.add(hand);arms.push({piv,el,sx});}
   const tag=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.28),new THREE.MeshBasicMaterial({map:textTex('STAREJ ŠÉF','#161616','#f2d21b'),transparent:true}));tag.position.set(0,2.2,0);g.add(tag);
-  g.position.set(PODX,0,2.9);g.rotation.y=PI/2;JUDGES.add(g);
-  COACH={g,head,arms,skin,mood:'idle',t:0,tag};}
-function animCoach(dt){if(!COACH)return;const C=COACH;C.t+=dt;const t=C.t,H=C.head;
+  const bino=new THREE.Group();for(const sx of [-1,1]){const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.032,0.12,10),mat(0x1b1b1b));tb.rotation.x=PI/2;tb.position.set(sx*0.035,0.02,0.17);bino.add(tb);}
+  const br=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.02,0.04),mat(0x1b1b1b));br.position.set(0,0.02,0.16);bino.add(br);bino.visible=false;head.add(bino);
+  const beer=new THREE.Group();const bb=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.17,10),mat(0x2f6b2a));bb.position.y=-0.05;beer.add(bb);
+  const bn=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.03,0.07,8),mat(0x2f6b2a));bn.position.y=0.07;beer.add(bn);beer.visible=false;arms[1].el.add(beer);beer.position.y=-0.36;
+  return {g,head,arms,skin,mood:'idle',t:0,tag,bino,beer,baseY:0,yaw:0};}
+function buildCoach(){COACH=makeCoach();COACH.g.position.set(PODX,0,2.9);COACH.g.rotation.y=PI/2;JUDGES.add(COACH.g);
+  // the same old boss watches the race from the top of the 2nd turn, standing on a box behind the barrier
+  const sC=LSTR/2+LT+LA/2+L0/2,f=frameAt(sC),p=new THREE.Vector3();surf(sC,TW,p);const top=p.y+0.75;
+  const ox=p.x+f.nx*0.9,oz=p.z+f.nz*0.9;
+  const box=new THREE.Mesh(new THREE.BoxGeometry(1.8,top+0.5,1.4),mat(0x6e4826));box.position.set(ox,(top-0.5)/2,oz);box.rotation.y=Math.atan2(f.fx,f.fz);scene.add(box);
+  RCOACH=makeCoach();RCOACH.g.position.set(ox,top,oz);RCOACH.baseY=top;RCOACH.g.rotation.y=Math.atan2(-f.nx,-f.nz);RCOACH.s=sC;RCOACH.mood='watch';scene.add(RCOACH.g);}
+function animCoach(dt,C){C=C||COACH;if(!C)return;C.t+=dt;const t=C.t,H=C.head;
   C.g.scale.y=1+Math.sin(t*2)*0.006;C.tag.lookAt(camera.position);
   const [L,Rr]=C.arms;let face=0xd9a77f;
   if(C.mood==='angry'){const sh=Math.sin(t*14);for(const a of C.arms){a.piv.rotation.x=-1.9+sh*0.35*a.sx;a.piv.rotation.z=a.sx*0.35;a.el.rotation.x=-0.6+Math.sin(t*9)*0.4;}
-    H.rotation.y=Math.sin(t*7)*0.25;H.rotation.x=0.08;C.g.position.y=Math.abs(Math.sin(t*7))*0.05;face=0xe0624c;
+    H.rotation.y=C.yaw+Math.sin(t*7)*0.25;H.rotation.x=0.08;C.g.position.y=C.baseY+Math.abs(Math.sin(t*7))*0.05;face=0xe0624c;
     H.userData['brow-1'].rotation.z=-0.45;H.userData['brow1'].rotation.z=0.45;H.userData.mouth.rotation.z=0;}
   else if(C.mood==='happy'){for(const a of C.arms){a.piv.rotation.x=-2.6;a.piv.rotation.z=a.sx*(0.55+Math.sin(t*6)*0.25);a.el.rotation.x=-0.3;}
-    H.rotation.y=Math.sin(t*2)*0.15;H.rotation.x=-0.1;C.g.position.y=Math.abs(Math.sin(t*5))*0.07;
+    H.rotation.y=Math.sin(t*2)*0.15;H.rotation.x=-0.1;C.g.position.y=C.baseY+Math.abs(Math.sin(t*5))*0.07;
     H.userData['brow-1'].rotation.z=0.15;H.userData['brow1'].rotation.z=-0.15;H.userData.mouth.rotation.z=PI;}
+  else if(C.mood==='watch'){for(const a of C.arms){a.piv.rotation.x=-1.25;a.piv.rotation.z=-a.sx*0.35;a.el.rotation.x=-1.75;}   // binoculars to the eyes
+    H.rotation.y=C.yaw;H.rotation.x=0.12;C.g.position.y=C.baseY;H.userData['brow-1'].rotation.z=-0.3;H.userData['brow1'].rotation.z=0.3;H.userData.mouth.rotation.z=0;}
+  else if(C.mood==='throw'){const k=clamp(C.t/0.6,0,1);const a=C.arms[1];a.piv.rotation.x=-3.0+k*2.6;a.piv.rotation.z=0.2;a.el.rotation.x=-1.2+k*1.1;C.arms[0].piv.rotation.x=-0.6;C.arms[0].el.rotation.x=-0.8;
+    H.rotation.y=C.yaw;C.g.position.y=C.baseY;face=0xe0624c;H.userData.mouth.rotation.z=0;}
   else{for(const a of C.arms){a.piv.rotation.x=-0.35;a.piv.rotation.z=a.sx*0.55;a.el.rotation.x=-1.9;}   // hands on hips
-    H.rotation.y=Math.sin(t*0.7)*0.3;H.rotation.x=0;C.g.position.y=0;H.userData['brow-1'].rotation.z=-0.15;H.userData['brow1'].rotation.z=0.15;H.userData.mouth.rotation.z=0;}
+    H.rotation.y=Math.sin(t*0.7)*0.3;H.rotation.x=0;C.g.position.y=C.baseY;H.userData['brow-1'].rotation.z=-0.15;H.userData['brow1'].rotation.z=0.15;H.userData.mouth.rotation.z=0;}
+  C.bino.visible=C.mood==='watch';C.beer.visible=C.mood==='throw'&&C.t<0.45;
   C.skin.color.lerp(new THREE.Color(face),Math.min(1,dt*4));}
+
+// ---------- the boss during the race: shouting + beer cans that can bring riders down ----------
+let cans=[],yellT=6,throwT=14,bossMsgT=0;const canGeo=new THREE.CylinderGeometry(0.035,0.035,0.17,10),canMat=new THREE.MeshLambertMaterial({color:0x2f6b2a});
+const foamMat=new THREE.MeshBasicMaterial({color:0xf6e7a6,transparent:true,opacity:0.8,depthWrite:false}),warnMat=new THREE.MeshBasicMaterial({color:0xffd166,transparent:true,opacity:0.7,depthWrite:false,side:THREE.DoubleSide});
+function bossSay(txt,angry){const el=$('boss');el.innerHTML='🧔 <b>ŠÉF:</b> '+txt;el.style.opacity=1;bossMsgT=2.8;if(RCOACH&&angry){RCOACH.mood='angry';RCOACH.t=0;}
+  try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt.replace(/[!?]+/g,'!'));u.lang='cs-CZ';u.rate=1.2;u.pitch=0.7;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}
+function bossLine(){const R=player,toGo=FIN-R.s;if(R.finished||R.crashed)return null;
+  let lead=true;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0&&g<10)lead=false;}
+  let front=-1e9;for(const o of riders)if(!o.crashed&&o.model.g.visible)front=Math.max(front,o.s);
+  if(mode==='kilo')return pick(['Zrychli!','Makej, ručička letí!','Nepovoluj!','Šlápni do toho!','To je tempo jak na procházce!']);
+  if(toGo<L0*0.9)return pick(['TEĎ! JEĎ!','Sprint, sprint, sprint!','Dej tam všechno!']);
+  if(R.w<-0.05)return 'Vypadni z modrý!';
+  if(front-R.s>25)return pick(['Dojeď je, ty lemro!','Co tam vzadu děláš?! Zrychli!','Ujíždí ti to! Šlápni do toho!']);
+  if(lead&&R.draft<0.1)return pick(['Co děláš na špici?! Schovej se!','Netahej jim to zadarmo!','Za kolo, sakra!']);
+  if(R.energy<20)return pick(['Ty už jsi uvařenej?!','Dýchej a drž kolo!']);
+  if(toGo<L0*2.2)return pick(['Jeď nahoru, připrav si to!','Pozor na pozici, buď vepředu!','Hlídej si Tufo!']);
+  return pick(['Drž kolo!','Hlavně se nenech zavřít!','Co to je za tempo?!','Makej!','Nespi!']);}
+function throwBeer(){const cands=riders.filter(r=>!r.crashed&&!r.finished&&r.model.g.visible&&Math.abs(gapTo({s:RCOACH.s},r))<45);if(!cands.length)return false;
+  const tgt=cands.includes(player)&&Math.random()<0.7?player:pick(cands);const T=1.25,ls=tgt.s+tgt.v*T+4+Math.random()*4,lw=clamp(tgt.w+(Math.random()-.5)*0.5,0.15,TW-0.6);
+  const st=new THREE.Vector3();RCOACH.arms[1].el.getWorldPosition(st);
+  const m=new THREE.Mesh(canGeo,canMat);m.position.copy(st);scene.add(m);
+  const warn=new THREE.Mesh(new THREE.RingGeometry(0.25,0.4,20),warnMat);scene.add(warn);
+  cans.push({s:ls,w:lw,vw:0,t:-T,T,from:st.clone(),mesh:m,warn,foam:null,tgt,dodged:false});
+  RCOACH.mood='throw';RCOACH.t=0;if(tgt===player)showMsg('🍺<small>Šéf hází pivo! Uhni!</small>',1.4);return true;}
+const _cv=new THREE.Vector3(),_cn=new THREE.Vector3();
+function updateCans(dt){for(let i=cans.length-1;i>=0;i--){const c=cans[i];c.t+=dt;const f=frameAt(c.s);const b=c.w>=0?f.b:8*deg;surf(c.s,c.w,_cv);
+    _cn.set(-f.nx*Math.sin(b),Math.cos(b),-f.nz*Math.sin(b));
+    c.warn.position.copy(_cv).addScaledVector(_cn,0.02);c.warn.lookAt(_cv.x+_cn.x,_cv.y+_cn.y,_cv.z+_cn.z);c.warn.visible=c.t<0;
+    if(c.t<0){const k=1+c.t/c.T;c.mesh.position.lerpVectors(c.from,_cv,k);c.mesh.position.y+=Math.sin(k*PI)*3.2;c.mesh.rotation.x+=dt*12;c.mesh.rotation.z+=dt*7;continue;}
+    if(!c.foam){c.foam=new THREE.Mesh(new THREE.CircleGeometry(0.45,16),foamMat);scene.add(c.foam);tone(900,0.08,0.08,'square');}
+    c.vw-=9.81*Math.sin(b)*0.25*dt;c.vw*=Math.exp(-0.8*dt);c.w=Math.max(-BAND-0.3,c.w+c.vw*dt);
+    surf(c.s,c.w,_cv);c.mesh.position.copy(_cv).addScaledVector(_cn,0.035);c.mesh.rotation.set(0,Math.atan2(f.fx,f.fz),PI/2);c.mesh.rotateX(c.t*6);
+    c.foam.position.copy(_cv).addScaledVector(_cn,0.012);c.foam.lookAt(_cv.x+_cn.x,_cv.y+_cn.y,_cv.z+_cn.z);
+    if(phase==='race')for(const R of riders){if(R.crashed||R.finished||!R.model.g.visible)continue;const g=gapTo(R,c),dw=Math.abs(R.w-c.w);
+      if(Math.abs(g)<0.55&&dw<0.3&&R.v>3){crashRider(R,'beer');if(R!==player&&!player.crashed)showMsg('<small>🍺 '+R.name+' to dostal pivem!</small>',1.6);}
+      else if(R===player&&!c.dodged&&g<-0.6&&g>-3&&dw<1.6){c.dodged=true;if(c.tgt===player){raceBonus+=5;showMsg('<small>🍺 Uhnul jsi pivu! +5 🎖️</small>',1.2);}}}
+    if(c.t>7||c.w<=-BAND-0.3){scene.remove(c.mesh);c.foam&&scene.remove(c.foam);scene.remove(c.warn);cans.splice(i,1);}}}
+function clearCans(){for(const c of cans){scene.remove(c.mesh);c.foam&&scene.remove(c.foam);scene.remove(c.warn);}cans=[];}
+function updateBoss(dt){if(!RCOACH)return;RCOACH.g.updateMatrixWorld();
+  // look towards the player
+  const wp=new THREE.Vector3();player.model.g.getWorldPosition(wp);const cp=new THREE.Vector3();RCOACH.g.getWorldPosition(cp);
+  let a=Math.atan2(wp.x-cp.x,wp.z-cp.z)-RCOACH.g.rotation.y;while(a>PI)a-=2*PI;while(a<-PI)a+=2*PI;RCOACH.yaw+=(clamp(a,-1.3,1.3)-RCOACH.yaw)*Math.min(1,dt*3);
+  if((RCOACH.mood==='angry'||RCOACH.mood==='throw')&&RCOACH.t>1.4){RCOACH.mood='watch';RCOACH.t=0;}
+  animCoach(dt,RCOACH);
+  if(bossMsgT>0){bossMsgT-=dt;if(bossMsgT<=0)$('boss').style.opacity=0;}
+  if(phase!=='race')return;
+  yellT-=dt;if(yellT<=0){yellT=7+Math.random()*7;const l=bossLine();if(l)bossSay(l,true);}
+  if(mode==='scratch'&&raceTime>12){throwT-=dt;if(throwT<=0){throwT=throwBeer()?16+Math.random()*18:2;}}
+  updateCans(dt);}
+
+// ---------- military credits ----------
+let raceBonus=0,lastEarned=0;
+function getVK(){try{return parseInt(localStorage.getItem('motol_vk')||'0',10)||0;}catch(e){return 0;}}
+function addVK(n){const t=getVK()+n;try{localStorage.setItem('motol_vk',String(t));}catch(e){}updateVKBadge();return t;}
+function updateVKBadge(){$('vkTotal').textContent=getVK().toLocaleString('cs-CZ');}
+function earnedCredits(){let n=0,why=[];const R=player;
+  if(mode==='kilo'){if(!R.finished)return {n:0,why:['nedokončeno']};n=20;why.push('dokončený kilometr +20');const sp=1000/R.time*3.6;const b=Math.max(0,Math.round((sp-48)*4));if(b){n+=b;why.push('rychlost '+sp.toFixed(1)+' km/h +'+b);}
+    if(R.isPB){n+=50;why.push('osobní rekord +50');}}
+  else{if(R.crashed){why.push('pád – DNF +0');}
+    else{const rank=standings().filter(r=>!r.crashed).indexOf(R)+1;const tab=[100,70,50,35,28,22,18,15,12];const b=tab[rank-1]||10;n+=b;why.push(rank+'. místo +'+b);}}
+  if(raceBonus){n+=raceBonus;why.push('uhnuté pivo +'+raceBonus);}
+  return {n,why};}
 
 // ---------- race stats for the coach ----------
 let ST=null;
@@ -1035,7 +1120,7 @@ function coachVerdict(){
     if(spd<52)b.push('Průměr '+spd.toFixed(1)+' km/h? To je tempo na vyjížďku do Berouna.');
     if(pb)b.push('Osobák máš '+fmt(pb)+' a dneska '+fmt(t)+'. Makej!');
     return {mood:'angry',lines:b};}
-  if(R.crashed){const c=R.crash.cause;const tip={rear:'Najel jsi zezadu do kola před sebou! Drž odstup a koukej dopředu, ne na zem!',hook:'Uhnul jsi do kola, když jste se překrývali. To se nedělá, to ví každej žák!',hit:'Nechal ses sestřelit zezadu. Nejezdi tak nevyzpytatelně!',band:'Nechal ses vytlačit na modrou jak junior. V loktování se musíš zapřít!',barrier:'Vytlačili tě až na mantinel! Musíš držet svoji stopu!',pile:'Najel jsi do ležícího! Když se padá, musíš objíždět vrchem!'}[c]||'';
+  if(R.crashed){const c=R.crash.cause;const tip={rear:'Najel jsi zezadu do kola před sebou! Drž odstup a koukej dopředu, ne na zem!',hook:'Uhnul jsi do kola, když jste se překrývali. To se nedělá, to ví každej žák!',hit:'Nechal ses sestřelit zezadu. Nejezdi tak nevyzpytatelně!',band:'Nechal ses vytlačit na modrou jak junior. V loktování se musíš zapřít!',barrier:'Vytlačili tě až na mantinel! Musíš držet svoji stopu!',pile:'Najel jsi do ležícího! Když se padá, musíš objíždět vrchem!',beer:'Kvůli jednomu pivu?! Když letí flaška, tak uhneš, to je základ!'}[c]||'';
     return {mood:'angry',lines:[pick(['Spadnout?! V Motole?!','Co to bylo za kotrmelec?!','Já se snad zblázním!']),'Ještě jednou a vyhodím tě z repre!',tip,'Teď si jdi zchladit hlavu do podchodu.']};}
   const rank=standings().filter(r=>!r.crashed).indexOf(R)+1;
   if(rank===1){const g=[pick(['Tak tohle se mi líbí!','Výborně, chlapče!','No konečně! Takhle se jezdí!'])];
@@ -1082,19 +1167,20 @@ function showResults(display){
       h+='<tr class="'+(R.player?'me':'')+'"><td>'+(R.crashed?'–':(i+1)+'.')+'</td><td><span class="dot" style="background:'+hex(R.jersey)+'"></span>'+R.name+'<div style="font-size:11px;opacity:.7;margin-left:17px">'+TEAMS[R.team].name+'</div></td><td>'+t+'</td></tr>';});}
   else{$('resTitle').textContent='KILOMETR · '+fmt(player.time);let prev=0;
     splits.forEach((t,i)=>{h+='<tr><td>'+(i===0?'½ kola':'Kolo '+(i+0.5).toString().replace('.',','))+'</td><td>'+fmt(t)+'</td><td>'+(t-prev).toFixed(2)+' s</td></tr>';prev=t;});
-    const pb=bestKilo();let isPB=!pb||player.time<pb;if(isPB){try{localStorage.setItem('motol_kilo_pb',String(player.time));}catch(e){}}
+    const pb=bestKilo();let isPB=player.isPB!==undefined?player.isPB:(!pb||player.time<pb);player.isPB=isPB;if(isPB){try{localStorage.setItem('motol_kilo_pb',String(player.time));}catch(e){}}
     h+='<tr class="me"><td>Osobní rekord</td><td></td><td>'+(isPB?fmt(player.time)+' 🎉 NOVÝ':fmt(pb))+'</td></tr>';
     h+='<tr><td>Průměr</td><td></td><td>'+(1000/player.time*3.6).toFixed(1)+' km/h</td></tr>';}
   $('resTable').innerHTML=h;if(display!==false)$('results').style.display='flex';$('ctl').style.display='none';}
 
-function startRace(m){clearCeremony();resetStats();if(m)mode=m;initAudio();resetRiders();setEffort(mode==='kilo'?0.9:0.55);raceTime=0;countT=3.999;phase='countdown';resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
+function startRace(m){clearCeremony();resetStats();clearCans();raceBonus=0;yellT=6;throwT=14;$('boss').style.opacity=0;if(m)mode=m;initAudio();resetRiders();setEffort(mode==='kilo'?0.9:0.55);raceTime=0;countT=3.999;phase='countdown';resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
   $('menu').style.display='none';$('results').style.display='none';$('hud').style.display='block';$('ctl').style.display='flex';setupMap();drawLapBoard(Math.ceil(LAPS));}
 $('btnScratch').onclick=()=>startRace('scratch');$('btnKilo').onclick=()=>startRace('kilo');$('againBtn').onclick=()=>startRace();
 $('cerAgain').onclick=()=>startRace();$('cerMenu').onclick=()=>$('menuBtn').onclick();
-$('menuBtn').onclick=()=>{clearCeremony();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();};
+$('menuBtn').onclick=()=>{clearCeremony();clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();};
 
 if(/Instagram|FBAN|FBAV/i.test(navigator.userAgent))$('iabHint').style.display='block';
-if(!('ontouchstart' in window))$('keyHelp').style.display='block';
+if(!('ontouchstart' in window)&&innerWidth>760)$('keyHelp').style.display='block';
+updateVKBadge();
 // ---------- loop ----------
 resetRiders();
 let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1){window.__R=riders;window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
@@ -1116,7 +1202,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-las
       else showMsg(fmt(player.time)+'<small>'+(1000/player.time*3.6).toFixed(1)+' km/h</small>',3.5);}
     if(phase==='done'&&!resultsShown){finishWait+=dt;if(finishWait>3.5&&(active().every(r=>r.finished||r.crashed)||finishWait>15)){resultsShown=true;startCeremony();}}
   }
-  placeModels(dt);updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();renderer.render(scene,camera);}
+  updateBoss(dt);placeModels(dt);updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();renderer.render(scene,camera);}
 requestAnimationFrame(frame);
 })();
 </script>
