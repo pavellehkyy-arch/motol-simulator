@@ -1118,7 +1118,7 @@ function resetRiders(){
   order.forEach((ri,slot)=>{const R=riders[ri];const row=slot>>1;
     Object.assign(R,{s:SF-1.2-row*2.3,w:slot%2?1.9:0.8,v:0,h:0,power:0,energy:100,wp:22000,crank:Math.random()*6,draft:0,finished:false,time:0,targetW:0,lane:0.4+Math.random()*1.0,mood:1,sprintAt:170+Math.random()*190,attackT:0,lean:0,dw:0,cda:R.player?0.25:0.26,realP:0,crashed:false,crash:null,targetWp:0,latched:false,eRate:0,intent:0,pushedT:0,contact:0,pullT:0,swing:0,str:R.player?1:0.85+Math.random()*0.3,aggr:Math.random(),highLane:1.6+Math.random()*1.8,pullAt:55+Math.random()*20,ftp:R.player?330:Math.round(TSTAT[R.team].ftp[0]+Math.random()*(TSTAT[R.team].ftp[1]-TSTAT[R.team].ftp[0]))});
     if(!R.player){const T=TSTAT[R.team];R.str=T.str[0]+Math.random()*(T.str[1]-T.str[0]);R.aggr=T.aggr[0]+Math.random()*(T.aggr[1]-T.aggr[0]);R.lane=T.lane+Math.random()*0.5;R.front=T.front;}
-    R.wp=R.player?20000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;   // every bot has his own hidden tank and his own recoveryR.frontT=0;R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
+    R.wp=R.player?20000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='elim'||mode==='keirin'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
     if(mode==='kilo'&&R===player){R.s=START_S-0.6;R.w=0.5;}
     R.targetWp=R.w;R.model.g.rotation.set(0,0,0);
     R.h=surfY(R.s,R.w);R.targetW=R.w;R.prevS=R.s;});
@@ -1220,7 +1220,7 @@ function physics(R,dt){
   const bunchChase=mode==='elim'&&R.chaseT>0;   // the bunch shares the chase – one bot stands for the whole pack bringing the escapee back
   if(R.energy<25&&!bunchChase)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
   const Pe=Math.max(P,0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*(R.recK||1.8);
-  let dE=(rec-drain*(mode==='elim'?(R.draft>0.1||bunchChase?0.45:1.5):1))/R.wp*100;   // elimination: in the wheels you spend almost nothing, in the wind a lot
+  let dE=(rec-drain*(R.endur||1)*(mode==='elim'?(R.draft>0.1||bunchChase?0.45:1.5):1))/R.wp*100;   // elimination: in the wheels you spend almost nothing, in the wind a lot
   if(R.resting&&Pe<R.ftp)dE+=2.0;   // the resting partner recovers up on the banking
   if(mode!=='kilo'&&mode!=='keirin'&&!R.resting&&R.draft<0.08&&Pe>0.8*R.ftp)dE-=(Pe/R.ftp-0.8)*(mode==='points'&&R.attackT>0?1.1:mode==='scratch'||mode==='points'||mode==='madison'?1.4:2.6);
   if(mode==='elim'&&!bunchChase&&!R.resting&&!R.out&&R.draft<0.08&&phase==='race'&&!isNeutral()&&R.v>8)dE-=2.2+Math.max(0,R.v-11)*0.8;   // elimination: riding on the front / off the front burns the tank fast   // pulling at the front in the wind: extra cost
@@ -1362,7 +1362,7 @@ function botAI(R,dt){const RP=aiPace();
     else if(d<6)vT=Math.min(vT,vEq(tgt)+(d-1.9)*0.7);
     else vT=Math.max(vT,vEq(tgt)+Math.min(2.4,(d-3)*0.12));   // a gap opened in the line: close it
     if(!worker&&chasing&&d>5)vT=Math.min(vT,g.vT);}
-  if(R.pullT>0)vT=g.vT-0.85;   // swung off: soft-pedal and let the line come past
+  if(R.pullT>0)vT=g.vT-0.55;   // swung off: soft-pedal and let the line come past
   if(!worker&&front&&!sprinting&&!(R.attackT>0)&&others&&!g.brk)vT=Math.min(vT,RP-0.3);   // not going to pull for them
   const empty=R.energy<14&&R.draft<0.15&&!sprinting;   // empty and in the wind: ride within yourself and recover, or you're finished for the day
   if(R.energy<12&&!sprinting)vT=Math.min(vT,RP-0.4);
