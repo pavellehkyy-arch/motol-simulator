@@ -214,6 +214,7 @@ tr.me td{color:#ffd166;font-weight:800}
     <button class="go" id="slingBtn" style="pointer-events:auto;margin-top:8px;min-width:0;padding:10px 18px;font-size:15px;background:#2fd36b;color:#111;box-shadow:0 4px 14px rgba(47,211,107,.4)">🤝 PŘEDAT (E)</button>
     <div id="slingHint" style="font-size:12px;font-weight:800;margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.8)">Trefa do zelené = silnější vrh</div>
   </div>
+  <button class="go" id="skipResc" style="display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:90px;flex:none;min-width:0;padding:10px 16px;font-size:15px;background:rgba(15,25,40,.82);border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)">⏩ Přeskočit (Mezerník)</button>
 </div>
 
 <div id="ctl">
@@ -2236,6 +2237,14 @@ function updateRescue(dt){if(!RESC)return;const R=RESC;R.t+=dt;const c=R.crew;
   if(R.st==='down'&&R.t>0.7){R.stretcher.position.y+=(0.3-R.stretcher.position.y)*Math.min(1,dt*3);}
   else{R.stretcher.position.y=0.82+(yF+yR)/2;R.stretcher.rotation.x=Math.atan2(yR-yF,3.0);}}
 function clearRescue(){if(RESC){scene.remove(RESC.crew);RESC=null;}}
+// skip the rescue: jump straight to the end pose (stretcher put down by the podium)
+function skipRescue(){if(!player||!player.crashed||resultsShown)return;if(!RESC)startRescue();const R=RESC,c=R.crew;
+  c.position.copy(R.end);const pod=new THREE.Vector3(PODX,0,0);JUDGES.localToWorld(pod);c.rotation.y=Math.atan2(pod.x-c.position.x,pod.z-c.position.z);
+  R.fig.visible=true;player.model.g.visible=false;R.path=null;
+  R.meds[0].g.position.set(1.15,R.meds[0].g.position.y,1.1);R.meds[1].g.position.set(-1.15,R.meds[1].g.position.y,-0.3);
+  R.stretcher.position.y=0.3;R.stretcher.rotation.x=0;R.st='done';R.t=0;$('msg').innerHTML='';msgT=0;}
+$('skipResc').addEventListener('click',e=>{e.preventDefault();skipRescue();});
+addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='Enter'||e.code==='Escape')&&!e.repeat&&player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done')){e.preventDefault();e.stopImmediatePropagation();skipRescue();}},true);
 const _rl=new THREE.Vector3(),_rc=new THREE.Vector3();
 function rescueCam(dt){const c=RESC.crew.position;if(RESC.st==='run'){const pp=new THREE.Vector3();player.model.g.getWorldPosition(pp);_rl.copy(c).add(pp).multiplyScalar(0.5);}else _rl.copy(c);_rl.y+=0.9;
   const fy=RESC.crew.rotation.y,fx=Math.sin(fy),fz=Math.cos(fy);_rc.set(_rl.x+fz*6-fx*2.5,_rl.y+3.2,_rl.z-fx*6-fz*2.5);
@@ -2894,7 +2903,7 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
     if(phase==='done'&&!resultsShown&&(mode==='elim'||mode==='keirin')&&player.out&&!player.crashed){finishWait+=dt;if(finishWait>3.5){resultsShown=true;player.model.g.visible=false;fastForward();startCeremony();}}
     if(phase==='done'&&!resultsShown){finishWait+=dt;if(finishWait>3.5&&(!raceOpen()||finishWait>15)){resultsShown=true;startCeremony();}}
   }
-  updateBoss(dt);updateRescue(dt);updateSlingUI(dt);placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
+  updateBoss(dt);updateRescue(dt);updateSlingUI(dt);{const sk=$('skipResc'),on=!!(player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done'));if(sk.style.display!==(on?'block':'none'))sk.style.display=on?'block':'none';}placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
 requestAnimationFrame(frame);if(window.__ld)window.__ld(.85);
 })();
 </script>
