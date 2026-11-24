@@ -936,7 +936,7 @@ function botAI(R,dt){
     if(g<gapA&&g<70&&!o.resting){gapA=g;anyA=o;}
     if(g<gap&&g<40&&Math.abs(o.w-R.w)<0.9){gap=g;ahead=o;}}
   let front=-1e9;for(const o of riders)if(o.model.g.visible&&!o.crashed&&!o.resting&&o.s>front)front=o.s;const gapFront=front-R.s;
-  if(mode==='madison')for(const o of riders){if(!o.resting||o.crashed||teamOf(o)===teamOf(R))continue;const g=gapTo(R,o);if(g>0&&g<20&&Math.abs(o.w-R.w)<1.0&&o.v<R.v){wreck={w:o.w+(o.w>1.4?-2.0:2.0),crash:{t:0}};if(g<10&&o.slowT>0)wreck.brake=o.v+0.3;}}
+  if(mode==='madison')for(const o of riders){if(!o.resting||o.crashed||teamOf(o)===teamOf(R))continue;const g=gapTo(R,o);if(g>0&&g<20&&Math.abs(o.w-R.w)<1.0&&o.v<R.v){wreck={w:o.w>1.1?0.4:o.w+0.95,crash:{t:0},mad:true};if(g<10&&o.slowT>0)wreck.brake=o.v+0.3;}}
   for(const c of cans){if(c.t<-0.3)continue;const g=gapTo(R,c);if(g>0&&g<22&&Math.abs(c.w-R.w)<0.9)wreck={w:c.w,crash:{t:0}};}
   const sprinting=toGo<R.sprintAt&&R.energy>2;
   if(R.attackT>0)R.attackT-=dt;
@@ -977,8 +977,10 @@ function botAI(R,dt){
   if(wantPass){const up=ahead.w+0.85;if(freeAt(R,up,3))tw=up;else if(R.aggr>0.65&&lapsLeft<1.2)tw=up;else tw=Math.min(tw,ahead.w);}
   else if(ahead&&gap<10&&!sprinting&&R.pullT<=0)tw=ahead.w;   // ride in line
   if(gapFront>40&&gapA>15&&!sprinting)tw=0.45;   // dropped / lapped: hold the black line, others latch on or pass above
-  if(wreck)tw=wreck.w+1.8;
-  if(mode==='madison'&&MT){const T=teamOf(R);if(T&&T.act===R&&T.want&&T.rest){const d=gapTo(R,T.rest);if(d>-2&&d<30)tw=Math.max(tw,1.15);}}   // move up a little to meet the partner coming down
+  if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
+  // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
+  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.2;tw=passing?Math.min(tw,ahead.w+0.85):(ahead&&gap<8&&ahead.w<0.9?ahead.w:0.4);if(R.pullT>0)tw=Math.min(1.25,0.4+R.swing*0.65);tw=Math.min(tw,1.5);}
+  if(mode==='madison'&&MT){const T=teamOf(R);if(T&&T.act===R&&T.want&&T.rest){const d=gapTo(R,T.rest);if(d>-2&&d<8)tw=Math.max(tw,0.6);}}   // move up a little to meet the partner coming down
   R.targetW=clamp(tw,0.35,mode==='madison'?3.2:TW-0.9);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
   steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0);
