@@ -510,12 +510,6 @@ function buildJudges(){
   const tb=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.04,0.7),mat(0x222222));tb.position.y=0.02;tvG.add(tb);
   const bez=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.05,1.75),mat(0x111111));bez.position.set(0,1.95,0);tvG.add(bez);
   TVMESH=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.92),new THREE.MeshBasicMaterial({map:tvTex}));TVMESH.rotation.y=PI/2;TVMESH.position.set(0.065,1.95,0);tvG.add(TVMESH);drawTV(null);
-  // photo-finish camera on the finish line + bell
-  const fl=frameAt(SF),po=BAND*Math.cos(8*deg)+0.6;const cam=new THREE.Group();cam.position.set(fl.px-fl.nx*po,INF_Y,fl.pz-fl.nz*po);cam.rotation.y=h;scene.add(cam);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,2.6,6),mat(0x222222));pole.position.y=1.3;cam.add(pole);
-  const box=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.25,0.25),mat(0x111111));box.position.set(-0.1,2.65,0);cam.add(box);
-  const bs=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.5,6),mat(0x777777));bs.position.set(0.2,0.75,1.0);cam.add(bs);
-  const bell=new THREE.Mesh(new THREE.SphereGeometry(0.14,10,8,0,2*PI,0,PI/2),mat(0xd4a017));bell.position.set(0.2,1.55,1.0);bell.rotation.x=PI;cam.add(bell);
 }
 function buildHallExtras(){
   // two long fabric air-ducts under the roof
@@ -838,8 +832,6 @@ function buildInfield(){
    const base=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.3,1.8),dk);base.position.y=0.15;g.add(base);
    for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.08,10),mat(0x111111));wh.rotation.z=PI/2;wh.position.set(sx*0.62,0.14,sz*0.75);g.add(wh);}
    const lad=latticeLadder(13,0.95,dk);lad.scale.set(1,1.8,1);lad.position.set(0,0.3,0);lad.rotation.x=-0.92;g.add(lad);}
-  // speakers on poles
-  for(const [x,z] of [[-5,-9],[5,-9]]){const p=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,3,6),mat(0x222222));p.position.set(x,y0+1.5,z);scene.add(p);const sp=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.8,0.5),mat(0x1a1a1a));sp.position.set(x,y0+3.2,z);scene.add(sp);}
 }
 buildInfield();buildHallExtras();buildJudges();buildStairwell();buildCoach();
 // bake the static hall + infield into a few big meshes (one per material): ~10x fewer draw calls, cheap shadows
