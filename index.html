@@ -1423,13 +1423,15 @@ function steerBot(R,dt,force){
 function playerControl(dt){
   const R=player;
   const e=keys.sprint?1:effort;R.follow=null;
+  R.noLatchT=Math.max(0,(R.noLatchT||0)-dt);
+  if(R.latched&&e>=0.8){R.latched=false;R.noLatchT=4;}   // you pushed the effort up to sprint while hooked on -> you mean it: leave the wheel and go
   if(R.finished){R.power=80;}
   else{let ah=null,gap=1e9;
     if(mode!=='kilo'&&e>=0.12)for(const o of riders){if(o===R||o.crashed||o.resting||o.out||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0.3&&g<14&&g<gap&&Math.abs(o.w-R.w)<0.75){gap=g;ah=o;}}
     if(mode==='keirin'&&dernyOn()&&e>=0.12){const g=gapTo(R,DERNY);if(g>0.3&&g<14&&g<gap&&Math.abs(DERNY.w-R.w)<0.75){gap=g;ah=DERNY;}}
     if(ah){const cl=R.v-ah.v;if(gap>4.5&&!(cl>0.4&&gap/cl<2.2))ah=null;}   // far away and not closing fast -> not yet
     if(!ah&&R.latched)R.latched=false;
-    if(ah&&!R.latched&&!keys.sprint&&e>=0.8&&gap>2.4&&R.v-ah.v>0.8&&R.catchT>1.0){R.latched=true;setEffort(0.6);if(ST)ST.latches++;if(msgT<=0)showMsg('<small>🔗 Zahákl ses – regeneruješ</small>',1.2);}
+    if(ah&&!R.latched&&!keys.sprint&&!(R.noLatchT>0)&&e>=0.8&&gap>2.4&&R.v-ah.v>0.8&&R.catchT>1.0){R.latched=true;setEffort(0.6);if(ST)ST.latches++;if(msgT<=0)showMsg('<small>🔗 Zahákl ses – regeneruješ</small>',1.2);}
     if(ah&&e>=0.8&&!R.latched)ah=null;
     if(ah){R.follow=ah;const vT=ah.v+(gap-(ah===DERNY?2.2:1.9))*0.5;const cda=R.cda*(1-R.draft);
       const brake=vT<R.v-0.3;const Pt=clamp((0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+(brake?900:260)*(vT-R.v)*(brake?R.v/6:1),-2600,raceTime<6?480:1150);R.fP=(R.fP==null?Pt:R.fP+(Pt-R.fP)*Math.min(1,dt*6));R.power=R.fP;}
