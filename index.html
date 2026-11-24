@@ -677,34 +677,125 @@ const discTex=(()=>{const c=mkCanvas(256,256),g=c.getContext('2d');const gr=g.cr
   g.fillStyle='#888';g.beginPath();g.arc(128,128,14,0,7);g.fill();return new THREE.CanvasTexture(c);})();
 const discMat=new THREE.MeshPhongMaterial({map:discTex,specular:0x555555,shininess:50});
 const carbon=new THREE.MeshPhongMaterial({color:0x17181b,specular:0x444444,shininess:40});
-function makeBike(o){
+// ---- track bikes: aero carbon frames built from side profiles (deep tubes, seat tube hugging the rear wheel, dropped stays, wide fork),
+// gum-wall tubulars, discs / blade wheels / deep spoked rims, big chainring, track drops – geometry is shared, only paint differs per bike
+const BIKEG={};const _bm={};
+function bikeMat(c,sh){const k=c+'|'+(sh||0);return _bm[k]||(_bm[k]=new THREE.MeshPhongMaterial({color:c,specular:0x8a8f99,shininess:sh||90}));}
+// a 2-D "sweep": centre-line points (z,y) with a depth at each one -> closed outline -> extruded sideways (x) with a soft bevel
+function profileGeo(pts,ws,thick,bev){const L=[],R=[];for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];let tz=b[0]-a[0],ty=b[1]-a[1];const tl=Math.hypot(tz,ty)||1;tz/=tl;ty/=tl;const w=ws[i]/2;
+    L.push([pts[i][0]-ty*w,pts[i][1]+tz*w]);R.push([pts[i][0]+ty*w,pts[i][1]-tz*w]);}
+  const sh=new THREE.Shape();const all=L.concat(R.reverse());
+  // rounded caps: nudge the end points outwards along the tangent
+  sh.moveTo(all[0][0],all[0][1]);for(let i=1;i<all.length;i++)sh.lineTo(all[i][0],all[i][1]);sh.closePath();
+  bev=bev==null?Math.min(thick*0.45,0.012):bev;
+  const g=new THREE.ExtrudeGeometry(sh,{depth:Math.max(0.001,thick-2*bev),bevelEnabled:bev>0,bevelThickness:bev,bevelSize:bev*0.9,bevelSegments:2,curveSegments:4});
+  g.translate(0,0,-(thick-2*bev)/2);g.rotateY(-PI/2);g.computeVertexNormals();return g;}
+const bez=(a,b,c,n)=>{const o=[];for(let i=0;i<=n;i++){const t=i/n,u=1-t;o.push([u*u*a[0]+2*u*t*b[0]+t*t*c[0],u*u*a[1]+2*u*t*b[1]+t*t*c[1]]);}return o;};
+const lerpW=(a,b,n)=>{const o=[];for(let i=0;i<=n;i++)o.push(a+(b-a)*i/n);return o;};
+function bikeGeos(){if(BIKEG.ok)return BIKEG;const B=BIKEG;
+  B.down=profileGeo(bez([-0.03,0.31],[0.2,0.45],[0.445,0.615],8),[0.11,0.092,0.084,0.08,0.078,0.076,0.075,0.075,0.076],0.042);
+  B.head=profileGeo([[0.462,0.585],[0.405,0.875]],[0.075,0.07],0.046);
+  B.headBand=profileGeo([[0.442,0.67],[0.418,0.79]],[0.079,0.075],0.05);
+  B.top=profileGeo(bez([0.415,0.845],[0.12,0.84],[-0.19,0.79],6),lerpW(0.05,0.042,6),0.036);
+  B.seat=profileGeo(bez([-0.045,0.3],[-0.05,0.6],[-0.205,0.8],8),[0.12,0.1,0.088,0.08,0.074,0.068,0.064,0.06,0.058],0.04);
+  B.post=profileGeo([[-0.2,0.78],[-0.262,0.945]],[0.05,0.042],0.03);
+  B.sstay=profileGeo(bez([-0.49,0.355],[-0.3,0.5],[-0.13,0.63],5),lerpW(0.022,0.032,5),0.014,0.005);
+  B.cstay=profileGeo([[-0.49,0.335],[-0.03,0.3]],[0.03,0.042],0.016,0.006);
+  B.fork=profileGeo(bez([0.458,0.6],[0.49,0.47],[0.5,0.34],5),lerpW(0.055,0.03,5),0.02,0.007);
+  B.crown=new THREE.BoxGeometry(0.15,0.035,0.07);
+  B.drop=new THREE.BoxGeometry(0.012,0.03,0.03);
+  // saddle: narrow nose, wide back, seen from above, extruded a few cm
+  {const sh=new THREE.Shape();sh.moveTo(0,0.15);sh.quadraticCurveTo(0.022,0.12,0.025,0.03);sh.quadraticCurveTo(0.07,-0.06,0.065,-0.11);sh.quadraticCurveTo(0,-0.135,-0.065,-0.11);sh.quadraticCurveTo(-0.07,-0.06,-0.025,0.03);sh.quadraticCurveTo(-0.022,0.12,0,0.15);
+   const g=new THREE.ExtrudeGeometry(sh,{depth:0.012,bevelEnabled:true,bevelThickness:0.01,bevelSize:0.008,bevelSegments:2,curveSegments:6});g.rotateX(PI/2);B.saddle=g;}
+  B.rail=new THREE.CylinderGeometry(0.004,0.004,0.12,5);B.rail.rotateX(PI/2);
+  // track drops: clamp section + each side curving forward and down into the hooks
+  {const C=[];for(const sx of [-1,1])C.push(new THREE.CatmullRomCurve3([V(0,0.9,0.47),V(sx*0.12,0.9,0.47),V(sx*0.2,0.905,0.5),V(sx*0.215,0.885,0.585),V(sx*0.21,0.82,0.6),V(sx*0.2,0.775,0.56),V(sx*0.2,0.77,0.47)]));
+   B.drops=C.map(c=>new THREE.TubeGeometry(c,22,0.0125,7,false));}
+  {const C=[];for(const sx of [-1,1])C.push(new THREE.CatmullRomCurve3([V(0,0.9,0.47),V(sx*0.14,0.9,0.47),V(sx*0.21,0.9,0.52),V(sx*0.215,0.915,0.62)]));B.horns=C.map(c=>new THREE.TubeGeometry(c,14,0.013,7,false));
+   B.ext=new THREE.CylinderGeometry(0.011,0.011,0.31,8);}
+  B.stem=new THREE.BoxGeometry(0.032,0.035,0.09);
+  // drivetrain
+  B.ring=new THREE.CylinderGeometry(0.128,0.128,0.006,40);B.ring.rotateZ(PI/2);
+  B.teeth=new THREE.TorusGeometry(0.13,0.0045,4,48);B.teeth.rotateY(PI/2);
+  B.spider=new THREE.CylinderGeometry(0.06,0.06,0.012,20);B.spider.rotateZ(PI/2);
+  B.cog=new THREE.CylinderGeometry(0.045,0.045,0.006,18);B.cog.rotateZ(PI/2);
+  B.chain=new THREE.CylinderGeometry(0.0045,0.0045,1,5);
+  // wheels: tubular (black tread + gum-wall sidewall), deep carbon rim, hub
+  B.tread=new THREE.TorusGeometry(0.337,0.0115,6,40);B.tread.rotateY(PI/2);
+  B.gum=new THREE.TorusGeometry(0.323,0.0095,5,40);B.gum.rotateY(PI/2);
+  B.rimDeep=new THREE.CylinderGeometry(0.318,0.318,0.024,40,1,true);B.rimDeep.rotateZ(PI/2);
+  B.rimFace=new THREE.RingGeometry(0.255,0.318,40);B.rimFace.rotateY(PI/2);
+  B.rimShallow=new THREE.RingGeometry(0.285,0.318,40);B.rimShallow.rotateY(PI/2);
+  B.disc=new THREE.CylinderGeometry(0.318,0.318,0.03,40);B.disc.rotateZ(PI/2);
+  B.hub=new THREE.CylinderGeometry(0.03,0.03,0.1,12);B.hub.rotateZ(PI/2);
+  B.flange=new THREE.CylinderGeometry(0.038,0.038,0.006,14);B.flange.rotateZ(PI/2);
+  {const P=[];const n=24;for(let i=0;i<n;i++){const a=i/n*PI*2,side=i%2?1:-1,ha=a+(i%4<2?0.25:-0.25);P.push(side*0.04,Math.sin(ha)*0.035,Math.cos(ha)*0.035, side*0.006,Math.sin(a)*0.29,Math.cos(a)*0.29);}
+   B.spokes=new THREE.BufferGeometry();B.spokes.setAttribute('position',new THREE.Float32BufferAttribute(P,3));}
+  // carbon blades for 3/4/5-spoke wheels: narrow at the hub, flaring into the rim
+  {const sh=new THREE.Shape();sh.moveTo(-0.016,0.03);sh.lineTo(0.016,0.03);sh.quadraticCurveTo(0.02,0.18,0.045,0.27);sh.lineTo(-0.045,0.27);sh.quadraticCurveTo(-0.02,0.18,-0.016,0.03);
+   const g=new THREE.ExtrudeGeometry(sh,{depth:0.012,bevelEnabled:true,bevelThickness:0.006,bevelSize:0.005,bevelSegments:2,curveSegments:5});g.translate(0,0,-0.006);g.rotateY(PI/2);B.blade=g;}
+  B.hubDisc=new THREE.CylinderGeometry(0.06,0.06,0.04,20);B.hubDisc.rotateZ(PI/2);
+  B.ok=true;return B;}
+const MAT_WHEEL={};
+function wheelMats(){if(MAT_WHEEL.ok)return MAT_WHEEL;const W=MAT_WHEEL;
+  W.tread=new THREE.MeshPhongMaterial({color:0x161616,specular:0x222222,shininess:12});W.gum=mat(0xc79a62);
+  W.carbon=new THREE.MeshPhongMaterial({color:0x141518,specular:0x60656e,shininess:90});
+  // woven-carbon look with a white wordmark arc for rims, a disc face with weave checks + logo
+  const weave=(c,g,S,a)=>{for(let y=0;y<S;y+=8)for(let x=0;x<S;x+=8){g.fillStyle=((x+y)/8)%2?'rgba(255,255,255,'+a+')':'rgba(0,0,0,'+a+')';g.fillRect(x,y,8,8);}};
+  {const c=mkCanvas(512,512),g=c.getContext('2d');g.fillStyle='#17181b';g.fillRect(0,0,512,512);weave(c,g,512,0.05);
+   const gr=g.createRadialGradient(256,256,40,256,256,256);gr.addColorStop(0,'rgba(255,255,255,0.10)');gr.addColorStop(0.7,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,0.25)');g.fillStyle=gr;g.fillRect(0,0,512,512);
+   g.save();g.translate(256,256);g.fillStyle='rgba(245,245,245,.92)';g.font='italic 900 44px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';
+   for(const a of [0,PI]){g.save();g.rotate(a);const txt='MOTOL';for(let i=0;i<txt.length;i++){g.save();g.rotate((i-2)*0.17);g.fillText(txt[i],0,-205);g.restore();}g.restore();}
+   g.fillStyle='rgba(255,255,255,.55)';g.font='700 18px system-ui';g.fillText('TRACK · DISC',0,150);g.restore();
+   g.fillStyle='#8d9196';g.beginPath();g.arc(256,256,26,0,7);g.fill();g.fillStyle='#c9c9c9';g.fillRect(256+196,250,14,12);   // valve window
+   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;W.disc=new THREE.MeshPhongMaterial({map:t,specular:0x666a72,shininess:80});}
+  {const c=mkCanvas(512,64),g=c.getContext('2d');g.fillStyle='#141518';g.fillRect(0,0,512,64);g.fillStyle='#f2f2f2';g.font='italic 900 30px system-ui,Arial';g.textBaseline='middle';
+   for(const x of [20,276])g.fillText('MOTOL 80',x,34);const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;W.rimSide=new THREE.MeshPhongMaterial({map:t,specular:0x60656e,shininess:90,side:THREE.DoubleSide});}
+  W.spoke=new THREE.LineBasicMaterial({color:0x2a2b2e});W.hub=bikeMat(0x9ea3a8,60);W.chain=mat(0x3a3a3c);W.silver=bikeMat(0xc4c8cd,100);W.black=bikeMat(0x121212,40);W.saddle=bikeMat(0x141414,30);
+  W.ok=true;return W;}
+// the rim face is a flat ring – give it texture coordinates that run round the rim so the wordmark follows it
+function ringUV(geo,rin,rout){const pa=geo.attributes.position,uv=geo.attributes.uv;for(let i=0;i<pa.count;i++){const y=pa.getY(i),z=pa.getZ(i),r=Math.hypot(y,z);let a=Math.atan2(y,z)/(2*PI)+0.5;uv.setXY(i,a,(r-rin)/(rout-rin));}uv.needsUpdate=true;}
+// merge every part of one role (frame paint, accent, black bits, silver bits…) into a single geometry, cached per layout:
+// a bike is then ~15 draw calls instead of ~60, and all bikes share the same vertex buffers
+const MERGED={};const _I4=new THREE.Matrix4();
+function mergeList(list){let n=0;const gs=list.map(o=>{let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);if(!g.attributes.uv){g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count*2),2));}n+=g.attributes.position.count;return g;});
+  const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let off=0;for(const g of gs){P.set(g.attributes.position.array,off*3);N.set(g.attributes.normal.array,off*3);U.set(g.attributes.uv.array,off*2);off+=g.attributes.position.count;g.dispose();}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.setAttribute('uv',new THREE.BufferAttribute(U,2));G.computeBoundingSphere();return G;}
+function mergedParts(key,build){if(MERGED[key])return MERGED[key];const tmp=new THREE.Group();build(tmp);tmp.updateMatrixWorld(true);const B={},lines=[];
+  tmp.traverse(o=>{if(o.isLineSegments){lines.push(o.geometry);return;}if(!o.isMesh)return;const r=o.userData.role;(B[r]||(B[r]=[])).push(o);});
+  return MERGED[key]={parts:Object.entries(B).map(([r,l])=>[r,mergeList(l)]),lines};}
+function partMesh(par,role,geo,x){const m=new THREE.Mesh(geo,null);m.userData.role=role;if(x)m.position.x=x;par.add(m);return m;}
+function makeWheel(kind){const B=bikeGeos(),W=wheelMats();
+  const L=mergedParts('wheel:'+kind,tmp=>{partMesh(tmp,'tread',B.tread);for(const sx of [-0.011,0.011])partMesh(tmp,'gum',B.gum,sx);
+    if(kind==='disc')partMesh(tmp,'disc',B.disc);
+    else{partMesh(tmp,'carbon',B.rimDeep);if(!B.rimFaceUV){ringUV(B.rimFace,0.255,0.318);B.rimFaceUV=true;}for(const sx of [-0.0125,0.0125])partMesh(tmp,'rimSide',B.rimFace,sx);
+      if(kind==='wire'){tmp.add(new THREE.LineSegments(B.spokes));partMesh(tmp,'hub',B.hub);for(const sx of [-0.04,0.04])partMesh(tmp,'hub',B.flange,sx);}
+      else{const n=kind|0||3;partMesh(tmp,'carbon',B.hubDisc);for(let i=0;i<n;i++){const bl=partMesh(tmp,'carbon',B.blade);bl.rotation.x=i*2*PI/n;}}}
+    const ax=partMesh(tmp,'hub',B.hub);ax.scale.set(1.25,0.45,0.45);});
+  const w=new THREE.Group();for(const [r,g] of L.parts)w.add(new THREE.Mesh(g,W[r]));for(const g of L.lines)w.add(new THREE.LineSegments(g,W.spoke));return w;}
+function makeBike(o){const B=bikeGeos(),W=wheelMats();
   const g=new THREE.Group();const wheels=[];
-  [[-0.5,o.discR?'disc':'spoke'],[0.5,o.discF?'disc':(o.spokes||3)]].forEach(([zz,kind])=>{const w=new THREE.Group();w.position.set(0,0.34,zz);w.add(new THREE.Mesh(tireG,mat(0x151515)));
-    if(kind==='disc')w.add(new THREE.Mesh(discG,discMat));
-    else{w.add(new THREE.Mesh(rimG,carbon));w.add(new THREE.Mesh(rimInG,carbon));
-      const ns=kind==='spoke'?3:kind;for(let i=0;i<ns;i++){const sp=new THREE.Mesh(bladeG,carbon);sp.rotation.x=i*2*PI/ns;w.add(sp);}
-      // white rim decals like on the photos
-      const dec=new THREE.Mesh(new THREE.TorusGeometry(0.30,0.012,3,24,1.2),mat(0xf0f0f0));dec.rotation.y=PI/2;dec.position.x=0.016;w.add(dec);const dec2=dec.clone();dec2.position.x=-0.016;dec2.rotation.x=PI;w.add(dec2);}
-    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.09,10),mat(0x9a9a9a));hub.rotation.z=PI/2;w.add(hub);g.add(w);wheels.push(w);});
-  const BB=V(0,0.32,-0.04),SEAT=V(0,0.93,-0.24),HT=V(0,0.88,0.4),HB=V(0,0.66,0.45),RA=V(0,0.34,-0.5),FA=V(0,0.34,0.5);
-  const fr=new THREE.MeshPhongMaterial({color:o.frame,specular:0x666666,shininess:55}),ac=new THREE.MeshPhongMaterial({color:o.accent,specular:0x666666,shininess:55});
-  // aero track frame: deep, narrow tubes
-  [[BB,SEAT,fr,0.03,1.9],[SEAT,HT,ac,0.028,1.7],[BB,HB,fr,0.032,2.1],[HB,HT,fr,0.03,2.0],[BB,RA,fr,0.02,1.5],[SEAT,RA,fr,0.018,1.6],[HT,FA,ac,0.024,1.9]].forEach(([a,b,m,r,d])=>{const l=limb(m,r,G_LIMB);place(l,a,b);l.scale.x=r*0.6;l.scale.z=r*d;g.add(l);});
-  // neon graphics stripe along the down tube
-  {const s=limb(ac,0.034,G_LIMB);place(s,V(0,0.4,0.02),V(0,0.6,0.36));s.scale.x=0.021;s.scale.z=0.02;s.position.y+=0.01;g.add(s);}
-  const sad=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.035,0.27),mat(0x111111));sad.position.set(0,0.96,-0.22);g.add(sad);
-  const post=limb(carbon,0.016,G_LIMB);place(post,SEAT,V(0,0.95,-0.24));g.add(post);
-  const stem=limb(mat(0x111111),0.02);place(stem,HT,V(0,0.9,0.47));g.add(stem);
-  const ring=new THREE.Mesh(new THREE.CylinderGeometry(0.105,0.105,0.012,24),new THREE.MeshPhongMaterial({color:0xb8bcc2,specular:0xffffff,shininess:60}));ring.rotation.z=PI/2;ring.position.set(-0.05,0.32,-0.04);g.add(ring);
-  const ck=mat(0x2a2a2a);for(const dy of [0.1,-0.1]){const ch=limb(ck,0.006);place(ch,V(-0.05,0.32+dy,-0.04),V(-0.05,0.34+dy*0.35,-0.5));g.add(ch);}
-  const cog=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.012,14),mat(0x888888));cog.rotation.z=PI/2;cog.position.set(-0.05,0.34,-0.5);g.add(cog);
-  const bk=mat(0x111111);
-  if(o.aero){const bb=limb(bk,0.018);place(bb,V(-0.2,0.9,0.47),V(0.2,0.9,0.47));g.add(bb);
-    for(const sx of [-0.2,0.2]){const h=limb(bk,0.016);place(h,V(sx,0.9,0.47),V(sx,0.92,0.62));g.add(h);}
-    for(const sx of [-0.055,0.055]){const e=limb(bk,0.014);place(e,V(sx,0.95,0.38),V(sx,1.0,0.68));g.add(e);const pad=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.015,0.08),bk);pad.position.set(sx*1.5,0.962,0.35);g.add(pad);}}
-  else{const bb=limb(bk,0.018);place(bb,V(-0.2,0.9,0.47),V(0.2,0.9,0.47));g.add(bb);
-    for(const sx of [-0.2,0.2]){const a=limb(bk,0.016),b=limb(bk,0.016),c=limb(bk,0.016);place(a,V(sx,0.9,0.47),V(sx,0.85,0.57));place(b,V(sx,0.85,0.57),V(sx,0.76,0.55));place(c,V(sx,0.76,0.55),V(sx,0.77,0.47));g.add(a,b,c);}}
+  [[-0.5,o.discR?'disc':'wire'],[0.5,o.discF?'disc':(o.spokes===24?'wire':(o.spokes||3))]].forEach(([zz,kind])=>{const w=makeWheel(kind);w.position.set(0,0.34,zz);g.add(w);wheels.push(w);});
+  const L=mergedParts('bike:'+(o.aero?'aero':'drops'),tmp=>{
+    const M=(geo,role,x)=>partMesh(tmp,role,geo,x);
+    M(B.down,'fr');M(B.head,'fr');M(B.top,'fr');M(B.seat,'fr');M(B.post,'black');M(B.headBand,'ac');
+    for(const sx of [-0.056,0.056]){M(B.sstay,'fr',sx);M(B.cstay,'fr',sx);M(B.fork,'fr',sx*1.08);const d=M(B.drop,'black');d.position.set(sx,0.34,-0.5);const fd=M(B.drop,'black');fd.position.set(sx*1.08,0.34,0.5);}
+    {const c=M(B.crown,'fr');c.position.set(0,0.6,0.458);c.rotation.x=-0.2;}
+    {const sd=M(B.saddle,'saddle');sd.position.set(0,0.965,-0.235);sd.rotation.x=-0.04;for(const sx of [-0.022,0.022]){const r=M(B.rail,'silver');r.position.set(sx,0.952,-0.245);}}
+    {const st=M(B.stem,'black');st.position.set(0,0.895,0.44);st.rotation.x=-0.15;}
+    if(o.aero){for(const h of B.horns)M(h,'black');for(const sx of [-0.055,0.055]){const e=M(B.ext,'black');e.position.set(sx,0.975,0.53);e.rotation.x=PI/2-0.16;const pad=M(B.pad||(B.pad=new THREE.BoxGeometry(0.05,0.018,0.09)),'black');pad.position.set(sx*1.5,0.955,0.37);}}
+    else for(const d of B.drops)M(d,'black');
+    const cx=-0.058;{const r=M(B.ring,'carbon');r.position.set(cx,0.32,-0.04);const t=M(B.teeth,'silver');t.position.set(cx,0.32,-0.04);const sp=M(B.spider,'ac');sp.position.set(cx-0.004,0.32,-0.04);const cg=M(B.cog,'silver');cg.position.set(cx,0.34,-0.5);
+      for(const [y0,y1] of [[0.32+0.131,0.34+0.047],[0.32-0.131,0.34-0.047]]){const c=M(B.chain,'chain');place2(c,V(cx,y0,-0.04),V(cx,y1,-0.5));}}
+    for(const sx of [-1,1]){const dec=M(B.decal||(B.decal=new THREE.PlaneGeometry(0.3,0.06)),'decal');dec.position.set(sx*0.0225,0.47,0.215);dec.rotation.order='YXZ';dec.rotation.set(-0.62,sx>0?PI/2:-PI/2,0);}});
+  const mats={fr:bikeMat(o.frame,95),ac:bikeMat(o.accent,95),decal:bikeDecal(o.accent),black:W.black,silver:W.silver,saddle:W.saddle,carbon:W.carbon,chain:W.chain};
+  for(const [r,geo] of L.parts)g.add(new THREE.Mesh(geo,mats[r]));
   return {g,wheels};}
+function place2(m,a,b){_dv.subVectors(b,a);const L=_dv.length()||0.001;m.position.copy(a).addScaledVector(_dv,0.5);m.scale.set(1,L,1);m.quaternion.setFromUnitVectors(UPV,_dv.multiplyScalar(1/L));}
+const _decals={};function bikeDecal(c){if(_decals[c])return _decals[c];const cv=mkCanvas(512,64),q=cv.getContext('2d');q.clearRect(0,0,512,64);
+  const col=new THREE.Color(c);const lum=col.r*0.3+col.g*0.59+col.b*0.11;q.fillStyle='#'+col.getHexString();q.font='italic 900 60px system-ui,Arial';q.textAlign='center';q.textBaseline='middle';q.fillText('MOTOL',256,34);
+  q.fillStyle=lum>0.5?'rgba(0,0,0,.0)':'rgba(255,255,255,.0)';const t=new THREE.CanvasTexture(cv);t.anisotropy=MAXANI;
+  return _decals[c]=new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});}
 
 // ---------- team kits (club colours + team names; no sponsor logos) ----------
 const TEAMS={
@@ -977,7 +1068,7 @@ function buildInfield(){
   rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
     const fr=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,1.5),mat(0xd62828));fr.position.y=0.05;g.add(fr);
     for(const dz of [-0.5,0,0.5]){const r=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.44,10),mat(0x2b5fb4));r.rotation.z=PI/2;r.position.set(0,0.11,dz);g.add(r);}
-    const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:false,aero:i%4===1});b.g.position.y=0.13;g.add(b.g);});
+    const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:i%7===3,spokes:[3,5,24,4][i%4],aero:i%4===1});b.g.position.y=0.13;g.add(b.g);});
   // bike hangers: a long bar on two A-frame ends, the bikes hang by the saddle nose, front wheel up (as in the sketch)
   OBST.cols=cols;OBST.rollers=rollers;OBST.hangs=[];
   const steelM=new THREE.MeshPhongMaterial({color:0xb9bec3,specular:0x666666,shininess:60}),footM=mat(0x2b2b2b);
@@ -989,7 +1080,7 @@ function buildInfield(){
       const cap=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),footM);cap.position.set(0,BH,z);g.add(cap);}
     if(Lb>4.5){const po=limb(steelM,0.025);place(po,V(0,0,0),V(0,BH,0));g.add(po);const ft=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.05,0.07),footM);ft.position.y=0.025;g.add(ft);}
     for(let i=0;i<n;i++){const z=-Lb/2+0.15+SP*(i+0.62);const c=bikeCols[(bi+i)%bikeCols.length];
-      const bk=makeBike({frame:c[0],accent:c[1],discR:(bi+i)%4===0,discF:false,aero:false});const TH=-0.7;bk.g.rotation.x=TH;
+      const bk=makeBike({frame:c[0],accent:c[1],discR:(bi+i)%4===0,discF:(bi+i)%6===2,spokes:[5,3,24,4][(bi+i)%4],aero:false});const TH=-0.7;bk.g.rotation.x=TH;
       const sy=0.975,sz=-0.24,ry=sy*Math.cos(TH)-sz*Math.sin(TH),rz=sy*Math.sin(TH)+sz*Math.cos(TH);           // saddle top after the tilt
       bk.g.position.set((i%2?0.07:-0.07),BH+0.02-ry,z-rz);g.add(bk.g);
       const hook=limb(footM,0.012);place(hook,V(0,BH,z),V(0,BH+0.06,z));g.add(hook);
@@ -2952,7 +3043,7 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
 // ---------- loop ----------
 resetRiders();clearHolders();refSit();
-let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
+let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
 let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
