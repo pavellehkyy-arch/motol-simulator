@@ -889,11 +889,13 @@ const GBOOST=1.35;   // gravity on the banking a bit stronger than real, so clim
 function physics(R,dt){
   let P=R.power;
   // fatigue: hard riding (front work, chasing, sprinting) drains, recovery only when sheltered/easy
-  if(R.energy<25)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
+  const bunchChase=mode==='elim'&&R.chaseT>0;   // the bunch shares the chase – one bot stands for the whole pack bringing the escapee back
+  if(R.energy<25&&!bunchChase)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
   const Pe=Math.max(P,0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*1.8;
-  let dE=(rec-drain*(mode==='elim'?0.55:1))/R.wp*100;   // elimination: short efforts out of a sheltered bunch – nobody is cooked after two laps
+  let dE=(rec-drain*(mode==='elim'?(R.draft>0.1||bunchChase?0.45:1.5):1))/R.wp*100;   // elimination: in the wheels you spend almost nothing, in the wind a lot
   if(R.resting&&Pe<R.ftp)dE+=2.0;   // the resting partner recovers up on the banking
-  if(mode!=='kilo'&&!R.resting&&R.draft<0.08&&Pe>0.8*R.ftp)dE-=(Pe/R.ftp-0.8)*2.6;   // pulling at the front in the wind: extra cost
+  if(mode!=='kilo'&&!R.resting&&R.draft<0.08&&Pe>0.8*R.ftp)dE-=(Pe/R.ftp-0.8)*2.6;
+  if(mode==='elim'&&!bunchChase&&!R.resting&&!R.out&&R.draft<0.08&&phase==='race'&&!isNeutral()&&R.v>8)dE-=2.2+Math.max(0,R.v-11)*0.8;   // elimination: riding on the front / off the front burns the tank fast   // pulling at the front in the wind: extra cost
   if(R.draft>0.1&&Pe<R.ftp*1.1&&!R.resting)dE+=R.draft*3.2*(1-Math.max(0,Pe-0.8*R.ftp)/(0.3*R.ftp));   // sitting on a wheel really refills the tank
   R.eRate+=(dE-R.eRate)*Math.min(1,dt*2);R.energy=clamp(R.energy+dE*dt,0,100);
   R.realP=P;
@@ -1388,18 +1390,19 @@ function elimAI(R,dt){
   const risk=safe||fin?0:behind===0?1:behind===1?0.75:behind===2?0.4:behind===3?0.15:0;
   const urg=!fin&&!safe&&toL<L0*0.75,close=!fin&&!safe&&toL<65;
   // where in the bunch I want to be: strong/aggressive riders like the front, tired ones sit in
-  let want=(R.front||0)*5+(R.aggr-0.5)*2.5+(R.energy-60)*0.04;const H=0.8+0.25*n;   // compact pack: ~3 abreast, wheels overlapping, nobody far from the centre
+  let want=(R.front||0)*2+(R.aggr-0.5)*1.2+(R.energy-60)*0.02-0.8;const H=0.8+0.25*n;   // compact pack: ~3 abreast, wheels overlapping, nobody far from the centre
   if(urg)want+=1.5+risk*9*(0.6+0.4*R.aggr)*(R.energy>15?1:0.5);
   if(!urg&&R.energy<35)want-=3;
   want=clamp(want,-H,urg?H+1.5:H);
   let vT=racePace*R.mood+clamp((cen+want)*0.32,-1.3,cen>8?2.6:1.4);   // stay with the bunch, drift to my preferred depth
   if(raceTime<5)vT=Math.min(vT,2+raceTime*2.2);
+  R.chaseT=Math.max(0,(R.chaseT||0)-dt);
   // keep the pack tight: between eliminations the front never rides away – if the bunch stretches the front eases and the back closes up
   let lead=-1e9,tail=1e9;for(const o of al){if(o.crashed||o.out)continue;if(o.s>lead)lead=o.s;if(o.s<tail)tail=o.s;}
   const maxLen=1.9*Math.ceil(n/3)+1.2,len=lead-tail,calm=!close&&!fin;
   if(calm&&len>maxLen&&R.s>lead-1.2)vT=Math.min(vT,racePace-0.4-Math.min(1.4,(len-maxLen)*0.25));
   let lim=R.ftp*1.45,sprint=false;
-  if(lead-R.s>maxLen){vT=Math.max(vT,racePace+Math.min(2.2,(lead-R.s-maxLen)*0.5+0.4));lim=Math.max(lim,R.ftp*1.6);}
+  if(lead-R.s>maxLen){R.chaseT=1;const lv=al.reduce((a,b)=>a.s>b.s?a:b).v;vT=Math.max(vT,Math.max(racePace,lv)+Math.min(5,(lead-R.s-maxLen)*0.7+0.4));lim=Math.max(lim,R.ftp*2.6);}   // nobody gets dropped – the back always closes up
   if(close&&behind<=2&&R.energy>2){vT=Math.max(vT,racePace+(behind===0?6:behind===1?4:2.2));lim=R.ftp*(behind===0?3:2.3);sprint=behind<=1;}
   else if(close)vT=Math.max(vT,racePace+0.5);
   if(urg&&risk>0.3)lim=Math.max(lim,R.ftp*1.9);
@@ -1408,7 +1411,8 @@ function elimAI(R,dt){
   let ahead=null,gap=1e9;for(const o of riders){if(o===R||!o.model.g.visible||o.crashed||o.out)continue;const g=gapTo(R,o);if(g>0&&g<12&&g<gap&&Math.abs(o.w-R.w)<0.72){gap=g;ahead=o;}}
   // nobody lets a wheel go: whoever opens a gap gets chased down at once (you can't just ride away – everyone wants to be in the draft)
   let anyA=null,gapA=1e9,onWheel=false;for(const o of al){if(o===R||o.crashed||o.out)continue;const g=gapTo(R,o);if(g>0&&g<gapA&&g<70){gapA=g;anyA=o;}if(g<-0.3&&g>-6&&Math.abs(o.w-R.w)<0.9)onWheel=true;}
-  if(anyA&&gapA>1.7&&!(R.pullT>3)){vT=Math.max(vT,anyA.v+Math.min(gapA>6?3:1.6,(gapA-1.3)*0.6));lim=Math.max(lim,R.ftp*(gapA>6?1.9:1.35));}   // small, early corrections – a tight bunch never lets a gap grow
+  if(anyA&&gapA<4.5&&anyA.v>R.v+0.4&&!(R.pullT>3)){vT=Math.max(vT,anyA.v+0.8);lim=Math.max(lim,R.ftp*3);R.chaseT=1;}   // the wheel in front jumps -> jump with him straight away
+  if(anyA&&gapA>1.7&&!(R.pullT>3)){const esc=gapA>2.8;if(esc)R.chaseT=1;vT=Math.max(vT,anyA.v+Math.min(esc?6:1.6,(gapA-1.3)*(esc?1.0:0.6)));lim=Math.max(lim,R.ftp*(esc?3:1.35));}   // an attack is covered at once – the follower sits in the draft and spends little   // small, early corrections – a tight bunch never lets a gap grow
   // the front rides steadily but nobody stays in the wind forever: a turn, then swing up and slot back in
   R.pullT=Math.max(0,(R.pullT||0)-dt);
   if(!anyA&&onWheel&&R.draft<0.08&&!urg&&!fin)R.frontT=(R.frontT||0)+dt;else R.frontT=Math.max(0,(R.frontT||0)-dt*2);
