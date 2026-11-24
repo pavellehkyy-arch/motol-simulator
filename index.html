@@ -215,12 +215,12 @@ tr.me td{color:#ffd166;font-weight:800}
     <button class="go" id="slingBtn" style="pointer-events:auto;margin-top:8px;min-width:0;padding:10px 18px;font-size:15px;background:#2fd36b;color:#111;box-shadow:0 4px 14px rgba(47,211,107,.4)">🤝 PŘEDAT (E)</button>
     <div id="slingHint" style="font-size:12px;font-weight:800;margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.8)">Trefa do zelené = silnější vrh</div>
   </div>
-  <button class="go" id="skipResc" style="display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:90px;flex:none;min-width:0;padding:10px 16px;font-size:15px;background:rgba(15,25,40,.82);border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)">⏩ Přeskočit (Mezerník)</button>
 </div>
 
 <div id="ctl">
   <div class="grp" style="flex-direction:column;align-items:flex-start;gap:8px">
-    <div style="display:flex;gap:8px">
+    <button class="go" id="skipResc" style="display:none;pointer-events:auto;flex:none;min-width:0;height:58px;padding:0 18px;font-size:15px;background:rgba(15,25,40,.82);border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)">⏩ Přeskočit (Mezerník)</button>
+    <div id="viewRow" style="display:flex;gap:8px">
       <div class="btn s" data-k="cam" style="font-size:13px">CAM</div>
       <div id="lookPad"><span class="la">◀</span><span class="ra">▶</span><div id="lookKnob">👀</div></div>
     </div>
@@ -924,54 +924,279 @@ function sleeveTex(id,fore){const c=mkCanvas(64,128),g=c.getContext('2d');const 
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,4,64,10);}
   if(id==='germany'){[['#111',4],['#dd0000',12],['#ffce00',20]].forEach(([c,y])=>{g.fillStyle=c;g.fillRect(0,y,64,7);});g.fillStyle='#111';g.font='900 9px system-ui,Arial';g.textAlign='center';g.fillText('BIORACER',32,44);}
   return new THREE.CanvasTexture(c);}
-const KITMAT={};function kitMats(id,num){const k=id+'#'+(num||0);if(!KITMAT[k])KITMAT[k]={torso:new THREE.MeshLambertMaterial({map:kitTex(id,num)}),sleeve:new THREE.MeshLambertMaterial({map:sleeveTex(id)}),fore:new THREE.MeshLambertMaterial({map:sleeveTex(id,true)}),shorts:mat(new THREE.Color(TEAMS[id].shorts||'#111').getHex())};return KITMAT[k];}
+const KITMAT={};function kitMats(id,num){const k=id+'#'+(num||0);if(!KITMAT[k])KITMAT[k]={torso:new THREE.MeshPhongMaterial({map:kitTex(id,num),specular:0x2c2c2c,shininess:26}),sleeve:new THREE.MeshPhongMaterial({map:sleeveTex(id),specular:0x2c2c2c,shininess:26}),fore:new THREE.MeshPhongMaterial({map:sleeveTex(id,true),specular:0x2c2c2c,shininess:26}),shorts:lycraMat(new THREE.Color(TEAMS[id].shorts||'#111').getHex())};return KITMAT[k];}
 const HELM={};function helmetMat(col,aero){const k=col+'_'+(aero?1:0);if(HELM[k])return HELM[k];const c=mkCanvas(256,128),g=c.getContext('2d');g.fillStyle='#'+new THREE.Color(col).getHexString();g.fillRect(0,0,256,128);
   if(!aero){g.fillStyle='rgba(20,20,24,.8)';for(const u of [0.06,0.18,0.32,0.44,0.56,0.68,0.82,0.94]){g.beginPath();g.ellipse(u*256,48,3.5,26,0,0,7);g.fill();}
     for(const u of [0.12,0.38,0.62,0.88]){g.beginPath();g.ellipse(u*256,90,3,10,0,0,7);g.fill();}g.fillStyle='rgba(0,0,0,.25)';g.fillRect(0,118,256,10);}
   else{g.fillStyle='rgba(0,0,0,.18)';g.fillRect(0,96,256,32);}
   const sh=g.createLinearGradient(0,0,0,128);sh.addColorStop(0,'rgba(255,255,255,.25)');sh.addColorStop(0.4,'rgba(255,255,255,0)');g.fillStyle=sh;g.fillRect(0,0,256,128);
   return HELM[k]=new THREE.MeshPhongMaterial({map:new THREE.CanvasTexture(c),specular:0x777777,shininess:70});}
-function makeRider(o){
+// ================= anatomical riders =================
+// every body part is a "loft": rings of (lateral radius, front radius, back radius) along a bone, smoothed with Catmull-Rom.
+// t = 0 at the first joint, 1 at the second one; the ring's front (+z) is the belly / quad / shin / face side.
+const LOFTS={};
+function crRing(R,t){let i=0;while(i<R.length-2&&R[i+1][0]<t)i++;const a=R[Math.max(0,i-1)],b=R[i],c=R[i+1],d=R[Math.min(R.length-1,i+2)];
+  const u=clamp((t-b[0])/((c[0]-b[0])||1),0,1),u2=u*u,u3=u2*u,o=[t];
+  for(let k=1;k<5;k++){const p0=a[k]||0,p1=b[k]||0,p2=c[k]||0,p3=d[k]||0;o.push(0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3));}return o;}
+function loftGeo(key,R,o){if(LOFTS[key])return LOFTS[key];o=o||{};
+  const N=o.seg||(LOWEND?12:20),e=2/(o.p||2),sub=o.sub||(LOWEND?2:4),t0=o.t0!=null?o.t0:R[0][0],t1=o.t1!=null?o.t1:R[R.length-1][0];
+  const ts=[t0];for(let i=0;i<R.length-1;i++)for(let k=0;k<sub;k++){const t=R[i][0]+(R[i+1][0]-R[i][0])*k/sub;if(t>t0+1e-4&&t<t1-1e-4)ts.push(t);}ts.push(t1);
+  const P=[],UV=[],I=[];
+  for(const t of ts){const q=crRing(R,t),rx=Math.max(0,q[1]),rf=Math.max(0,q[2]),rb=Math.max(0,q[3]),off=q[4];
+    for(let j=0;j<=N;j++){const th=j/N*2*PI,s=Math.sin(th),c=Math.cos(th),ss=Math.sign(s)*Math.pow(Math.abs(s),e),cc=Math.sign(c)*Math.pow(Math.abs(c),e);
+      P.push(rx*ss,t,(cc>0?rf:rb)*cc+off);UV.push(j/N,o.v?o.v(t):t);}}
+  for(let r=0;r<ts.length-1;r++)for(let j=0;j<N;j++){const a=r*(N+1)+j,b=a+N+1;I.push(a,a+1,b,a+1,b+1,b);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
+  const nr=g.attributes.normal;for(let r=0;r<ts.length;r++){const a=r*(N+1),b=a+N;const x=nr.getX(a)+nr.getX(b),y=nr.getY(a)+nr.getY(b),z=nr.getZ(a)+nr.getZ(b),l=Math.hypot(x,y,z)||1;nr.setXYZ(a,x/l,y/l,z/l);nr.setXYZ(b,x/l,y/l,z/l);}
+  if(o.rx)g.rotateX(o.rx);g.computeBoundingSphere();return LOFTS[key]=g;}
+// place a loft between two joints: local y along a->b (scaled to the length), local z towards `hint` (the front of the part)
+const _qox=new THREE.Vector3(),_qoy=new THREE.Vector3(),_qoz=new THREE.Vector3(),_qom=new THREE.Matrix4();
+function orient(m,a,b,hint,sx,sz){_qoy.subVectors(b,a);const L=_qoy.length()||1e-4;_qoy.multiplyScalar(1/L);
+  _qoz.copy(hint).addScaledVector(_qoy,-hint.dot(_qoy));if(_qoz.lengthSq()<1e-8){_qoz.set(0,0,1).addScaledVector(_qoy,-_qoy.z);if(_qoz.lengthSq()<1e-8)_qoz.set(1,0,0);}_qoz.normalize();_qox.crossVectors(_qoy,_qoz);
+  _qom.makeBasis(_qox,_qoy,_qoz);m.quaternion.setFromRotationMatrix(_qom);m.position.copy(a);m.scale.set(sx||1,L,sz||sx||1);}
+const RDG={};
+function riderGeos(){const RG=RDG;if(RG.ok)return RG;
+  // torso from the hip joints (t=0) to the base of the neck (t=1); below 0 = glutes on the saddle. front = belly/chest
+  const TOR=[[-0.2,0.04,0.03,0.04],[-0.15,0.1,0.06,0.085],[-0.07,0.145,0.08,0.105],[0,0.163,0.085,0.112],[0.15,0.152,0.092,0.104],[0.35,0.14,0.088,0.1],[0.55,0.156,0.104,0.106],[0.72,0.178,0.116,0.11],[0.85,0.19,0.104,0.1],[0.94,0.165,0.08,0.08],[1.0,0.1,0.058,0.062],[1.05,0.055,0.04,0.045],[1.08,0,0,0]];
+  RG.torS=loftGeo('torS',TOR,{p:2.3,t1:0.2,seg:LOWEND?14:24});
+  RG.torJ=loftGeo('torJ',TOR,{p:2.3,t0:0.2,seg:LOWEND?14:24,v:t=>clamp((t-0.2)/0.8,0,1)});
+  // thigh: hip -> knee, big quads on the front, vastus bulge just above the knee
+  const TH=[[-0.14,0.04,0.04,0.04],[-0.08,0.08,0.08,0.08],[0,0.093,0.092,0.09],[0.2,0.094,0.102,0.088],[0.45,0.086,0.1,0.08],[0.68,0.077,0.093,0.068],[0.84,0.064,0.074,0.058],[1,0.05,0.056,0.048],[1.08,0.043,0.042,0.04],[1.14,0,0,0]];
+  RG.thS=loftGeo('thS',TH,{t1:0.74});RG.thK=loftGeo('thK',TH,{t0:0.74});
+  // shin: knee -> ankle, calf belly at the back
+  const SN=[[-0.1,0,0,0],[-0.08,0.035,0.035,0.035],[-0.04,0.048,0.05,0.045],[0.03,0.047,0.044,0.052],[0.15,0.047,0.038,0.066],[0.3,0.049,0.036,0.072],[0.45,0.043,0.033,0.058],[0.65,0.033,0.029,0.038],[0.85,0.028,0.026,0.029],[1,0.03,0.03,0.031],[1.06,0.026,0.026,0.026],[1.09,0,0,0]];
+  RG.shn=loftGeo('shn',SN,{t1:0.74});RG.sock=loftGeo('sock',SN,{t0:0.72});
+  // arms
+  const UA=[[-0.14,0,0,0],[-0.1,0.04,0.04,0.04],[-0.04,0.058,0.058,0.058],[0.08,0.053,0.05,0.056],[0.35,0.049,0.053,0.047],[0.65,0.042,0.043,0.041],[0.92,0.035,0.033,0.035],[1.05,0.033,0.03,0.033],[1.12,0,0,0]];
+  RG.uaS=loftGeo('uaS',UA,{t1:0.55,seg:LOWEND?10:14});RG.uaK=loftGeo('uaK',UA,{t0:0.55,seg:LOWEND?10:14});RG.uaL=loftGeo('uaL',UA,{seg:LOWEND?10:14});
+  const FA=[[-0.1,0,0,0],[-0.07,0.03,0.03,0.03],[-0.02,0.037,0.036,0.04],[0.2,0.041,0.038,0.042],[0.5,0.032,0.026,0.029],[0.72,0.025,0.019,0.021],[0.8,0.024,0.018,0.02],[0.86,0,0,0]];
+  RG.fa=loftGeo('fa',FA,{seg:LOWEND?10:14});
+  // fist round the bar (metres along the forearm direction, centred on the grip)
+  RG.fist=loftGeo('fist',[[-0.085,0,0,0],[-0.075,0.02,0.018,0.018],[-0.045,0.034,0.022,0.024],[-0.015,0.04,0.029,0.03],[0.015,0.04,0.031,0.03],[0.035,0.032,0.026,0.024],[0.05,0,0,0]],{seg:12,p:2.4});
+  RG.neck=loftGeo('neck',[[-0.06,0.03,0.03,0.03],[-0.02,0.058,0.055,0.06],[0.4,0.052,0.05,0.056],[0.85,0.048,0.046,0.05],[1.0,0.04,0.04,0.04],[1.06,0,0,0]],{seg:14});
+  // head: skull, cheekbones, jaw and chin (metres, centre ≈ ear level, face = +z)
+  {const sk=loftGeo('skull',[[-0.135,0,0,0],[-0.125,0.025,0.03,0.025,0.012],[-0.105,0.045,0.06,0.045,0.014],[-0.08,0.057,0.078,0.056,0.012],[-0.05,0.066,0.09,0.07,0.008],[-0.012,0.073,0.096,0.084],[0.03,0.077,0.095,0.092],[0.07,0.074,0.085,0.093],[0.1,0.062,0.068,0.082],[0.125,0.035,0.036,0.05],[0.137,0,0,0]],{seg:LOWEND?14:22});
+    const tmp=new THREE.Group();const a=new THREE.Mesh(sk);tmp.add(a);
+    const nose=new THREE.Mesh(new THREE.ConeGeometry(0.017,0.045,7));nose.rotation.x=PI/2+0.35;nose.position.set(0,-0.022,0.103);tmp.add(nose);
+    for(const sx of [-1,1]){const ear=new THREE.Mesh(new THREE.SphereGeometry(1,8,6));ear.scale.set(0.012,0.03,0.02);ear.position.set(sx*0.074,-0.005,-0.008);tmp.add(ear);}
+    const lips=new THREE.Mesh(new THREE.SphereGeometry(1,10,6));lips.scale.set(0.026,0.01,0.012);lips.position.set(0,-0.068,0.082);tmp.add(lips);
+    tmp.updateMatrixWorld(true);RG.head=mergeList([a,nose,...tmp.children.slice(2)]);}
+  RG.helm=new THREE.SphereGeometry(1,LOWEND?16:24,LOWEND?10:14,0,2*PI,0,PI*0.58);
+  // helmet shells: lofted front -> tail (t = metres backwards from the brow), rotated so the loft's front = top of the helmet
+  {const TR=[[-0.122,0,0,0,0.075],[-0.117,0.05,0.025,0.025,0.072],[-0.1,0.084,0.06,0.048,0.07],[-0.065,0.1,0.09,0.066,0.064],[-0.015,0.107,0.106,0.08,0.055],[0.045,0.105,0.105,0.088,0.043],[0.1,0.096,0.09,0.08,0.033],[0.155,0.072,0.06,0.054,0.016],[0.2,0.044,0.034,0.032,0.004],[0.228,0,0,0,0.0]];
+   const TT=[[-0.122,0,0,0,0.075],[-0.117,0.05,0.025,0.025,0.072],[-0.1,0.086,0.062,0.05,0.07],[-0.065,0.103,0.092,0.068,0.064],[-0.015,0.11,0.108,0.083,0.055],[0.045,0.108,0.106,0.09,0.044],[0.11,0.098,0.092,0.08,0.035],[0.18,0.076,0.066,0.056,0.02],[0.25,0.05,0.04,0.034,0.004],[0.31,0.022,0.016,0.014,-0.01],[0.33,0,0,0,-0.013]];
+   const opt=(v)=>({p:2.25,rx:-PI/2,seg:LOWEND?18:30,sub:LOWEND?3:5,v});
+   RG.helmTr=loftGeo('helmTr',TR,opt(t=>(t+0.122)/0.35));RG.helmTT=loftGeo('helmTT',TT,opt(t=>(t+0.122)/0.452));
+   // dark rubbery lower edge just inside the shell
+   const rim=R=>R.map(r=>[r[0],r[1]*0.985,r[2]*0.6,r[3]*1.04,r[4]]);
+   RG.helmTrRim=loftGeo('helmTrRim',rim(TR),opt());RG.helmTTrim=loftGeo('helmTTrim',rim(TT),opt());}
+  // visor: wraps from temple to temple in front of the eyes and the nose bridge, slightly curved in profile
+  {const g=new THREE.CylinderGeometry(1,1,1,LOWEND?16:28,4,true,-1.32,2.64);const pa=g.attributes.position;
+   for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i);const k=1-0.06*(y+0.5)*(y+0.5);pa.setXYZ(i,x*0.11*k,0.018+y*0.085,z*0.116*k-0.004);}g.computeVertexNormals();RG.visor=g;}
+  RG.hair=new THREE.SphereGeometry(1,12,8,0,2*PI,PI*0.42,PI*0.3);
+  {const C=new THREE.CatmullRomCurve3([V(-0.08,0.0,-0.02),V(-0.072,-0.06,0.015),V(-0.04,-0.112,0.05),V(0,-0.122,0.058),V(0.04,-0.112,0.05),V(0.072,-0.06,0.015),V(0.08,0.0,-0.02)]);RG.strap=new THREE.TubeGeometry(C,16,0.004,4,false);}
+  RG.delt=new THREE.SphereGeometry(1,12,10);
+  // cycling shoe (local: origin at the pedal axle, +z toe, +y up), carbon sole + upper
+  const SHOE=[[-0.205,0,0,0,-0.05],[-0.198,0.022,0.024,0.034,-0.05],[-0.17,0.036,0.027,0.052,-0.054],[-0.12,0.041,0.025,0.048,-0.05],[-0.05,0.046,0.022,0.04,-0.044],[0.02,0.05,0.021,0.03,-0.036],[0.07,0.045,0.019,0.02,-0.03],[0.1,0.032,0.017,0.012,-0.026],[0.118,0,0,0,-0.025]];
+  RG.shoe=loftGeo('shoe',SHOE,{p:3,rx:PI/2,seg:LOWEND?16:24,sub:LOWEND?3:5,v:t=>(t+0.205)/0.323});
+  RG.sole=loftGeo('sole',SHOE.map(r=>[r[0],r[1]?r[1]+0.002:0,0.007,0.007,r[4]+r[2]-0.003]),{p:3,rx:PI/2,seg:16,sub:3});   // carbon sole showing as a black wedge along the side
+  RG.heelPad=new THREE.BoxGeometry(0.05,0.012,0.045);RG.heelPad.translate(0,0.006,-0.165);
+  RG.cleat=new THREE.BoxGeometry(0.06,0.012,0.07);RG.cleat.translate(0,0.004,0.0);
+  RG.boaB=new THREE.CylinderGeometry(0.0175,0.019,0.009,18);RG.boaC=new THREE.CylinderGeometry(0.014,0.0155,0.008,18);RG.boaC.translate(0,0.008,0);
+
+  RG.crank=new THREE.BoxGeometry(0.032,1,0.014);RG.crank.translate(0,0.5,0);
+  RG.pedal=new THREE.BoxGeometry(0.075,0.016,0.075);
+  RG.ok=true;return RG;}
+// skin with painted muscle definition (multiplied by the skin colour): quads + teardrop above the knee, two-headed calf, kneecap
+const MUSC={};function muscleTex(kind){if(MUSC[kind])return MUSC[kind];const W=256,H=256,c=mkCanvas(W,H),g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,W,H);
+  const Y=v=>H-v*H;const blob=(u,v,rx,ry,a,dark)=>{for(const uu of [u,u-1,u+1]){const gr=g.createRadialGradient(uu*W,Y(v),0,uu*W,Y(v),Math.max(rx,ry)*W);gr.addColorStop(0,dark?'rgba(60,30,15,'+a+')':'rgba(255,255,255,'+a+')');gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.save();g.translate(uu*W,Y(v));g.scale(rx/Math.max(rx,ry),ry/Math.max(rx,ry));g.translate(-uu*W,-Y(v));g.fillStyle=gr;g.fillRect(0,0,W,H);g.restore();}};
+  const groove=(u,v0,v1,w,a)=>{const gr=g.createLinearGradient((u-w)*W,0,(u+w)*W,0);gr.addColorStop(0,'rgba(90,45,25,0)');gr.addColorStop(0.5,'rgba(90,45,25,'+a+')');gr.addColorStop(1,'rgba(90,45,25,0)');g.fillStyle=gr;g.fillRect((u-w)*W,Y(v1),2*w*W,Y(v0)-Y(v1));};
+  if(kind==='thigh'){   // v: 0 hip -> 1 knee (only the part below the shorts shows)
+    groove(0.13,0.6,0.97,0.04,0.35);groove(0.87,0.6,0.97,0.04,0.35);           // quad separations
+    blob(0.2,0.86,0.09,0.09,0.35,true);blob(0.8,0.86,0.09,0.09,0.35,true);       // shadow under the teardrops
+    blob(0.24,0.8,0.08,0.06,0.5);blob(0.76,0.8,0.08,0.06,0.5);                     // vastus medialis / lateralis highlights
+    blob(0,0.99,0.06,0.04,0.45,true);blob(0,1.02,0.05,0.03,0.4);}                  // above the kneecap
+  if(kind==='shin'){    // v: 0 knee -> 1 ankle; u .5 = calf
+    blob(0,0.04,0.07,0.06,0.5);blob(0.0,0.12,0.06,0.05,0.35,true);                 // kneecap + tendon
+    groove(0.5,0.12,0.5,0.025,0.4);                                                 // between the two calf heads
+    blob(0.4,0.3,0.09,0.17,0.45);blob(0.6,0.3,0.09,0.17,0.45);                      // gastrocnemius heads
+    blob(0.5,0.55,0.1,0.08,0.4,true);                                               // where the calf narrows into the achilles
+    groove(0.1,0.1,0.85,0.03,0.25);groove(0.9,0.1,0.85,0.03,0.25);}                // shin bone edge
+  if(kind==='fore'){blob(0.25,0.25,0.12,0.2,0.35);blob(0.75,0.25,0.12,0.2,0.35);groove(0.5,0.05,0.7,0.03,0.3);groove(0,0.1,0.6,0.03,0.2);}
+  // ambient occlusion towards both joints
+  const ao=g.createLinearGradient(0,0,0,H);ao.addColorStop(0,'rgba(70,35,20,.12)');ao.addColorStop(0.12,'rgba(0,0,0,0)');ao.addColorStop(0.9,'rgba(0,0,0,0)');ao.addColorStop(1,'rgba(70,35,20,.12)');g.fillStyle=ao;g.fillRect(0,0,W,H);
+  const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return MUSC[kind]=t;}
+const SKINMM={};function skinMuscle(c,kind){const k=c+kind;return SKINMM[k]||(SKINMM[k]=new THREE.MeshPhongMaterial({color:c,map:muscleTex(kind),specular:0x3d2c22,shininess:22}));}
+const SKINM={};function skinMat(c){return SKINM[c]||(SKINM[c]=new THREE.MeshPhongMaterial({color:c,specular:0x2a2420,shininess:16}));}
+const LYCRA={};function lycraMat(c){return LYCRA[c]||(LYCRA[c]=new THREE.MeshPhongMaterial({color:c,specular:0x3c3c3c,shininess:34}));}
+// glossy aero helmet: u=0 top centreline, .25/.75 sides, .5 underneath · v: 0 brow -> 1 tail tip
+const AHM={};function aeroHelmetMat(col,acc,tt){const k=col+'_'+acc+'_'+(tt?1:0);if(AHM[k])return AHM[k];const W=512,H=512,c=mkCanvas(W,H),g=c.getContext('2d');
+  const C=new THREE.Color(col),lum=C.r*0.3+C.g*0.59+C.b*0.11,base='#'+C.getHexString(),ink=lum>0.55?'#1c1e22':'#f3f3f3',A='#'+new THREE.Color(acc).getHexString();
+  const Y=v=>H-v*H;g.fillStyle=base;g.fillRect(0,0,W,H);
+  // soft two-tone: lighter crown, slightly darker lower sides (like the pearl/silver shells on the photos)
+  const sg=g.createLinearGradient(0,0,W,0);for(const [u,a] of [[0,0.16],[0.18,0.04],[0.35,-0.05],[0.5,-0.12],[0.65,-0.05],[0.82,0.04],[1,0.16]])sg.addColorStop(u,a>0?'rgba(255,255,255,'+a+')':'rgba(0,0,0,'+(-a)+')');g.fillStyle=sg;g.fillRect(0,0,W,H);
+  // front intake vents: two dark slots on the brow
+  g.fillStyle='rgba(30,32,36,.85)';for(const u of [0.11,0.89]){g.save();g.translate(u*W,Y(0.1));g.rotate(u<0.5?0.5:-0.5);g.beginPath();g.ellipse(0,0,3.5,16,0,0,7);g.fill();g.beginPath();g.ellipse(u<0.5?-12:12,10,3,11,0,0,7);g.fill();g.restore();}
+  // accent stripes running back over the tail (photo 3)
+  g.fillStyle=A;for(const [u,w] of [[0.035,7],[0.965,7],[0.075,4],[0.925,4]]){g.beginPath();g.moveTo(u*W-w,Y(0.32));g.lineTo(u*W+w,Y(0.32));g.lineTo(u*W+w*0.4,Y(0.98));g.lineTo(u*W-w*0.4,Y(0.98));g.fill();}
+  // thin swirl lines on the side like the white shell on photo 1
+  g.strokeStyle=lum>0.55?'rgba(150,155,165,.35)':'rgba(255,255,255,.18)';g.lineWidth=2;
+  for(const side of [0.25,0.75])for(let i=0;i<4;i++){g.beginPath();g.moveTo(side*W+(side<0.5?-1:1)*(30+i*8),Y(0.55));g.bezierCurveTo(side*W,Y(0.7),side*W+(side<0.5?1:-1)*(20+i*6),Y(0.85),side*W+(side<0.5?-1:1)*(10+i*9),Y(0.98));g.stroke();}
+  // big made-up wordmark along the side, reading front -> back on both sides
+  for(const side of [0.25,0.75]){g.save();g.translate(side*W,Y(0.42));g.rotate(side<0.5?-PI/2:PI/2);g.transform(1,0,-0.18,1,0,0);
+    g.fillStyle=ink;g.font='900 '+(tt?58:66)+'px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.scale(1.25,1);g.fillText('MTL',0,0);g.restore();}
+  // small logo on the back and a reflective strip under the tail
+  g.save();g.translate(0.5*W,Y(0.93));g.fillStyle=ink;g.font='900 22px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText('MOTOL',0,0);g.restore();
+  g.fillStyle='rgba(225,230,235,.9)';g.fillRect(0.44*W,Y(0.86),0.12*W,6);
+  const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;
+  return AHM[k]=new THREE.MeshPhongMaterial({map:t,specular:0xbfc4cc,shininess:120});}
+const VISORS=[[0x8a929c,0xffffff],[0x2c3038,0xf2f6ff],[0x141a24,0x8fb4ff],[0x2a1606,0xffb347],[0x1b0f2e,0xc58bff],[0x3a3e44,0xffffff]];
+function makeRider(o){const B=riderGeos();
   const g=new THREE.Group();g.rotation.order='YXZ';
   const sh=new THREE.Mesh(new THREE.CircleGeometry(0.55,16),shadowMat);sh.rotation.x=-PI/2;sh.scale.set(0.8,1.8,1);sh.position.y=0.02;g.add(sh);
   const bike=makeBike(o);g.add(bike.g);
-  const body=new THREE.Group();g.add(body);const arms=new THREE.Group();g.add(arms);
-  const KM2=kitMats(o.team,o.num),LONG=TEAMS[o.team].long;const mJ=KM2.torso,mSl=KM2.sleeve,mS=mat(o.skin||0xe2b48c),mH=helmetMat(o.helmet,o.aero),mSh=KM2.shorts;
-  let SH,HEAD,shoulder,elbow,hand;
-  if(o.aero){SH=V(0,1.2,0.33);HEAD=V(0,1.31,0.47);shoulder=0.15;elbow=[0.09,0.99,0.34];hand=[0.055,1.02,0.64];}
-  else{SH=V(0,1.27,0.27);HEAD=V(0,1.41,0.4);shoulder=0.17;elbow=[0.19,1.02,0.39];hand=[0.2,0.8,0.52];}
-  const torso=limb(mJ,0.14,G_TORSO);place(torso,V(0,1.0,-0.21),SH);torso.scale.x=0.17;body.add(torso);
-  const hips=new THREE.Mesh(new THREE.SphereGeometry(0.13,14,10),mSh);hips.position.set(0,1.0,-0.2);hips.scale.set(1.3,0.85,1.15);body.add(hips);
-  for(const sx of [-1,1]){const gl=new THREE.Mesh(new THREE.SphereGeometry(0.085,12,8),mSh);gl.position.set(sx*0.07,0.99,-0.26);gl.scale.set(1,0.9,1.1);body.add(gl);}
-  const chestCap=new THREE.Mesh(new THREE.SphereGeometry(0.14,14,10),new THREE.MeshLambertMaterial({color:new THREE.Color(TEAMS[o.team].base)}));chestCap.position.copy(SH).add(V(0,-0.01,-0.03));chestCap.scale.set(1.2,0.8,0.9);body.add(chestCap);
-  for(const sx of [-1,1]){const sh2=new THREE.Mesh(new THREE.SphereGeometry(0.06,10,8),mSl);sh2.position.set(sx*shoulder,SH.y-0.02,SH.z-0.01);body.add(sh2);}
-  const neck=limb(mS,0.045,G_LIMB);place(neck,SH.clone().add(V(0,0.0,0.02)),HEAD.clone().add(V(0,-0.05,-0.02)));body.add(neck);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.1,14,10),mS);head.position.copy(HEAD);head.scale.set(0.9,1.05,1.05);body.add(head);
-  const hel=new THREE.Mesh(new THREE.SphereGeometry(0.125,20,12,0,2*PI,0,PI*0.56),mH);hel.position.set(HEAD.x,HEAD.y+0.015,HEAD.z-0.02);hel.scale.set(1.02,o.aero?0.9:0.95,o.aero?1.7:1.32);hel.rotation.x=o.aero?0.45:0.25;body.add(hel);
-  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.098,10,8,0,2*PI,PI*0.45,PI*0.35),mat(o.hair||0x3b2a1c));hair.position.copy(HEAD).add(V(0,0.0,-0.015));body.add(hair);
-  const strap=new THREE.Mesh(new THREE.TorusGeometry(0.092,0.006,3,16,PI),mat(0x1a1a1a));strap.position.copy(HEAD).add(V(0,-0.02,0.0));strap.rotation.set(0,PI/2,PI);body.add(strap);
-  const glasses=new THREE.Mesh(new THREE.TorusGeometry(0.098,0.018,5,14,PI*0.75),new THREE.MeshPhongMaterial({color:0x1b2430,specular:0x8899aa,shininess:80}));glasses.rotation.set(PI/2,0,PI/2+PI*0.375);glasses.rotation.order='XYZ';
-  glasses.position.set(HEAD.x,HEAD.y+0.015,HEAD.z+0.005);body.add(glasses);
-  if(o.specs){   // Kýbl: big glasses – white frame, orange mirror lenses, right in front of the eyes
-    const fM=mat(0xffffff),lM=new THREE.MeshPhongMaterial({color:0xff7a00,emissive:0x662200,specular:0xffffff,shininess:120}),F=HEAD.z+0.112,Y=HEAD.y-0.04;
-    for(const sx of [-1,1]){const rim=new THREE.Mesh(new THREE.TorusGeometry(0.03,0.007,6,16),fM);rim.position.set(HEAD.x+sx*0.038,Y,F);body.add(rim);
-      const lens=new THREE.Mesh(new THREE.CircleGeometry(0.029,16),lM);lens.position.set(HEAD.x+sx*0.038,Y,F+0.002);body.add(lens);
-      const arm=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.008,0.11),fM);arm.position.set(HEAD.x+sx*0.088,Y+0.005,F-0.055);body.add(arm);}
-    const br=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.007,0.007),fM);br.position.set(HEAD.x,Y+0.008,F);body.add(br);}
-
-  const rig=[];for(const s of [-1,1]){const ua=limb(mSl,0.05,G_UARM),fa=limb(LONG?KM2.fore:mS,o.aero?0.032:LONG?0.043:0.04,G_FORE);const a=V(s*shoulder,SH.y-0.02,SH.z-0.01),e=V(s*elbow[0],elbow[1],elbow[2]),h=V(s*hand[0],hand[1],hand[2]);place(ua,a,e);place(fa,e,h);body.add(ua);arms.add(fa);const glove=new THREE.Mesh(new THREE.SphereGeometry(0.036,8,6),mat(0x151515));glove.position.copy(h);glove.scale.set(0.9,0.8,1.3);arms.add(glove);
-  rig.push({s,ua,fa,glove,a:a.clone(),e:e.clone(),h:h.clone(),L1:a.distanceTo(e),L2:e.distanceTo(h),on:false});
-}
-  const legs=[];for(const sx of [-0.11,0.11]){const th=limb(mSh,0.072,G_THIGH),kn=limb(mS,0.05,G_LIMB),shn=limb(mS,0.052,G_CALF),sock=limb(mat(o.sock||0xf4f4f4),0.036,G_LIMB),cr=limb(mat(0x999999),0.015);const shoe=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.075,0.25),new THREE.MeshPhongMaterial({color:o.shoe||0xffffff,specular:0x888888,shininess:60}));g.add(th,kn,shn,sock,cr,shoe);legs.push({th,kn,shn,sock,cr,shoe,sx});}
-  scene.add(g);return {g,body,wheels:bike.wheels,legs,rig};}
-const _p=new THREE.Vector3(),_h=new THREE.Vector3(),_k=new THREE.Vector3(),_bb=new THREE.Vector3(),_m=new THREE.Vector3();
-function animLegs(R){const L1=0.45,L2=0.45;
-  for(let i=0;i<2;i++){const L=R.model.legs[i];const a=R.crank+i*PI;
-    _p.set(L.sx*1.1,0.32+0.17*Math.cos(a),-0.04+0.17*Math.sin(a));_h.set(L.sx,1.0,-0.21);
-    const dy=_p.y-_h.y,dz=_p.z-_h.z,len=Math.sqrt(dy*dy+dz*dz),dist=Math.min(len,L1+L2-0.001);
-    const aa=(L1*L1-L2*L2+dist*dist)/(2*dist),hh=Math.sqrt(Math.max(0,L1*L1-aa*aa)),uy=dy/len,uz=dz/len;
-    _k.set(L.sx,_h.y+uy*aa+uz*hh,_h.z+uz*aa-uy*hh);
-    _m.lerpVectors(_h,_k,0.84);place(L.th,_h,_m);place(L.kn,_m,_k);place(L.shn,_k,_p);_m.lerpVectors(_p,_k,0.2);place(L.sock,_p,_m);_bb.set(L.sx*0.9,0.32,-0.04);place(L.cr,_bb,_p);L.shoe.position.set(_p.x,_p.y+0.02,_p.z+0.04);}}
+  const body=new THREE.Group(),arms=new THREE.Group();g.add(body,arms);
+  const KM2=kitMats(o.team,o.num),LONG=TEAMS[o.team].long!==false,mS=skinMat(o.skin||0xe2b48c),mSh=KM2.shorts,mJ=KM2.torso,mSl=KM2.sleeve,mGl=lycraMat(o.glove||0x161616);
+  const seed=((o.num||3)*7919)%97/97;const bw=0.98+seed*0.1,bl=1.04+((seed*13)%1)*0.12;   // build: shoulders / legs
+  const mk=(geo,m,par)=>{const x=new THREE.Mesh(geo,m);(par||body).add(x);return x;};
+  const torso=[mk(B.torS,mSh),mk(B.torJ,mJ)];const neck=mk(B.neck,mS);
+  // head group: +z = face, centre at ear level
+  const head=new THREE.Group();head.rotation.order='YXZ';body.add(head);
+  head.add(new THREE.Mesh(B.head,mS));
+  const hair=new THREE.Mesh(B.hair,mat(o.hair||0x3b2a1c));hair.scale.set(0.074,0.082,0.083);hair.position.set(0,0.0,-0.014);hair.rotation.x=0.75;head.add(hair);
+  // aero helmet (photos): glossy shell with a tail, mirrored wrap visor, wordmark on the side, stripes over the tail
+  const hel=new THREE.Mesh(o.aero?B.helmTT:B.helmTr,aeroHelmetMat(o.helmet,TEAMS[o.team].accent,o.aero));head.add(hel);
+  const rimH=new THREE.Mesh(o.aero?B.helmTTrim:B.helmTrRim,lycraMat(0x141414));head.add(rimH);
+  head.add(new THREE.Mesh(B.strap,mat(0x1a1a1a)));
+  if(o.specs){const fM=mat(0xffffff),lM=new THREE.MeshPhongMaterial({color:0xff7a00,emissive:0x662200,specular:0xffffff,shininess:120}),F=0.1,Y=0.012;
+    for(const sx of [-1,1]){const rim=new THREE.Mesh(new THREE.TorusGeometry(0.03,0.007,6,16),fM);rim.position.set(sx*0.038,Y,F);head.add(rim);
+      const lens=new THREE.Mesh(new THREE.CircleGeometry(0.029,16),lM);lens.position.set(sx*0.038,Y,F+0.002);head.add(lens);
+      const arm=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.008,0.1),fM);arm.position.set(sx*0.078,Y+0.005,F-0.05);head.add(arm);}
+    const br=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.007,0.007),fM);br.position.set(0,Y+0.008,F);head.add(br);}
+  else{const vc=VISORS[(o.num||0)%VISORS.length];const vis=new THREE.Mesh(B.visor,new THREE.MeshPhongMaterial({color:vc[0],specular:vc[1],shininess:140,side:THREE.DoubleSide,transparent:true,opacity:0.94,reflectivity:1}));head.add(vis);}
+  // arms: upper arm in body (hidden in first person), forearm + glove stay visible on the bars
+  const rig=[];for(const s of [-1,1]){const delt=mk(B.delt,mSl);const ua=LONG?[mk(B.uaL,mSl)]:[mk(B.uaS,mSl),mk(B.uaK,mS)];
+    const fa=new THREE.Mesh(B.fa,LONG?KM2.fore:skinMuscle(o.skin||0xe2b48c,'fore'));arms.add(fa);const glove=new THREE.Mesh(B.fist,mGl);arms.add(glove);
+    rig.push({s,ua,fa,glove,delt,a:V(s*0.17,1.23,0.27),e:V(s*0.2,1.0,0.38),h:V(s*0.205,0.79,0.548),L1:0.29,L2:0.31,on:false});}
+  const shoeM=shoeMat(o.shoe||0xffffff),soleM=new THREE.MeshPhongMaterial({map:carbonSoleTex(),specular:0x777777,shininess:90}),crM=bikeMat(0x2a2a2c,90),pedM=bikeMat(0x18181a,40),boaM=new THREE.MeshPhongMaterial({color:0xc9ccd0,specular:0xffffff,shininess:110}),capM=new THREE.MeshPhongMaterial({color:o.shoe||0xffffff,specular:0xaaaaaa,shininess:80});
+  const legs=[];for(const sx of [-1,1]){const L={sx,thS:new THREE.Mesh(B.thS,mSh),thK:new THREE.Mesh(B.thK,skinMuscle(o.skin||0xe2b48c,'thigh')),shn:new THREE.Mesh(B.shn,skinMuscle(o.skin||0xe2b48c,'shin')),sock:new THREE.Mesh(B.sock,mat(o.sock||0xf4f4f4)),
+      shoe:makeShoe(B,shoeM,soleM,boaM,capM,pedM,sx),kc:new THREE.Mesh(B.delt,mS),cr:new THREE.Mesh(B.crank,crM),ped:new THREE.Mesh(B.pedal,pedM)};
+    g.add(L.thS,L.thK,L.shn,L.sock,L.shoe,L.cr,L.ped,L.kc);legs.push(L);}
+  const M={g,body,arms,bike:bike.g,wheels:bike.wheels,legs,rig,torso,neck,head,bw,bl,aero:!!o.aero};
+  poseRider(M,0.6,0,0,0,0,0,0.7);scene.add(g);return M;}
+// ---------- road/track shoes from the photos: white perforated upper, two BOA dials, black carbon sole, padded heel collar ----------
+const SHOEM={};function shoeTex(c){const W=512,H=512,cv=mkCanvas(W,H),g=cv.getContext('2d');const col=new THREE.Color(c),hex='#'+col.getHexString(),lum=col.r*0.3+col.g*0.59+col.b*0.11;
+  // u: 0 = sole centre, .25/.75 = sides, .5 = top of the foot · v (canvas bottom→top): heel→toe
+  g.fillStyle=hex;g.fillRect(0,0,W,H);
+  const Y=v=>H-v*H;   // v (0 heel, 1 toe) -> canvas y
+  // subtle panel shading: darker towards the sole edge
+  const sg=g.createLinearGradient(0,0,W,0);for(const [u,a] of [[0,0.5],[0.1,0.18],[0.2,0],[0.8,0],[0.9,0.18],[1,0.5]])sg.addColorStop(u,'rgba(0,0,0,'+a+')');g.fillStyle=sg;g.fillRect(0,0,W,H);
+  // black carbon showing at the bottom edge
+  g.fillStyle='#121212';g.fillRect(0,0,W*0.075,H);g.fillRect(W*0.925,0,W*0.075,H);
+  // perforations: rows of small holes on the toe box and the sides of the forefoot
+  const dot=lum>0.5?'rgba(40,44,50,.55)':'rgba(0,0,0,.45)';g.fillStyle=dot;
+  for(let row=0;row<26;row++)for(let k=0;k<44;k++){const u=0.13+k*0.0175+(row%2)*0.0088,v=0.42+row*0.021;if(u>0.87)continue;
+    const top=Math.abs(u-0.5)<0.09&&v<0.8;if(top)continue;             // no holes under the dials / tongue
+    if(v>0.93)continue;g.beginPath();g.arc(u*W,Y(v),1.7,0,7);g.fill();}
+  // heel collar & tongue opening: dark padded lining on top at the back
+  g.fillStyle='#1b1c1f';g.beginPath();g.ellipse(0.5*W,Y(0.1),W*0.1,H*0.11,0,0,7);g.fill();
+  g.fillStyle='rgba(255,255,255,.08)';g.fillRect(0.4*W,Y(0.2),0.2*W,6);
+  // overlay seams: a curved panel line from the heel to the dials, and a toe cap line
+  g.strokeStyle=lum>0.5?'rgba(0,0,0,.18)':'rgba(255,255,255,.18)';g.lineWidth=3;
+  for(const side of [0.25,0.75]){g.beginPath();g.moveTo(side*W,Y(0.04));g.quadraticCurveTo(side*W,Y(0.3),(side<0.5?0.4:0.6)*W,Y(0.5));g.stroke();}
+  g.beginPath();g.moveTo(0.12*W,Y(0.86));g.quadraticCurveTo(0.5*W,Y(1.02),0.88*W,Y(0.86));g.stroke();
+  // side logo (made-up wordmark, slanted, like the big letters on the photos)
+  for(const side of [0.25,0.75]){g.save();g.translate(side*W,Y(0.36));g.rotate(side<0.5?-PI/2:PI/2);g.transform(1,0,-0.3,1,0,0);
+    g.fillStyle=lum>0.5?'#2a2d33':'#f2f2f2';g.font='italic 900 46px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('MTL',0,0);g.restore();}
+  // heel: reflective tab
+  g.fillStyle='rgba(200,205,210,.9)';g.fillRect(0.47*W,Y(0.02),0.06*W,14);
+  const t=new THREE.CanvasTexture(cv);t.anisotropy=MAXANI;return t;}
+function shoeMat(c){return SHOEM[c]||(SHOEM[c]=new THREE.MeshPhongMaterial({map:shoeTex(c),specular:0x9a9a9a,shininess:65}));}
+let _csTex=null;function carbonSoleTex(){if(_csTex)return _csTex;const c=mkCanvas(128,128),g=c.getContext('2d');g.fillStyle='#141416';g.fillRect(0,0,128,128);
+  for(let y=0;y<128;y+=8)for(let x=0;x<128;x+=8){g.fillStyle=((x+y)/8)%2?'rgba(255,255,255,.07)':'rgba(0,0,0,.25)';g.fillRect(x,y,8,8);}
+  _csTex=new THREE.CanvasTexture(c);_csTex.wrapS=_csTex.wrapT=THREE.RepeatWrapping;_csTex.repeat.set(3,6);return _csTex;}
+// local: origin at the pedal axle, +z toe, +y up; the BOA dials sit on the outside of the instep, tilted to face up and out
+const SHOEG={};function makeShoe(B,shoeM,soleM,boaM,capM,pedM,sx){const g=new THREE.Group();
+  if(!SHOEG[sx]){const a=[new THREE.Mesh(B.sole),new THREE.Mesh(B.heelPad),new THREE.Mesh(B.cleat)];for(const m of a)m.updateMatrixWorld(true);
+    const d=[];for(const [x,y,z,tilt] of [[0.017,0.087,-0.085,0.45],[0.022,0.074,-0.03,0.6]]){const q=new THREE.Group();q.position.set(sx*x,y,z);q.rotation.set(-0.2,0,-sx*tilt);
+      const m1=new THREE.Mesh(B.boaB),m2=new THREE.Mesh(B.boaC);q.add(m1,m2);q.updateMatrixWorld(true);d.push(m1,m2);}
+    SHOEG[sx]={sole:mergeList(a),boa:mergeList(d)};}
+  g.add(new THREE.Mesh(B.shoe,shoeM),new THREE.Mesh(SHOEG[sx].sole,soleM),new THREE.Mesh(SHOEG[sx].boa,boaM));
+  return g;}
+// ---------- posture: where the hips, the base of the neck and the hands are, in bike space ----------
+const PZ={drops:{hip:[0,1.05,-0.2],N:[0,1.215,0.35],grip:[0.205,0.79,0.548],pitch:0.42},sprint:{hip:[0,1.05,-0.185],N:[0,1.175,0.375],pitch:0.6},
+  tops:{hip:[0,1.045,-0.225],N:[0,1.37,0.18],grip:[0.15,0.906,0.47],pitch:0.12},stand:{hip:[0,1.07,-0.03],N:[0,1.3,0.45],pitch:0.5},
+  aero:{hip:[0,1.06,-0.17],N:[0,1.2,0.41],grip:[0.055,1.02,0.645],elbow:[0.088,0.985,0.355],pitch:0.7},horns:[0.212,0.91,0.6]};
+const _qhp=V(),_qNn=V(),_qdr=V(),_qF=V(),_qXA=V(1,0,0),_qhj=V(),_qpd=V(),_qak=V(),_qkn=V(),_qfv=V(),_quv=V(),_qfx=V(),_qu=V(),_qn=V(),_qt1=V(),_qt2=V(),_qsa=V(),_qgr=V(),_qel=V(),_qel2=V(),_qbb=V();
+function mix3(out,arr,k){out.x+=(arr[0]-out.x)*k;out.y+=(arr[1]-out.y)*k;out.z+=(arr[2]-out.z)*k;return out;}
+let _qroll=0;function rollP(v){const c=Math.cos(_qroll),s=Math.sin(_qroll),x=v.x,y=v.y;v.x=x*c-y*s;v.y=x*s+y*c;return v;}
+// two-bone IK: from a towards h with bone lengths L1/L2, bend towards `pole`; returns the elbow/knee in `out` (and clamps h if out of reach)
+function rIK(a,h,L1,L2,pole,out){_qu.subVectors(h,a);let D=_qu.length();const mx=(L1+L2)*0.995;if(D>mx){_qu.multiplyScalar(mx/D);D=mx;h.copy(a).add(_qu);}D=Math.max(D,0.05);_qu.divideScalar(D);
+  const aa=(L1*L1-L2*L2+D*D)/(2*D),hh=Math.sqrt(Math.max(0,L1*L1-aa*aa));_qn.copy(pole).addScaledVector(_qu,-pole.dot(_qu)).normalize();return out.copy(a).addScaledVector(_qu,aa).addScaledVector(_qn,hh);}
+function armPlace(A,a,e,h){_qt1.subVectors(e,a);_qt2.crossVectors(_qt1,_qXA).multiplyScalar(-A.s);if(_qt2.lengthSq()<1e-6)_qt2.set(0,1,0);
+  for(const m of A.ua)orient(m,a,e,_qt2,1.1,1.1);
+  _qt1.subVectors(h,e);_qt2.set(0,1,0.2);orient(A.fa,e,h,_qt2,1.1,1.1);
+  _qt1.normalize();_qt2.copy(h).add(_qt1);orient(A.glove,h,_qt2,_qXA.set(1,0,0).multiplyScalar(A.s),1,1);_qXA.set(1,0,0);}
+const ARMPOLE=V();
+function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
+  const P0=M.aero?PZ.aero:PZ.drops;
+  _qhp.set(...P0.hip);_qNn.set(...P0.N);let pitch=P0.pitch;
+  if(!M.aero){mix3(_qhp,PZ.sprint.hip,sp);mix3(_qNn,PZ.sprint.N,sp);pitch+=(PZ.sprint.pitch-pitch)*sp;mix3(_qhp,PZ.tops.hip,su);mix3(_qNn,PZ.tops.N,su);pitch+=(PZ.tops.pitch-pitch)*su;}
+  mix3(_qhp,PZ.stand.hip,st);mix3(_qNn,PZ.stand.N,st);pitch+=(PZ.stand.pitch-pitch)*st;
+  const sa=Math.sin(crank),c2=Math.cos(2*crank);
+  // out of the saddle the bike swings under the rider, away from the leg that pushes; the body drops onto that pedal
+  _qroll=-0.15*st*sa;M.bike.rotation.z=_qroll;
+  _qhp.x+=-0.032*st*sa-0.005*e*sa*(1-st);_qhp.y+=-0.024*st*(0.5-0.5*c2);_qhp.z+=0.012*e*(1-st)*(1-su);
+  _qNn.x+=-0.022*st*sa+0.012*sp*sa+0.03*Math.sin(yaw)*0.6;_qNn.y+=0.006*sp*c2-0.008*st*(0.5-0.5*c2)+0.004*sb;
+  // torso
+  _qdr.subVectors(_qNn,_qhp);const TL=_qdr.length();_qdr.multiplyScalar(1/TL);_qF.set(0,-_qdr.z,_qdr.y).normalize();
+  for(const m of M.torso)orient(m,_qhp,_qNn,_qF,M.bw*(1+0.012*sb),1+0.03*sb);
+  // head & neck: the neck rises forward out of the flat back, the face looks up the track
+  _qt1.copy(_qdr).multiplyScalar(0.85).add(_qt2.set(0,0.5,0.12)).normalize();_qak.copy(_qNn).addScaledVector(_qt1,0.14);   // head centre
+  _qt2.set(0,-_qt1.z,_qt1.y);orient(M.neck,_qt1.copy(_qNn).addScaledVector(_qdr,-0.02),_qak,_qt2,1,1);
+  M.head.position.copy(_qak);M.head.rotation.set(pitch-0.12*Math.abs(yaw)+(lookPitch||0)+0.012*sb,yaw,0.06*sp*sa);
+  // arms
+  if(M.aero){_qgr.set(...P0.grip);mix3(_qgr,PZ.horns,st);}else{_qgr.set(...PZ.drops.grip);mix3(_qgr,PZ.tops.grip,su);}
+  for(const A of M.rig){const s=A.s;
+    _qsa.copy(_qNn).addScaledVector(_qdr,-0.065).addScaledVector(_qF,0.05);_qsa.x+=s*0.168*M.bw;
+    A.delt.position.copy(_qsa).addScaledVector(_qF,-0.01);A.delt.position.x+=s*0.012;A.delt.scale.set(0.064*M.bw,0.06,0.066);A.delt.quaternion.setFromUnitVectors(UPV,_qt1.copy(_qdr).negate());
+    A.a.copy(_qsa);A.h.set(s*_qgr.x,_qgr.y,_qgr.z);rollP(A.h);
+    ARMPOLE.set(s*0.75,-0.35,-0.55);rIK(A.a,A.h,A.L1,A.L2,ARMPOLE,A.e);
+    if(M.aero&&st<1){_qel.set(s*P0.elbow[0],P0.elbow[1],P0.elbow[2]);rollP(_qel);A.e.lerp(_qel,1-st);}   // forearms resting on the pads
+    if(!A.on)armPlace(A,A.a,A.e,A.h);}
+  // legs: ball of the foot over the pedal axle, ankling through the stroke, knee tracking forward
+  _qbb.set(0,0.32,-0.04);
+  for(let i=0;i<2;i++){const L=M.legs[i],a=crank+i*PI,sx=L.sx,ca=Math.cos(a),sn=Math.sin(a);
+    _qpd.set(sx*0.125,0.32+0.17*ca,-0.04+0.17*sn);rollP(_qpd);
+    const ph=0.28-0.08*ca-0.14*sn+0.1*st;_qfv.set(0,-Math.sin(ph),Math.cos(ph));rollP(_qfv);_quv.set(0,Math.cos(ph),Math.sin(ph));rollP(_quv);
+    _qak.copy(_qpd).addScaledVector(_qfv,-0.12).addScaledVector(_quv,0.074);
+    _qhj.copy(_qhp).addScaledVector(_qF,0.015);_qhj.x+=sx*0.092*M.bw;
+    _qt1.set(sx*0.14,0.25,1);rIK(_qhj,_qak,0.44,0.425,_qt1,_qkn);
+    _qt1.subVectors(_qkn,_qhj);_qt2.crossVectors(_qt1,_qXA);orient(L.thS,_qhj,_qkn,_qt2,M.bl,M.bl);orient(L.thK,_qhj,_qkn,_qt2,M.bl,M.bl);
+    _qt1.subVectors(_qak,_qkn);_qt2.crossVectors(_qt1,_qXA);orient(L.shn,_qkn,_qak,_qt2,M.bl,M.bl);L.kc.position.copy(_qkn).addScaledVector(_qt2.normalize(),0.008);L.kc.scale.setScalar(0.047*M.bl);orient(L.sock,_qkn,_qak,_qt2,M.bl*1.07,M.bl*1.07);
+    _qfx.crossVectors(_quv,_qfv);_qom.makeBasis(_qfx,_quv,_qfv);L.shoe.quaternion.setFromRotationMatrix(_qom);L.shoe.position.copy(_qpd);
+    L.ped.quaternion.copy(L.shoe.quaternion);L.ped.position.copy(_qpd).addScaledVector(_quv,0.004);
+    _qt1.set(sx*0.085,0.32,-0.04);rollP(_qt1);_qt2.set(sx*0.085,_qpd.y,_qpd.z);_qt2.x=_qpd.x-sx*0.04;_qXA.set(1,0,0);orient(L.cr,_qt1,_qt2,_qXA,1,1);}}
+// per frame: effort decides seated / seated sprint / out of the saddle; resting & finished riders sit up; bots glance round
+function animRider(R,dt){const M=R.model;let A=R.an;if(!A)A=R.an={st:0,su:0,sp:0,br:Math.random()*6,yaw:0,gl:3+Math.random()*8,glY:0,glT:0};
+  const ftp=R.ftp||330,P=phase==='menu'?(R.menuP||ftp*0.75):R.realP!=null?R.realP:(R.power||0),e=clamp(P/ftp,0,2.2),v=R.v||0;
+  const pre=v<0.4&&(phase==='countdown'||phase==='race')&&(mode==='kilo'||mode==='keirin')&&!R.finished;
+  // out of the saddle only for the jump: a max sprint (or getting going from a standstill) lifts the rider for 2 s, then he sits down;
+  // he can jump again only after easing off
+  const maxNow=!R.finished&&!R.out&&(P>2.4*ftp||(R.player&&keys.sprint)||(v<4.5&&P>60&&phase==='race'));
+  if(A.can==null)A.can=true;if(maxNow&&A.can){A.jt=2;A.can=false;}if(!maxNow&&P<1.5*ftp){A.calm=(A.calm||0)+dt;if(A.calm>0.5)A.can=true;}else A.calm=0;
+  A.jt=Math.max(0,(A.jt||0)-dt);
+  const stT=R.finished||R.out?0:pre?0.8:A.jt>0?1:0;
+  A.st+=(stT-A.st)*Math.min(1,dt*(stT>A.st?6:3));
+  const suT=(R.resting||R.finished||R.out||(e<0.3&&v<8.5&&!pre))?1:0;A.su+=(suT-A.su)*Math.min(1,dt*1.5);
+  const spT=clamp((e-0.95)/0.45,0,1);A.sp+=(spT-A.sp)*Math.min(1,dt*3);
+  A.br+=dt*(1.5+2.2*Math.min(e,1.6)+(1-(R.energy==null?100:R.energy)/100)*1.6);
+  let yT=0;
+  if(!R.player&&(phase==='race'||phase==='menu')&&v>5&&A.sp<0.3&&A.st<0.3){A.gl-=dt;if(A.gl<=0){A.glT=0.5+Math.random()*0.5;A.glY=(Math.random()<0.5?-1:1)*(0.8+Math.random()*0.6);A.gl=(R.resting?2.5:6)+Math.random()*10;}}
+  if(A.glT>0){A.glT-=dt;yT=A.glY;}
+  A.yaw+=(yT-A.yaw)*Math.min(1,dt*8);
+  poseRider(M,R.crank||0,A.st,A.su*(1-A.st),A.sp*(1-A.st)*(1-A.su),Math.sin(A.br),A.yaw,e,0);}
 
 // infield people & props
 function makePerson(x,z,col,face,sit){const g=new THREE.Group();const pants=mat([0x1d2a44,0x2b2b2b,0x3a4a6b][Math.floor(Math.random()*3)]);
@@ -1125,23 +1350,23 @@ function buildInfield(){
   rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
     (i%2?rollersB:rollersA)(g);
     const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:i%7===3,spokes:[3,5,24,4][i%4],aero:i%4===1});b.g.position.y=ROLL_Y;g.add(b.g);});
-  // bike hangers: a long bar on two A-frame ends, the bikes hang by the saddle nose, front wheel up (as in the sketch)
+  // bike racks (as on the photo): a black bar at saddle height on posts, parallel to the home straight;
+  // each bike hangs by the saddle nose hooked over the bar, perpendicular to it, front wheel just above the floor
   OBST.cols=cols;OBST.rollers=rollers;OBST.hangs=[];
-  const steelM=new THREE.MeshPhongMaterial({color:0xb9bec3,specular:0x666666,shininess:60}),footM=mat(0x2b2b2b);
-  function hanger(xc,zc,n,bi){const SP=1.3,BH=1.78,Lb=n*SP+0.3,g=new THREE.Group();g.position.set(xc,y0,zc);g.rotation.y=PI/2;scene.add(g);
-    const bar=limb(steelM,0.022);place(bar,V(0,BH,-Lb/2),V(0,BH,Lb/2));g.add(bar);
-    for(const e of [-1,1]){const z=e*Lb/2;const po=limb(steelM,0.028);place(po,V(0,0,z),V(0,BH,z));g.add(po);
-      const lg=limb(steelM,0.022);place(lg,V(0,BH*0.62,z),V(0,0,z+e*0.55));g.add(lg);                       // splayed leg
-      const ft=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.05,0.07),footM);ft.position.set(0,0.025,z+e*0.2);g.add(ft);
-      const cap=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),footM);cap.position.set(0,BH,z);g.add(cap);}
-    if(Lb>4.5){const po=limb(steelM,0.025);place(po,V(0,0,0),V(0,BH,0));g.add(po);const ft=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.05,0.07),footM);ft.position.y=0.025;g.add(ft);}
-    for(let i=0;i<n;i++){const z=-Lb/2+0.15+SP*(i+0.62);const c=bikeCols[(bi+i)%bikeCols.length];
-      const bk=makeBike({frame:c[0],accent:c[1],discR:(bi+i)%4===0,discF:(bi+i)%6===2,spokes:[5,3,24,4][(bi+i)%4],aero:false});const TH=-0.7;bk.g.rotation.x=TH;
-      const sy=0.975,sz=-0.24,ry=sy*Math.cos(TH)-sz*Math.sin(TH),rz=sy*Math.sin(TH)+sz*Math.cos(TH);           // saddle top after the tilt
-      bk.g.position.set((i%2?0.07:-0.07),BH+0.02-ry,z-rz);g.add(bk.g);
-      const hook=limb(footM,0.012);place(hook,V(0,BH,z),V(0,BH+0.06,z));g.add(hook);
-      const w=new THREE.Vector3(0,0,z-0.4);g.updateMatrixWorld();g.localToWorld(w);OBST.hangs.push([w.x,w.z]);}}
-  hanger(11.2,-6.8,5,3);hanger(12.4,5.6,4,1);
+  const rackM=new THREE.MeshPhongMaterial({color:0x17181a,specular:0x444444,shininess:50}),footM=mat(0x2b2b2b);
+  function hanger(xc,zc,n,bi){const SP=0.62,BH=1.12,Lb=n*SP+0.5,g=new THREE.Group();g.position.set(xc,y0,zc);scene.add(g);   // bar along world x = along the straights
+    const bx=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||rackM);b.position.set(x,y,z);g.add(b);return b;};
+    bx(Lb,0.045,0.045,0,BH,0);                                                          // square-section top bar
+    const posts=[-Lb/2+0.06,Lb/2-0.06];if(Lb>3.5)posts.push(0);
+    for(const x of posts){bx(0.045,BH,0.045,x,BH/2,0);bx(0.06,0.05,1.5,x,0.025,0,footM);   // post + long foot across the bar
+      for(const e of [-1,1]){const br=limb(rackM,0.014);place(br,V(x,0.42,0),V(x,0.03,e*0.55));g.add(br);}}
+    const TH=0.27;   // front end drops towards the floor
+    for(let i=0;i<n;i++){const x=-Lb/2+0.25+SP*(i+0.5);const c=bikeCols[(bi+i)%bikeCols.length];
+      const bk=makeBike({frame:c[0],accent:c[1],discR:(bi+i)%3!==1,discF:(bi+i)%5===2,spokes:[5,3,24,4][(bi+i)%4],aero:(bi+i)%4===1});
+      const piv=new THREE.Group();piv.rotation.order='YXZ';piv.rotation.set(TH,0,0);piv.position.set(x,BH+0.024,0);g.add(piv);
+      bk.g.position.set(0,-0.935,0.115);piv.add(bk.g);                                    // the point just under the saddle nose sits on the bar
+      for(const lz of [-0.7,0,0.7]){const w=new THREE.Vector3(x,0,lz);g.updateMatrixWorld();g.localToWorld(w);OBST.hangs.push([w.x,w.z]);}}}
+  hanger(11.6,-6.8,7,3);hanger(12.6,5.6,6,1);
 
   // fan heaters on tall stands in every corner of the infield (louvred box + a speaker on top, ladder-like feet)
   const segE=[LSTR/2,LSTR/2+2*LT+LA,LSTR*1.5+2*LT+LA,LSTR*1.5+4*LT+2*LA];
@@ -1227,7 +1452,7 @@ const ROSTER=[
 ].map(r=>Object.assign({helmet:TEAMS[r.team].helmet,frame:TEAMS[r.team].frame,accent:TEAMS[r.team].accent,spokes:TEAMS[r.team].spokes||3,ftp:325},r));
 function shadowify(g){g.updateMatrixWorld(true);const sc=new THREE.Vector3(),L=[];g.traverse(o=>{if(!o.isMesh||o.material===shadowMat||(o.material&&o.material.transparent))return;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();o.getWorldScale(sc);L.push([o.geometry.boundingSphere.radius*Math.max(sc.x,sc.y,sc.z),o]);});
   L.sort((a,b)=>b[0]-a[0]);L.slice(0,LOWEND?12:18).forEach(([r,o])=>o.castShadow=true);return g;}   // only the biggest parts (body, legs, wheels, frame) cast – keeps the shadow pass cheap
-const riders=ROSTER.map(r=>{const o=Object.assign({aero:!!r.player,shoe:0xffffff,skin:[0xe2b48c,0xd9a37c,0xeec3a0][Math.floor(Math.random()*3)],hair:[0x3b2a1c,0x1b1b1b,0x6b4426][Math.floor(Math.random()*3)]},r);const md=makeRider(o);shadowify(md.g);return Object.assign({},o,{model:md});});
+const riders=ROSTER.map(r=>{const o=Object.assign({aero:!!r.player,shoe:0xffffff,skin:[0xd9a37c,0xc98e65,0xe0ad85,0xb27850][Math.floor(Math.random()*4)],hair:[0x3b2a1c,0x1b1b1b,0x6b4426][Math.floor(Math.random()*3)]},r);const md=makeRider(o);shadowify(md.g);return Object.assign({},o,{model:md});});
 const player=riders[0];
 // our rider: tri-bars only for the kilo, normal drops in every other race
 player.mAero=player.model;player.mStd=makeRider(Object.assign({},player,{aero:false}));shadowify(player.mStd.g);player.mAero.g.visible=false;player.model=player.mStd;
@@ -1722,7 +1947,7 @@ function placeModels(dt){
     R.lean+=(tgt-R.lean)*Math.min(1,dt*5);M.g.rotation.z=R.lean;
     if(R.slipT>0.25){const q=clamp((R.slipT-0.25)/1.75,0,1),t=performance.now()/1000;M.g.rotation.z+=-0.22*q*q+Math.sin(t*26)*0.05*q;M.g.rotation.y=heading+Math.sin(t*15)*0.07*q+0.12*q*q;}   // squirming tyres, rear stepping out
     for(const w of M.wheels)w.rotation.x+=R.v/0.34*dt;
-    animLegs(R);M.body.visible=!(R===player&&(camMode===1||Math.abs(headTurn)>0.3));}
+    animRider(R,dt);M.body.visible=!(R===player&&(camMode===1||Math.abs(headTurn)>0.3));}
   slingPose(dt);placeDerny(dt);
 }
 
@@ -2234,14 +2459,10 @@ function doSling(T,q){const A=T.act,R=T.rest;const newS=A.s+gapTo(A,R),boost=1.0
   T.stintT=0;T.stintS=T.act.s;T.waitT=0;T.alongT=0;T.giveUp=false;T.want=false;T.armed=false;T.nearT=0;T.slings++;}
 // ---------- hand-sling animation: the resting rider reaches back, the active one grabs his hand, pushes him forward and follows through ----------
 const _sv=new THREE.Vector3(),_su=new THREE.Vector3(),_sp=new THREE.Vector3(),_se=new THREE.Vector3(),_sh=new THREE.Vector3(),_sw=new THREE.Vector3(),_sw2=new THREE.Vector3(),_st=new THREE.Vector3();
+const _slp=V(),_slh=V();
 function setArm(R,side,tgt,k){const A=R.model.rig&&R.model.rig[side];if(!A)return;
-  _sh.lerpVectors(A.h,tgt,k);_sv.subVectors(_sh,A.a);let D=_sv.length();const mx=(A.L1+A.L2)*0.985;if(D>mx){_sv.multiplyScalar(mx/D);D=mx;_sh.copy(A.a).add(_sv);}
-  D=Math.max(D,0.05);_su.copy(_sv).divideScalar(D);
-  const aa=(A.L1*A.L1-A.L2*A.L2+D*D)/(2*D),hh=Math.sqrt(Math.max(0,A.L1*A.L1-aa*aa));
-  _sp.set(A.s*0.85,-0.55,-0.1);_sp.addScaledVector(_su,-_sp.dot(_su)).normalize();   // elbow points out and down
-  _se.copy(A.a).addScaledVector(_su,aa).addScaledVector(_sp,hh);
-  place(A.ua,A.a,_se);place(A.fa,_se,_sh);A.glove.position.copy(_sh);A.on=true;}
-function resetArm(R,side){const A=R.model.rig&&R.model.rig[side];if(!A||!A.on)return;place(A.ua,A.a,A.e);place(A.fa,A.e,A.h);A.glove.position.copy(A.h);A.on=false;}
+  _slh.lerpVectors(A.h,tgt,k);_slp.set(A.s*0.85,-0.55,-0.1);rIK(A.a,_slh,A.L1,A.L2,_slp,_se);armPlace(A,A.a,_se,_slh);A.on=true;}
+function resetArm(R,side){const A=R.model.rig&&R.model.rig[side];if(A)A.on=false;}
 function sideTo(R,P){P.model.g.getWorldPosition(_sw);R.model.g.worldToLocal(_sw);return _sw.x<0?0:1;}
 // the catcher's hand stretched back by his hip (world space)
 function catchHand(C,side,ext,out){const sx=side?1:-1;out.set(sx*(0.3+0.05*ext),0.9-0.04*ext,-0.28-0.16*ext);return C.model.g.localToWorld(out);}
@@ -2825,7 +3046,7 @@ let wipeBusy=false;
 function wipe(fn){if(wipeBusy)return;wipeBusy=true;const w=$('wipe');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');tone(180,0.35,0.05,'sawtooth');tone(360,0.3,0.04,'triangle',0.1);
   setTimeout(()=>{fn();},430);setTimeout(()=>{w.classList.remove('go');wipeBusy=false;},950);}
 function startRace(m){wipe(()=>beginRace(m));}
-function beginRace(m){clearCeremony();resetStats();clearCans();raceBonus=0;yellT=6;throwT=14;$('boss').style.opacity=0;if(m)mode=m;initAudio();resetRiders();setEffort(mode==='kilo'?0.9:mode==='keirin'?0.8:0.55);raceTime=0;countT=3.999;resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
+function beginRace(m){$('skipResc').style.display='none';$('viewRow').style.display='flex';clearCeremony();resetStats();clearCans();raceBonus=0;yellT=6;throwT=14;$('boss').style.opacity=0;if(m)mode=m;initAudio();resetRiders();setEffort(mode==='kilo'?0.9:mode==='keirin'?0.8:0.55);raceTime=0;countT=3.999;resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
   $('menu').style.display='none';$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';drawLapBoard(Math.ceil(LAPS));
   radioReset();phase='intro';introT=0;buildIntroPath();const mt=MODE_TXT[mode];$('introMode').textContent=mt[0];$('introSub').innerHTML=mt[1]+(mode==='keirin'?'<br><b style="color:#ffd166">Los: startuješ z pozice '+player.draw+' ze 6</b>':'')+'<br><span style="color:#fff;opacity:.85;font-size:13px">'+CTL_TXT+'</span>';
   const ib=$('intro');ib.style.display='block';const bar=ib.querySelector('.ibar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
@@ -3131,7 +3352,7 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
     if(phase==='done'&&!resultsShown&&(mode==='elim'||mode==='keirin')&&player.out&&!player.crashed){finishWait+=dt;if(finishWait>3.5){resultsShown=true;player.model.g.visible=false;fastForward();startCeremony();}}
     if(phase==='done'&&!resultsShown){finishWait+=dt;if(finishWait>3.5&&(!raceOpen()||finishWait>15)){resultsShown=true;startCeremony();}}
   }
-  updateBoss(dt);updateRef(dt);updateRescue(dt);updateSlingUI(dt);{const sk=$('skipResc'),on=!!(player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done'));if(sk.style.display!==(on?'block':'none'))sk.style.display=on?'block':'none';}placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
+  updateBoss(dt);updateRef(dt);updateRescue(dt);updateSlingUI(dt);{const sk=$('skipResc'),on=!!(player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done'));if(sk.style.display!==(on?'block':'none')){sk.style.display=on?'block':'none';$('viewRow').style.display=on?'none':'flex';}}placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
 requestAnimationFrame(frame);if(window.__ld)window.__ld(.85);
 })();
 </script>
