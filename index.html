@@ -399,7 +399,7 @@ const holePath=()=>new THREE.Path(STAIR.corners.map(([x,z])=>new THREE.Vector2(x
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));geo.setIndex(I);geo.computeVertexNormals();
   const em=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({map:bt,side:THREE.DoubleSide,specular:0x3a3028,shininess:45}));em.receiveShadow=true;scene.add(em);}
  // ramp up onto the apron next to the judges (dark plywood board), red tape on the floor in front of it
- {const sR=SF+5.8,HWr=1.15,LEN=1.75,P=[],I=[];const pt=(s,o,y)=>{const f=frameAt(s);P.push(f.px-f.nx*o,y,f.pz-f.nz*o);};
+ {const sR=SF-3.5,HWr=1.6,LEN=2.6,P=[],I=[];const pt=(s,o,y)=>{const f=frameAt(s);P.push(f.px-f.nx*o,y,f.pz-f.nz*o);};
   const yT=INF_Y+0.035,yB=FLOOR_Y+0.004,oT=o2-0.05,oB=o2+LEN;
   for(const ds of [-HWr,HWr]){pt(sR+ds,oT,yT);pt(sR+ds,oB,yB);pt(sR+ds,oT,FLOOR_Y);pt(sR+ds,oT,yT-0.03);}
   // 0..3 left, 4..7 right
@@ -407,7 +407,7 @@ const holePath=()=>new THREE.Path(STAIR.corners.map(([x,z])=>new THREE.Vector2(x
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setIndex(I);geo.computeVertexNormals();
   const rc=mkCanvas(128,128),rg=rc.getContext('2d');rg.fillStyle='#2e2622';rg.fillRect(0,0,128,128);for(let i=0;i<400;i++){rg.fillStyle='rgba(255,255,255,'+Math.random()*0.05+')';rg.fillRect(Math.random()*128,Math.random()*128,2,2);}
   const ramp=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({color:0x3a302a,specular:0x222222,shininess:20,side:THREE.DoubleSide,flatShading:true}));ramp.receiveShadow=true;ramp.castShadow=true;scene.add(ramp);
-  const f=frameAt(sR+HWr-0.25),o0=oB,o1=oB+5.5;const tg=new THREE.PlaneGeometry(0.06,o1-o0);tg.rotateX(-PI/2);const tape=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({color:0xd8222a}));
+  const f=frameAt(sR-HWr+0.15),o0=oB,o1=oB+6;const tg=new THREE.PlaneGeometry(0.06,o1-o0);tg.rotateX(-PI/2);const tape=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({color:0xd8222a}));
   tape.position.set(f.px-f.nx*(o0+o1)/2,FLOOR_Y+0.016,f.pz-f.nz*(o0+o1)/2);tape.rotation.y=Math.atan2(f.nx,f.nz);scene.add(tape);}}
 
 // ---------- hall: arched steel trusses, membrane roof, lights ----------
@@ -820,7 +820,7 @@ function buildInfield(){
       for(let z=0.2;z<len-0.2;z+=0.55){const d=limb(m,0.012);place(d,V(sx,0,z),V(sx,0.22,z+0.27));g.add(d);const d2=limb(m,0.012);place(d2,V(sx,0.22,z+0.27),V(sx,0,z+0.55));g.add(d2);}}
     for(let z=0.25;z<len;z+=0.3){const r=limb(m,0.014);place(r,V(-wd/2,0,z),V(wd/2,0,z));g.add(r);}return g;}
   {const red=new THREE.MeshPhongMaterial({color:0xc4201c,specular:0x444444,shininess:40}),alu=new THREE.MeshPhongMaterial({color:0xc9cdd1,specular:0x888888,shininess:70});
-   const g=new THREE.Group();g.position.set(20.6,y0,7.0);g.rotation.y=Math.atan2(-20.6,-7.0)+0.25;scene.add(g);   // ladder points into the infield, away from the track
+   const CX=-21.0,CZ=-7.2;const g=new THREE.Group();g.position.set(CX,y0,CZ);g.rotation.y=Math.atan2(-CX,-CZ)+0.25;scene.add(g);   // ladder points into the infield, away from the track
    const W=0.95,L=2.2;for(const sx of [-W/2,W/2]){const r=limb(red,0.035);place(r,V(sx,0.22,-L/2),V(sx,0.22,L/2));g.add(r);}
    for(const sz of [-L/2,L/2]){const r=limb(red,0.035);place(r,V(-W/2,0.22,sz),V(W/2,0.22,sz));g.add(r);}
    for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.06,12),mat(0x1b1b1b));wh.rotation.z=PI/2;wh.position.set(sx*W/2,0.1,sz*L/2);g.add(wh);
@@ -832,7 +832,7 @@ function buildInfield(){
    const cr=limb(red,0.03);place(cr,V(-W/2,TOP,0.1),V(W/2,TOP,0.1));g.add(cr);
    const winch=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.4,12),mat(0x333333));winch.rotation.z=PI/2;winch.position.set(0,0.7,-0.3);g.add(winch);
    const lad=latticeLadder(7.5,0.5,alu);lad.position.set(0,0.06,-2.4);lad.rotation.x=-Math.atan2(TOP+0.02-0.06,2.5);g.add(lad);
-   {const d=Math.atan2(-20.6,-7.0)+0.25;for(const k of [-2.2,0,2,4])OBST.rollers.push([20.6+Math.sin(d)*k,7.0+Math.cos(d)*k]);}}
+   {const d=Math.atan2(-CX,-CZ)+0.25;for(const k of [-2.2,0,2,4])OBST.rollers.push([CX+Math.sin(d)*k,CZ+Math.cos(d)*k]);}}
   // the black lattice boom behind the track (outside, back left on the photo) leaning up towards the roof
   {const dk=new THREE.MeshLambertMaterial({color:0x202326});const g=new THREE.Group();g.position.set(-31,-0.5,14.6);g.rotation.y=Math.atan2(1,-0.55);scene.add(g);
    const base=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.3,1.8),dk);base.position.y=0.15;g.add(base);
