@@ -430,26 +430,26 @@ const STAIR=(()=>{const sS=LSTR/2+LT+LA/2;const f=frameAt(sS);const o=7.7;const 
 const holePath=()=>new THREE.Path(STAIR.corners.map(([x,z])=>new THREE.Vector2(x,-z)));
 {const fl=new THREE.Shape([[-45,-30],[45,-30],[45,30],[-45,30]].map(([x,z])=>new THREE.Vector2(x,-z)));fl.holes.push(holePath());
  const fg=new THREE.ShapeGeometry(fl);fg.rotateX(-PI/2);const f=new THREE.Mesh(fg,new THREE.MeshLambertMaterial({color:0x8f8d86}));f.position.y=-0.5;f.receiveShadow=true;scene.add(f);
- // central floor: dark anthracite sports floor (glossy, lights reflect in it) with yellow and white court lines, like on the video
- const floorTex=(()=>{const W=2048,H=1024,c=mkCanvas(W,H),g=c.getContext('2d');g.fillStyle='#2a2c2f';g.fillRect(0,0,W,H);
+ // central floor: glossy green painted sports floor (lights reflect in it) with thin yellow and white court lines, like on the photos
+ const floorTex=(()=>{const W=2048,H=1024,c=mkCanvas(W,H),g=c.getContext('2d');g.fillStyle='#24543a';g.fillRect(0,0,W,H);
    for(let i=0;i<70;i++){const x=Math.random()*W,y=Math.random()*H,r=40+Math.random()*160,gr=g.createRadialGradient(x,y,0,x,y,r);const l=Math.random()<.5;
-     gr.addColorStop(0,l?'rgba(120,125,130,.07)':'rgba(0,0,0,.10)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,2*r,2*r);}   // mottled wear
-   for(let i=0;i<26000;i++){g.fillStyle='rgba('+(Math.random()<.5?'0,0,0':'200,205,210')+','+Math.random()*0.06+')';g.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);}
+     gr.addColorStop(0,l?'rgba(150,200,160,.08)':'rgba(0,20,5,.10)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,2*r,2*r);}   // mottled wear
+   for(let i=0;i<26000;i++){g.fillStyle='rgba('+(Math.random()<.5?'0,0,0':'190,225,195')+','+Math.random()*0.05+')';g.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);}
    for(let i=0;i<160;i++){g.strokeStyle='rgba(0,0,0,'+(0.06+Math.random()*0.1)+')';g.lineWidth=1+Math.random()*2;const x=Math.random()*W,y=Math.random()*H,a=Math.random()*7,l=20+Math.random()*90;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+Math.cos(a+.6)*l*.6,y+Math.sin(a+.6)*l*.6,x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke();}   // tyre marks
    // wide yellow walkway stripes along both long sides + a thin dashed yellow centre line
-   g.fillStyle='#c9a52a';for(const y of [290,734])g.fillRect(260,y-11,1528,22);
+   g.fillStyle='#d4b22e';for(const y of [290,734])g.fillRect(260,y-4,1528,8);
    g.strokeStyle='#c9a52a';g.lineWidth=5;g.setLineDash([46,34]);g.beginPath();g.moveTo(320,512);g.lineTo(1728,512);g.stroke();g.setLineDash([]);
    // white badminton/volleyball-style court lines
    g.strokeStyle='rgba(225,225,220,.7)';g.lineWidth=4;g.beginPath();g.moveTo(1024,110);g.lineTo(1024,914);g.stroke();g.strokeRect(660,370,728,284);
    g.lineWidth=3;g.strokeStyle='rgba(225,225,220,.45)';g.strokeRect(440,330,1168,364);
    g.strokeStyle='rgba(201,165,42,.7)';g.lineWidth=3;for(const x of [560,1488]){g.beginPath();g.moveTo(x,200);g.lineTo(x,824);g.stroke();}
    // scuff the paint a little so the lines look used
-   for(let i=0;i<9000;i++){g.fillStyle='rgba(42,44,47,'+Math.random()*0.5+')';g.fillRect(Math.random()*W,Math.random()*H,2,2);}
+   for(let i=0;i<9000;i++){g.fillStyle='rgba(36,84,58,'+Math.random()*0.5+')';g.fillRect(Math.random()*W,Math.random()*H,2,2);}
    const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;})();
- for(const [mg,col,dy] of [[-0.05,0x2f6340,0.004],[2.2,0xffffff,0.01]]){const sh=new THREE.Shape(infieldPoly(mg).map(([x,z])=>new THREE.Vector2(x,-z)));sh.holes.push(holePath());
+ for(const [mg,col,dy] of [[-0.05,0x24543a,0.004],[2.2,0xffffff,0.01]]){const sh=new THREE.Shape(infieldPoly(mg).map(([x,z])=>new THREE.Vector2(x,-z)));sh.holes.push(holePath());
   const g=new THREE.ShapeGeometry(sh);g.rotateX(-PI/2);
   if(col===0xffffff){const P=g.attributes.position,uv=[];for(let i=0;i<P.count;i++)uv.push((P.getX(i)+30)/60,(P.getZ(i)+14)/28);g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));}
-  const m=new THREE.Mesh(g,new THREE.MeshPhongMaterial(col===0xffffff?{map:floorTex,specular:0x9a9a9a,shininess:110}:{color:col,specular:0x3a3a3a,shininess:60}));m.position.y=FLOOR_Y+dy;m.receiveShadow=true;scene.add(m);}
+  const m=new THREE.Mesh(g,new THREE.MeshPhongMaterial(col===0xffffff?{map:floorTex,specular:0x9a9a9a,shininess:110}:{color:col,specular:0x9a9a9a,shininess:110}));m.position.y=FLOOR_Y+dy;m.receiveShadow=true;scene.add(m);}
  // "chodníček": flat wooden apron just below the (narrow) blue band, like on the photos
  const pos=[],idx=[],uv=[];let n=0;const o1=APRON_O1,o2=APRON_O2;
  for(let s=0;s<=L0+0.01;s+=0.5){const f=frameAt(s);pos.push(f.px-f.nx*o1,INF_Y+0.014,f.pz-f.nz*o1,f.px-f.nx*o2,INF_Y+0.014,f.pz-f.nz*o2);uv.push(0,s/4,1,s/4);if(n>0){const a=(n-1)*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}n++;}
