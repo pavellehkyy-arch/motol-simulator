@@ -935,7 +935,12 @@ function physics(R,dt){
   R.v=Math.max(0,v+(Fp-Fr-Fa)/m*dt);
   const f=frameAt(R.s);
   const b=R.w>=0?f.b:8*deg;const hc=R.w*Math.cos(b);
-  if(f.k>0.02&&R.w>0.3){const vmin=Math.sqrt(9.81*(1/f.k+hc)*Math.tan(b)*0.26);if(R.v<vmin){R.w-=(vmin-R.v)*0.5*dt;if(R===player&&msgT<=0&&R.v>1&&raceTime>6)showMsg('<small>⚠️ Málo rychlosti – sjíždíš z klopení</small>',0.8);}}
+  let slipping=false;
+  if(f.k>0.02&&R.w>0.3){const vmin=Math.sqrt(9.81*(1/f.k+hc)*Math.tan(b)*0.26);if(R.v<vmin){slipping=true;R.w-=(vmin-R.v)*0.5*dt;if(R===player&&msgT<=0&&R.v>1&&raceTime>6)showMsg(R.slipT>0.9?'<small>⚠️ Podkluzuje ti kolo! Šlápni, nebo sjeď dolů!</small>':'<small>⚠️ Málo rychlosti – sjíždíš z klopení</small>',0.5);}}
+  // too slow up on the banking for 2 s -> the tyres let go and you slide down the boards
+  if(R===player){if(slipping&&raceTime>6&&phase==='race'&&!R.finished&&!R.resting&&!R.out&&!isNeutral()){const s0=R.slipT||0;R.slipT=s0+dt;R.w-=R.slipT*0.35*dt;
+      if(s0<1&&R.slipT>=1)tone(1800,0.18,0.05,'sawtooth');if(R.slipT>=2){R.slipT=0;crashRider(R,'slip');}}
+    else R.slipT=Math.max(0,(R.slipT||0)-dt*3);}
   R.s+=R.v/(1+f.k*hc)*dt;
   const h=surfY(R.s,R.w),v0=R.v;R.v=Math.sqrt(Math.max(0,R.v*R.v-2*9.81*GBOOST*(h-R.h)));R.h=h;   // height on the banking = stored speed
   R.gAcc=(R.gAcc||0)+((R.v-v0)/dt-(R.gAcc||0))*Math.min(1,dt*6);
@@ -1085,14 +1090,16 @@ function resolveContacts(dt){
   thudT-=dt;elbowMsgT-=dt;
 }
 let crashT=0;
-const CAUSE={rear:'Najel jsi zezadu do soupeře',hit:'Někdo do tebe narazil zezadu',hook:'Zahákl ses o kolo soupeře',band:'Vytlačili tě na modrý pás',barrier:'Vytlačili tě na mantinel',pile:'Najel jsi do ležícího jezdce',beer:'Najel jsi na šéfovo pivo'};
+const CAUSE={slip:'Málo rychlosti v klopení – podjela ti kola',rear:'Najel jsi zezadu do soupeře',hit:'Někdo do tebe narazil zezadu',hook:'Zahákl ses o kolo soupeře',band:'Vytlačili tě na modrý pás',barrier:'Vytlačili tě na mantinel',pile:'Najel jsi do ležícího jezdce',beer:'Najel jsi na šéfovo pivo'};
 function crashRider(R,cause){if(R.crashed||R.finished||!R.model.g.visible)return;
-  R.crashed=true;R.crash={cause,t:0,v:R.v*0.92,vw:(R.dw||0)*0.4-0.5,yaw:0,spin:(Math.random()<.5?-1:1)*(1.5+Math.random()*1.5)};
-  tone(85+Math.random()*30,0.45,0.3,'sawtooth');
+  const slip=cause==='slip';
+  R.crashed=true;R.crash={cause,slip,t:0,v:R.v*(slip?0.97:0.92),vw:slip?-1.6:(R.dw||0)*0.4-0.5,yaw:0,spin:slip?-(0.9+Math.random()*0.5):(Math.random()<.5?-1:1)*(1.5+Math.random()*1.5),lean0:R.lean||0};
+  if(slip){tone(1500,0.5,0.06,'sawtooth');tone(900,0.4,0.05,'sawtooth',0.12);tone(70,0.5,0.32,'square',0.3);}   // tyre squeal, then the thump on the boards
+  else tone(85+Math.random()*30,0.45,0.3,'sawtooth');
   if(R===player){crashT=0;showMsg('PÁD! 🚑<small>'+(CAUSE[cause]||'')+' – závod pro tebe skončil</small>',3.2);}
   else if(!player.crashed&&phase==='race')showMsg('<small>💥 '+R.name+(R.clumsy?' zase padá! 🤦':' padá!')+'</small>',1.6);}
-function crashUpdate(R,dt){const C=R.crash;C.t+=dt;C.v=Math.max(0,C.v-5.5*dt);R.v=C.v;R.s+=C.v*dt;
-  const f=frameAt(R.s);const b=R.w>=0?f.b:8*deg;C.vw-=9.81*Math.sin(b)*0.4*dt;C.vw*=Math.exp(-1.3*dt);
+function crashUpdate(R,dt){const C=R.crash;C.t+=dt;C.v=Math.max(0,C.v-(C.slip?3.2:5.5)*dt);R.v=C.v;R.s+=C.v*dt;
+  const f=frameAt(R.s);const b=R.w>=0?f.b:8*deg;C.vw-=9.81*Math.sin(b)*(C.slip?0.55:0.4)*dt;C.vw*=Math.exp(-(C.slip?(R.w<0?2.5:0.45):1.3)*dt);   // sliding on the side down the steep boards, the band stops it
   R.w=Math.max(-BAND-0.4,R.w+C.vw*dt);if(R.w<=-BAND-0.4)C.vw=0;C.yaw+=C.spin*dt;C.spin*=Math.exp(-2.2*dt);R.dw=0;}
 function simStep(dt,withPlayer){
   raceTime+=dt;updatePace(dt);
@@ -1110,6 +1117,12 @@ function placeModels(dt){
   for(const R of riders){if(!R.model.g.visible)continue;
     const f=frameAt(R.s);const heading=Math.atan2(f.fx,f.fz);const k=f.k;const b=R.w>=0?f.b:8*deg;const hc=R.w*Math.cos(b);
     surf(R.s,R.w,_pos);const M=R.model;M.g.position.copy(_pos);
+    if(R.crash&&R.crash.slip){const C=R.crash,k1=sm(0,0.32,C.t),wob=Math.sin(C.t*30)*0.12*(1-sm(0,0.3,C.t));
+      M.g.rotation.y=heading+C.yaw+0.35*sm(0,0.35,C.t);M.g.rotation.x=-0.08*Math.sin(clamp(C.t/0.4,0,1)*PI);   // rear steps out down the slope
+      M.g.rotation.z=(C.lean0+wob)*(1-k1)+(-b-PI/2+0.12)*k1;
+      const off=0.2*k1+0.03*Math.abs(Math.sin(C.t*9))*(1-sm(0.4,1.4,C.t));   // bumps along the boards
+      M.g.position.x+=-f.nx*Math.sin(b)*off;M.g.position.y=Math.max(M.g.position.y,INF_Y)+Math.cos(b)*off;M.g.position.z+=-f.nz*Math.sin(b)*off;
+      for(const w of M.wheels)w.rotation.x+=C.v/0.34*dt*(C.t<0.25?1:0.3);M.body.visible=true;continue;}
     if(R.crash){const C=R.crash,k1=sm(0,0.45,C.t);
       M.g.rotation.y=heading+C.yaw;M.g.rotation.x=0.55*Math.sin(clamp(C.t/0.5,0,1)*PI);
       M.g.rotation.z=R.lean*(1-k1)+(-b-PI/2+0.08)*k1;
@@ -1119,6 +1132,7 @@ function placeModels(dt){
     const keff=k/(1+k*hc);
     const tgt=-Math.atan(R.v*R.v*keff/9.81)-Math.sin(b)*0.15+R.dw*0.05+(R.contact||0)*0.16+(R.elbowT>0?R.elbowDir*0.2*Math.sin(PI*R.elbowT/0.35):0);
     R.lean+=(tgt-R.lean)*Math.min(1,dt*5);M.g.rotation.z=R.lean;
+    if(R.slipT>0.25){const q=clamp((R.slipT-0.25)/1.75,0,1),t=performance.now()/1000;M.g.rotation.z+=-0.22*q*q+Math.sin(t*26)*0.05*q;M.g.rotation.y=heading+Math.sin(t*15)*0.07*q+0.12*q*q;}   // squirming tyres, rear stepping out
     for(const w of M.wheels)w.rotation.x+=R.v/0.34*dt;
     animLegs(R);M.body.visible=!(R===player&&(camMode===1||Math.abs(headTurn)>0.3));}
   slingPose(dt);
