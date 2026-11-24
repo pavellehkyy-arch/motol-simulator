@@ -981,9 +981,8 @@ function botAI(R,dt){
   if(gapFront>40&&gapA>15&&!sprinting)tw=0.45;   // dropped / lapped: hold the black line, others latch on or pass above
   if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
-  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.2;tw=passing?Math.min(tw,ahead.w+0.85):(ahead&&gap<8&&ahead.w<0.9?ahead.w:0.4);if(R.pullT>0)tw=Math.min(1.25,0.4+R.swing*0.65);tw=Math.min(tw,1.5);}
-  if(mode==='madison'&&MT){const T=teamOf(R);if(T&&T.act===R&&T.want&&T.rest){const d=gapTo(R,T.rest);if(d>-2&&d<8)tw=Math.max(tw,0.6);}}   // move up a little to meet the partner coming down
-  R.targetW=clamp(tw,0.35,mode==='madison'?3.2:TW-0.9);
+  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&gap<3.5;tw=passing?Math.min(tw,ahead.w+0.8):(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}   // on the black line; up only alongside a rider to pass, then straight back down
+  R.targetW=clamp(tw,mode==='madison'?0.25:0.35,mode==='madison'?3.2:TW-0.9);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
   steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0);
 }
@@ -1555,7 +1554,7 @@ function updateSlingUI(dt){const show=mode==='madison'&&MT&&phase==='race';const
   const d=T.rest&&T.act?gapTo(T.act,T.rest):99,near=P&&!P.crashed&&T.rest&&!player.crashed&&T.want&&d>-3.5&&d<(resting?14:9)&&Math.abs(T.rest.w-T.act.w)<(resting?3.2:2.5),ok=slingEligible(T);
   $('slingBtn').textContent=resting?'✋ CHYŤ RUKU (E)':'🤝 PŘEDAT (E)';
   sl.style.display=near?'block':'none';slingT+=dt;slingCD-=dt;const needle=Math.sin(slingT*SLING_SPD);$('slingNeedle').style.transform='rotate('+(needle*88)+'deg)';
-  $('slingHint').textContent=slingCD>0?'Vedle! Chvilku počkej…':ok?(resting?'Chyť ruku, až bude ručička v zelené!':'Ťukni přesně, když je ručička v zelené!'):(resting?(T.rest.w>T.act.w+1.2?'⬇️ Sjeď dolů k černé, vedle parťáka!':'Sjeď těsně před parťáka'):(T.rest.w>T.act.w+1.2?'Parťák sjíždí dolů – drž svou stopu':'Dojeď k parťákovi blíž'));$('slingBtn').style.opacity=ok?1:0.55;
+  $('slingHint').textContent=slingCD>0?'Vedle! Chvilku počkej…':ok?(resting?'Chyť ruku, až bude ručička v zelené!':'Ťukni přesně, když je ručička v zelené!'):(resting?(T.rest.w>T.act.w+1.2?'⬇️ Sjeď dolů na červenou, vedle parťáka!':'Sjeď těsně před parťáka'):(T.rest.w>T.act.w+1.2?'Parťák sjíždí dolů – drž svou stopu':'Dojeď k parťákovi blíž'));$('slingBtn').style.opacity=ok?1:0.55;
   if(!slingLine){slingLine=limb(new THREE.MeshBasicMaterial({color:0x2fd36b}),0.025);scene.add(slingLine);}
   slingLine.visible=!!(ok&&P);if(ok&&P){const a=new THREE.Vector3(),b=new THREE.Vector3();player.model.g.updateMatrixWorld();P.model.g.updateMatrixWorld();
     const ha=[new THREE.Vector3(0.2,0.85,0.5),new THREE.Vector3(-0.2,0.85,0.5)].map(v=>player.model.g.localToWorld(v));const hb=[new THREE.Vector3(0.2,0.85,0.5),new THREE.Vector3(-0.2,0.85,0.5)].map(v=>P.model.g.localToWorld(v));
