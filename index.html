@@ -1461,12 +1461,16 @@ function teamOf(R){return MT&&MT.find(t=>t.act===R||t.rest===R);}
 function restAI(R,dt){const T=teamOf(R);if(!T||R.crashed){return;}const A=T.act;R.mood=1;if(MT.neutral){R.power=0;R.v=0;R.targetW=R.w;return;}
   const d=gapTo(A,R);   // how far the resting rider is ahead of his active partner
   let vT=6.6,tw=TW-0.7;   // roll slowly up on the banking and let the race lap you – the partner comes round once per lap gained
-  if(T.want&&!T.passed&&!A.crashed&&!A.finished&&d>-4&&d<70){vT=d>8?Math.max(6.6,A.v-0.6-(d-8)*0.06):A.v+clamp(-(d-0.4)*0.15,-0.6,1.2);
+  if(d>-2.5&&d<3)T.alongT=(T.alongT||0)+dt;else if(d<-8||d>40){T.alongT=0;T.giveUp=false;}
+  if(T.alongT>5)T.giveUp=true;   // alongside for ages and no hand-sling: let him go, swing back up and wait for the next lap
+  const comes=!T.giveUp&&(T.want||(!MT.neutral&&A.s-T.stintS>0.3*L0));   // every time the partner comes round, the resting rider goes down to meet him   // every time the partner comes round, the resting rider goes down to meet him
+  let dive=false;
+  if(comes&&!T.passed&&!A.crashed&&!A.finished&&d>-4&&d<70){dive=d<14;vT=d>8?Math.max(6.6,A.v-0.6-(d-8)*0.06):A.v+clamp(-(d-0.4)*0.15,-0.6,1.2);
     tw=d>30?TW-0.7:d>12?clamp(A.w+0.6+(d-12)*0.12,0.5,TW-0.7):clamp(A.w+0.6,0.5,TW-0.8);}   // partner coming round: wait high, then dive down the banking (gaining speed) and come alongside just ahead of him – the exchange happens down on his line
   if(R.finished||A.finished){vT=7;tw=TW-0.7;}
   if(R.slowT>0){R.power=0;R.targetW=Math.min(TW-0.7,R.w+0.5);steerBot(R,dt,false);return;}
   const Pneed=(0.5*1.2*R.cda*(1-R.draft)*vT*vT+80*9.81*0.0025)*vT;R.power=clamp(Pneed+620*(vT-R.v)*(vT<R.v-0.3?R.v/5:1),-2600,R.ftp*(T.want?2.4:1.6));   // winding up for the hand-sling
-  R.targetW=tw;steerBot(R,dt,false);}
+  R.targetW=tw;steerBot(R,dt,dive);}   // diving: commits to the line down (only never runs a front wheel into a rear wheel)
 function slingEligible(T){const A=T.act,R=T.rest;if(!R||R.crashed||A.crashed||A.finished)return false;const d=gapTo(A,R);
   if(T.me)return d>-2.5&&d<4.2&&Math.abs(R.w-A.w)<1.2;   // the player can throw from further away
   const lim=T.waitT>1.2?2.6:1.8;return d>-1.5&&d<lim&&Math.abs(R.w-A.w)<1.1;}
@@ -1476,7 +1480,7 @@ function doSling(T,q){const A=T.act,R=T.rest;const newS=A.s+gapTo(A,R),boost=1.0
   if(T.me){if(R.player){R.targetWp=R.w;R.latched=false;}
     showMsg('🤝<small>'+(q>0.8?'Perfektní vrh! ':'Předávka ')+'+'+Math.round(boost*3.6)+' km/h – '+(R.player?'jedeš ty!':'jede parťák, vyjeď nahoru a odpočívej')+'</small>',1.6);tone(q>0.8?880:600,0.15,0.12,'triangle');if(ST)ST.slings=(ST.slings||0)+1;}
   else{const g=gapTo(player,A);if(phase==='race'&&!player.crashed&&g>2&&g<35&&Math.abs(A.w-player.w)<1.6)showMsg('⚠️<small>Předávka před tebou – objeď je!</small>',1.3);}
-  T.stintT=0;T.stintS=T.act.s;T.waitT=0;T.want=false;T.armed=false;T.nearT=0;T.slings++;}
+  T.stintT=0;T.stintS=T.act.s;T.waitT=0;T.alongT=0;T.giveUp=false;T.want=false;T.armed=false;T.nearT=0;T.slings++;}
 // ---------- hand-sling animation: the resting rider reaches back, the active one grabs his hand, pushes him forward and follows through ----------
 const _sv=new THREE.Vector3(),_su=new THREE.Vector3(),_sp=new THREE.Vector3(),_se=new THREE.Vector3(),_sh=new THREE.Vector3(),_sw=new THREE.Vector3(),_sw2=new THREE.Vector3(),_st=new THREE.Vector3();
 function setArm(R,side,tgt,k){const A=R.model.rig&&R.model.rig[side];if(!A)return;
@@ -1551,7 +1555,7 @@ function updateSlingUI(dt){const show=mode==='madison'&&MT&&phase==='race';const
   const T=MT.find(t=>t.me),P=PARTNER(),resting=T.rest===player;
   if(P&&!P.crashed){const hp=new THREE.Vector3();P.model.g.getWorldPosition(hp);const dist=hp.distanceTo(camera.position);hp.y+=2.0;hp.project(camera);
     if(hp.z<1&&Math.abs(hp.x)<1.05&&Math.abs(hp.y)<1.05&&dist<60){pb.style.display='block';pb.style.left=((hp.x+1)/2*innerWidth)+'px';pb.style.top=((1-hp.y)/2*innerHeight)+'px';}else pb.style.display='none';}else pb.style.display='none';
-  const d=T.rest&&T.act?gapTo(T.act,T.rest):99,near=P&&!P.crashed&&T.rest&&!player.crashed&&T.want&&d>-3.5&&d<(resting?14:9)&&Math.abs(T.rest.w-T.act.w)<(resting?3.2:2.5),ok=slingEligible(T);
+  const d=T.rest&&T.act?gapTo(T.act,T.rest):99,near=P&&!P.crashed&&T.rest&&!player.crashed&&(T.want||slingEligible(T))&&d>-3.5&&d<(resting?14:9)&&Math.abs(T.rest.w-T.act.w)<(resting?3.2:2.5),ok=slingEligible(T);
   $('slingBtn').textContent=resting?'✋ CHYŤ RUKU (E)':'🤝 PŘEDAT (E)';
   sl.style.display=near?'block':'none';slingT+=dt;slingCD-=dt;const needle=Math.sin(slingT*SLING_SPD);$('slingNeedle').style.transform='rotate('+(needle*88)+'deg)';
   $('slingHint').textContent=slingCD>0?'Vedle! Chvilku počkej…':ok?(resting?'Chyť ruku, až bude ručička v zelené!':'Ťukni přesně, když je ručička v zelené!'):(resting?(T.rest.w>T.act.w+1.2?'⬇️ Sjeď dolů na červenou, vedle parťáka!':'Sjeď těsně před parťáka'):(T.rest.w>T.act.w+1.2?'Parťák sjíždí dolů – drž svou stopu':'Dojeď k parťákovi blíž'));$('slingBtn').style.opacity=ok?1:0.55;
