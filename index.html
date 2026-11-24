@@ -183,7 +183,7 @@ tr.me td{color:#ffd166;font-weight:800}
     <div class="vk"><span>🎖️</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid">
-      <button class="mode" id="btnScratch" style="--i:0;--c:#e63946"><b>SCRATCH</b><span>13 kol · 9 jezdců</span></button>
+      <button class="mode" id="btnScratch" style="--i:0;--c:#e63946"><b>SCRATCH</b><span>13 kol · 10 jezdců</span></button>
       <button class="mode" id="btnKilo" style="--i:1;--c:#c6ff1a;--f:#111"><b>KILOMETR</b><span>6,5 kola na čas</span></button>
       <button class="mode" id="btnMad" style="--i:2;--c:#2b5fb4"><b>MADISON</b><span>30 kol · dvojice</span></button>
       <button class="mode" id="btnElim" style="--i:3;--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
@@ -594,6 +594,7 @@ const TEAMS={
   pardus:{name:'Tufo Pardus Prostějov',short:'TPP',base:'#1b1f29',helmet:0xf4f4f4,frame:0x16224a,accent:0xc8f03c,shorts:'#111318',long:false,spokes:4},
   dukla:{name:'Dukla Praha',short:'DUK',base:'#141414',helmet:0x141414,frame:0x141414,accent:0xf2c230,shorts:'#111'},
   sparta:{name:'Sparta Praha',short:'SPA',base:'#7a1f2b',helmet:0x7a1f2b,frame:0x7a1f2b,accent:0xf2c230,shorts:'#1a1a1a'},
+  germany:{name:'Německá reprezentace',short:'GER',base:'#f7f7f5',helmet:0xf4f4f4,frame:0x111111,accent:0xffce00,shorts:'#111'},
 };
 const RAINBOW=['#1f5fbf','#d62828','#111111','#f2c230','#2e9e4a'];
 // torso cylinder: u=0 chest centre, u=0.5 middle of the back; canvas top = shoulders
@@ -623,6 +624,21 @@ function kitTex(id,num){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');c
     g.fillStyle=BL;g.fillRect(256-90,56,180,4);txt('PARDUS PROSTĚJOV',256,196,16,'#fff','italic 900 ');}
   if(id==='dukla'){both(x=>{g.strokeStyle='#f2c230';g.lineWidth=5;g.beginPath();g.ellipse(x+50,70,46,22,0,0,7);g.stroke();txt('DUKLA',x+50,71,22,'#f2c230');});
     txt('DUKLA PRAHA',256,40,26,'#5a5a5a');g.fillStyle='#f2c230';g.fillRect(0,0,W,6);g.fillStyle='#d62828';g.fillRect(0,6,W,4);}
+  if(id==='germany'){   // German national team jersey from the photo: white, grey stripe pattern, black-red-gold chest swoosh, eagle, "german cycling"
+    g.save();g.strokeStyle='rgba(150,155,160,.22)';g.lineWidth=3;
+    for(let i=0;i<14;i++){const cx=(i*97)%W,cy=(i*61)%H,a=(i%4)*0.8;g.save();g.translate(cx,cy);g.rotate(a);for(let k=-5;k<=5;k++){g.beginPath();g.moveTo(-60,k*9);g.lineTo(60,k*9);g.stroke();}g.restore();}
+    g.restore();
+    const DE=['#111111','#dd0000','#ffce00'];
+    both(x=>{DE.forEach((col,k)=>{g.fillStyle=col;g.beginPath();const y=62+k*13;g.moveTo(x-150,y+26);g.lineTo(x+14,y);g.lineTo(x+14,y+10);g.lineTo(x-150,y+36);g.fill();});   // swoosh across the chest
+      g.fillStyle='#e7e9ee';g.fillRect(x-1,0,2,H);                                       // zip
+      g.save();g.translate(x+62,46);g.fillStyle='#fff';g.strokeStyle='#111';g.lineWidth=2;g.beginPath();g.moveTo(-17,-18);g.lineTo(17,-18);g.lineTo(17,6);g.quadraticCurveTo(0,24,-17,6);g.closePath();g.fill();g.stroke();   // eagle crest
+      g.fillStyle='#111';g.beginPath();g.ellipse(0,-2,4,8,0,0,7);g.fill();g.beginPath();g.arc(0,-12,3.5,0,7);g.fill();
+      for(const sx of [-1,1]){g.beginPath();g.moveTo(sx*3,-8);g.lineTo(sx*14,-12);g.lineTo(sx*12,4);g.lineTo(sx*3,2);g.fill();}g.fillStyle='#dd0000';g.fillRect(-1,-14,2,2);g.restore();
+      g.save();g.lineWidth=4;g.strokeStyle='#dd0000';g.beginPath();g.arc(x-112,94,9,0.6,5.6);g.stroke();g.strokeStyle='#ffce00';g.beginPath();g.arc(x-98,94,9,0.6,5.6);g.stroke();g.restore();
+      txt('german',x-58,88,13,'#111','800 ');txt('cycling',x-58,102,13,'#111','800 ');
+      txt('BIORACER',x+62,80,9,'#111','900 ');});
+    txt('GERMANY',256,40,30,'#111');g.fillStyle='#111';g.fillRect(186,60,140,4);g.fillStyle='#dd0000';g.fillRect(186,64,140,4);g.fillStyle='#ffce00';g.fillRect(186,68,140,4);
+    txt('BIKE INDUSTRIES',128,40,12,'#111','italic 900 ');txt('BIKE INDUSTRIES',384,40,12,'#111','italic 900 ');}
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,96,W,58);g.fillRect(118,0,20,H);g.fillRect(374,0,20,H);
     both(x=>txt('SPARTA',x,126,40,'#7a1f2b'));txt('SPARTA PRAHA',256,40,30,'#f2c230');}
   // soft shading: darker towards the sides, waist shadow
@@ -639,6 +655,7 @@ function sleeveTex(id,fore){const c=mkCanvas(64,128),g=c.getContext('2d');const 
   if(id==='favorit'){g.fillStyle='#d62828';g.fillRect(0,0,64,128);g.fillStyle='#151515';g.fillRect(0,0,64,14);}
   if(id==='pardus'){g.fillStyle='#3b8fd8';g.fillRect(0,6,64,6);g.fillRect(0,16,64,6);g.fillRect(0,26,64,6);g.fillStyle='#9aa4b4';g.font='italic 900 11px system-ui,Arial';g.textAlign='center';g.fillText('TUFO',32,60);}
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,4,64,10);}
+  if(id==='germany'){[['#111',4],['#dd0000',12],['#ffce00',20]].forEach(([c,y])=>{g.fillStyle=c;g.fillRect(0,y,64,7);});g.fillStyle='#111';g.font='900 9px system-ui,Arial';g.textAlign='center';g.fillText('BIORACER',32,44);}
   return new THREE.CanvasTexture(c);}
 const KITMAT={};function kitMats(id,num){const k=id+'#'+(num||0);if(!KITMAT[k])KITMAT[k]={torso:new THREE.MeshLambertMaterial({map:kitTex(id,num)}),sleeve:new THREE.MeshLambertMaterial({map:sleeveTex(id)}),fore:new THREE.MeshLambertMaterial({map:sleeveTex(id,true)}),shorts:mat(new THREE.Color(TEAMS[id].shorts||'#111').getHex())};return KITMAT[k];}
 const HELM={};function helmetMat(col,aero){const k=col+'_'+(aero?1:0);if(HELM[k])return HELM[k];const c=mkCanvas(256,128),g=c.getContext('2d');g.fillStyle='#'+new THREE.Color(col).getHexString();g.fillRect(0,0,256,128);
@@ -668,6 +685,12 @@ function makeRider(o){
   const strap=new THREE.Mesh(new THREE.TorusGeometry(0.092,0.006,3,16,PI),mat(0x1a1a1a));strap.position.copy(HEAD).add(V(0,-0.02,0.0));strap.rotation.set(0,PI/2,PI);body.add(strap);
   const glasses=new THREE.Mesh(new THREE.TorusGeometry(0.098,0.018,5,14,PI*0.75),new THREE.MeshPhongMaterial({color:0x1b2430,specular:0x8899aa,shininess:80}));glasses.rotation.set(PI/2,0,PI/2+PI*0.375);glasses.rotation.order='XYZ';
   glasses.position.set(HEAD.x,HEAD.y+0.015,HEAD.z+0.005);body.add(glasses);
+  if(o.specs){   // Kýbl: big glasses – white frame, orange mirror lenses, right in front of the eyes
+    const fM=mat(0xffffff),lM=new THREE.MeshPhongMaterial({color:0xff7a00,emissive:0x662200,specular:0xffffff,shininess:120}),F=HEAD.z+0.112,Y=HEAD.y-0.04;
+    for(const sx of [-1,1]){const rim=new THREE.Mesh(new THREE.TorusGeometry(0.03,0.007,6,16),fM);rim.position.set(HEAD.x+sx*0.038,Y,F);body.add(rim);
+      const lens=new THREE.Mesh(new THREE.CircleGeometry(0.029,16),lM);lens.position.set(HEAD.x+sx*0.038,Y,F+0.002);body.add(lens);
+      const arm=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.008,0.11),fM);arm.position.set(HEAD.x+sx*0.088,Y+0.005,F-0.055);body.add(arm);}
+    const br=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.007,0.007),fM);br.position.set(HEAD.x,Y+0.008,F);body.add(br);}
 
   const rig=[];for(const s of [-1,1]){const ua=limb(mSl,0.05,G_UARM),fa=limb(LONG?KM2.fore:mS,o.aero?0.032:LONG?0.043:0.04,G_FORE);const a=V(s*shoulder,SH.y-0.02,SH.z-0.01),e=V(s*elbow[0],elbow[1],elbow[2]),h=V(s*hand[0],hand[1],hand[2]);place(ua,a,e);place(fa,e,h);body.add(ua);arms.add(fa);const glove=new THREE.Mesh(new THREE.SphereGeometry(0.036,8,6),mat(0x151515));glove.position.copy(h);glove.scale.set(0.9,0.8,1.3);arms.add(glove);
   rig.push({s,ua,fa,glove,a:a.clone(),e:e.clone(),h:h.clone(),L1:a.distanceTo(e),L2:e.distanceTo(h),on:false});
@@ -751,9 +774,10 @@ const ROSTER=[
   {name:'Vingegaard',team:'dukla',jersey:0x222222,num:14,hair:0xb08a4a},
   {name:'Ganna',team:'sparta',jersey:0x7a1f2b,num:21},
   {name:'Milan',team:'sparta',jersey:0x7a1f2b,num:23},
-  {name:'Pogačar',team:'favorit',jersey:0xd62828,num:31},
+  {name:'Kýbl',team:'favorit',jersey:0xd62828,num:31,specs:true},
   {name:'Van der Poel',team:'favorit',jersey:0xd62828,discR:true,num:33},
   {name:'Parťák',team:'wc',jersey:0xffffff,partner:true,discR:true,num:2},
+  {name:'Lukáš Hasal',team:'germany',jersey:0xffffff,num:41,hair:0x3b2a1c,elbowy:true,clumsy:true,solo:true},   // loktuje se jak divý, ale padá ještě víc
 ].map(r=>Object.assign({helmet:TEAMS[r.team].helmet,frame:TEAMS[r.team].frame,accent:TEAMS[r.team].accent,spokes:TEAMS[r.team].spokes||3,ftp:325},r));
 const riders=ROSTER.map(r=>{const o=Object.assign({aero:!!r.player,shoe:0xffffff,skin:[0xe2b48c,0xd9a37c,0xeec3a0][Math.floor(Math.random()*3)],hair:[0x3b2a1c,0x1b1b1b,0x6b4426][Math.floor(Math.random()*3)]},r);return Object.assign({},o,{model:makeRider(o)});});
 const player=riders[0];
@@ -781,11 +805,12 @@ function active(){return mode==='kilo'?[player]:riders.filter(r=>r.model.g.visib
 const PARTNER=()=>riders.find(r=>r.partner);
 // team strength: Tufo strongest & ride at the front, Favorit weakest
 const TSTAT={wc:{ftp:[326,334],str:[0.97,1.03],aggr:[0.3,0.5],lane:0.6,front:0},pardus:{ftp:[326,334],str:[0.97,1.03],aggr:[0.55,0.9],lane:0.4,front:0.15},dukla:{ftp:[326,334],str:[0.97,1.03],aggr:[0.35,0.7],lane:0.5,front:0},
-  sparta:{ftp:[326,334],str:[0.97,1.03],aggr:[0.35,0.7],lane:0.6,front:0},favorit:{ftp:[326,334],str:[0.97,1.03],aggr:[0.15,0.45],lane:0.7,front:-0.1}};   // everybody about as strong as you – the race is won by tactics
+  sparta:{ftp:[326,334],str:[0.97,1.03],aggr:[0.35,0.7],lane:0.6,front:0},favorit:{ftp:[326,334],str:[0.97,1.03],aggr:[0.15,0.45],lane:0.7,front:-0.1},
+  germany:{ftp:[326,334],str:[1.0,1.08],aggr:[0.92,1.0],lane:0.5,front:0.1}};   // everybody about as strong as you – the race is won by tactics
 function resetRiders(){
   LAPS=mode==='scratch'?13:mode==='madison'?MAD_LAPS:mode==='elim'?EL_NEUTRAL+EL_EVERY*(riders.filter(r=>!r.partner).length-1):6.5;START_S=mode==='kilo'?SF-L0/2:SF+L0;FIN=START_S+LAPS*L0;
-  const order=[1,2,3,4,0,5,6,7,8,9];setPlayerKit();clearHolders();
-  riders.forEach(R=>{R.model.g.visible=mode==='kilo'?R===player:mode==='madison'?true:!R.partner;R.resting=false;
+  const order=[1,2,3,4,0,...riders.map((_,i)=>i).filter(i=>i>4)];setPlayerKit();clearHolders();
+  riders.forEach(R=>{R.model.g.visible=mode==='kilo'?R===player:mode==='madison'?!R.solo:!R.partner;R.resting=false;
     Object.assign(R,{out:false,outT:0,elimLap:0,sv:0,elbowCD:0,elbowT:0,elbowDir:0,lastShover:null,elT:0,elane:0.45+0.78*Math.floor(Math.random()*3)});});
   order.forEach((ri,slot)=>{const R=riders[ri];const row=slot>>1;
     Object.assign(R,{s:SF-1.2-row*2.3,w:slot%2?1.9:0.8,v:0,h:0,power:0,energy:100,wp:22000,crank:Math.random()*6,draft:0,finished:false,time:0,targetW:0,lane:0.4+Math.random()*1.0,mood:1,sprintAt:170+Math.random()*190,attackT:0,lean:0,dw:0,cda:R.player?0.25:0.26,realP:0,crashed:false,crash:null,targetWp:0,latched:false,eRate:0,intent:0,pushedT:0,contact:0,pullT:0,swing:0,str:R.player?1:0.85+Math.random()*0.3,aggr:Math.random(),highLane:1.6+Math.random()*1.8,pullAt:55+Math.random()*20,ftp:R.player?330:Math.round(TSTAT[R.team].ftp[0]+Math.random()*(TSTAT[R.team].ftp[1]-TSTAT[R.team].ftp[0]))});
@@ -1065,7 +1090,7 @@ function crashRider(R,cause){if(R.crashed||R.finished||!R.model.g.visible)return
   R.crashed=true;R.crash={cause,t:0,v:R.v*0.92,vw:(R.dw||0)*0.4-0.5,yaw:0,spin:(Math.random()<.5?-1:1)*(1.5+Math.random()*1.5)};
   tone(85+Math.random()*30,0.45,0.3,'sawtooth');
   if(R===player){crashT=0;showMsg('PÁD! 🚑<small>'+(CAUSE[cause]||'')+' – závod pro tebe skončil</small>',3.2);}
-  else if(!player.crashed&&phase==='race')showMsg('<small>💥 '+R.name+' padá!</small>',1.6);}
+  else if(!player.crashed&&phase==='race')showMsg('<small>💥 '+R.name+(R.clumsy?' zase padá! 🤦':' padá!')+'</small>',1.6);}
 function crashUpdate(R,dt){const C=R.crash;C.t+=dt;C.v=Math.max(0,C.v-5.5*dt);R.v=C.v;R.s+=C.v*dt;
   const f=frameAt(R.s);const b=R.w>=0?f.b:8*deg;C.vw-=9.81*Math.sin(b)*0.4*dt;C.vw*=Math.exp(-1.3*dt);
   R.w=Math.max(-BAND-0.4,R.w+C.vw*dt);if(R.w<=-BAND-0.4)C.vw=0;C.yaw+=C.spin*dt;C.spin*=Math.exp(-2.2*dt);R.dw=0;}
@@ -1326,10 +1351,13 @@ function updateBoss(dt){if(!RCOACH)return;RCOACH.g.updateMatrixWorld();
 function sideRider(R,dir){let best=null,bd=1e9;for(const o of riders){if(o===R||!o.model.g.visible||o.crashed||(o.out&&o.outT>1))continue;
     const g=gapTo(R,o),d=(o.w-R.w)*dir;if(Math.abs(g)<1.5&&d>0.05&&d<0.9&&d<bd){bd=d;best=o;}}return best;}
 function applyShove(dt){for(const R of riders){R.elbowCD=(R.elbowCD||0)-dt;R.elbowT=(R.elbowT||0)-dt;R.slowT=(R.slowT||0)-dt;
+    if((R.elbowy||R.clumsy)&&!R.player&&phase==='race'&&R.model.g.visible&&!R.crashed&&!R.finished&&!R.out&&!R.resting&&!isNeutral()){
+      if(R.elbowy&&R.elbowCD<=0&&Math.random()<dt*2.5){const d=Math.random()<.5?-1:1;if(sideRider(R,d))elbow(R,d);else if(sideRider(R,-d))elbow(R,-d);}   // elbows anyone next to him
+      if(R.clumsy&&R.v>8&&Math.random()<dt/(R.contact&&Math.abs(R.contact)>0.3?60:450))crashRider(R,'hook');}   // and falls on his own – even more in a scrum
     if(R.slT>0&&!R.crashed){R.v=Math.max(0,R.v+R.slA*dt);R.slT-=dt;}
     if(R.sv&&!R.crashed){R.w+=R.sv*dt;R.sv*=Math.exp(-5*dt);if(Math.abs(R.sv)<0.02)R.sv=0;}}}
 function elbow(R,dir){if(R.elbowCD>0||R.crashed||!dir)return null;
-  R.elbowCD=R.player?1.1:2.2+Math.random()*1.5;R.elbowT=0.35;R.elbowDir=dir;R.energy=Math.max(0,R.energy-2);
+  R.elbowCD=R.player?1.1:R.elbowy?0.8+Math.random()*0.8:2.2+Math.random()*1.5;R.elbowT=0.35;R.elbowDir=dir;R.energy=Math.max(0,R.energy-2);
   const o=sideRider(R,dir);
   if(!o){R.sv+=dir*0.35;return null;}
   const sR=strength(R)*(0.85+Math.random()*0.3),sO=strength(o)*(o.elbowT>0&&o.elbowDir===-dir?1.6:1)*(0.85+Math.random()*0.3),k=sR/(sR+sO);
@@ -1337,6 +1365,8 @@ function elbow(R,dir){if(R.elbowCD>0||R.crashed||!dir)return null;
   o.v=Math.max(0,o.v-0.45*k);o.pushedT=0.8;if(o.player)o.targetWp=clamp(o.targetWp+dir*imp/5,-(BAND-0.08),TW-0.4);o.lastShover=R;o.contact=-dir;R.contact=dir;   // a shoved player doesn't yank back into the wheel
   if(R===player||o===player){tone(60+Math.random()*25,0.16,0.3,'square');if(ST&&R===player)ST.elbowsGiven++;
     showMsg(R===player?'<small>💪 Loket do '+o.name+'!</small>':'<small>😤 '+R.name+' tě odstrčil loktem!</small>',0.9);}
+  if(R.clumsy&&Math.random()<0.035)crashRider(R,'hook');          // overdoes the shove and goes down himself
+  else if(o.clumsy&&Math.random()<0.07)crashRider(o,'hook');      // gets an elbow back and can't hold his bike
   return o;}
 
 // ---------- VYLUČOVAČKA (elimination / devil): last rear wheel over the line every 2 laps is out, last two sprint ----------
@@ -1442,7 +1472,7 @@ function elimLabel(R,i){return R.finished?(i===0?'🏆 vítěz':'finále'):R.out
 // ---------- MADISON: teams of two, hand-sling exchanges, sprints every 10 laps (5-3-2-1, last double), +20 per lap gained ----------
 function nextSprintLine(s){for(let k=1;k*MAD_EVERY<=MAD_LAPS;k++){const L=START_S+k*MAD_EVERY*L0;if(L>s+0.5)return L;}return FIN;}
 function setupMadison(){const by=n=>riders.find(r=>r.name===n),P=PARTNER();
-  const pairs=[['wc',player,P],['pardus',by('Vojck'),by('Sašík')],['dukla',by('Evenepoel'),by('Vingegaard')],['sparta',by('Ganna'),by('Milan')],['favorit',by('Pogačar'),by('Van der Poel')]];
+  const pairs=[['wc',player,P],['pardus',by('Vojck'),by('Sašík')],['dukla',by('Evenepoel'),by('Vingegaard')],['sparta',by('Ganna'),by('Milan')],['favorit',by('Kýbl'),by('Van der Poel')]];
   // UCI 3.2.163: first group (one rider per team) half along the outside balustrade, half in the sprinters' lane with holders;
   // second group at the balustrade on the opposite straight, motionless during the neutralised lap; flying start (pistol) after one lap
   MT=pairs.map(([key,a,b],i)=>{const top=i%2===0;Object.assign(a,{s:SF-1.2-(i>>1)*2.6,w:top?TW-0.6:0.45,v:0,resting:false});Object.assign(b,{s:SF+L0/2-4+i*2.6,w:TW-0.35,v:0,resting:true,targetW:TW-0.35});
