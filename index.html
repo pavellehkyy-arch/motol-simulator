@@ -1118,7 +1118,7 @@ function resetRiders(){
   order.forEach((ri,slot)=>{const R=riders[ri];const row=slot>>1;
     Object.assign(R,{s:SF-1.2-row*2.3,w:slot%2?1.9:0.8,v:0,h:0,power:0,energy:100,wp:22000,crank:Math.random()*6,draft:0,finished:false,time:0,targetW:0,lane:0.4+Math.random()*1.0,mood:1,sprintAt:170+Math.random()*190,attackT:0,lean:0,dw:0,cda:R.player?0.25:0.26,realP:0,crashed:false,crash:null,targetWp:0,latched:false,eRate:0,intent:0,pushedT:0,contact:0,pullT:0,swing:0,str:R.player?1:0.85+Math.random()*0.3,aggr:Math.random(),highLane:1.6+Math.random()*1.8,pullAt:55+Math.random()*20,ftp:R.player?330:Math.round(TSTAT[R.team].ftp[0]+Math.random()*(TSTAT[R.team].ftp[1]-TSTAT[R.team].ftp[0]))});
     if(!R.player){const T=TSTAT[R.team];R.str=T.str[0]+Math.random()*(T.str[1]-T.str[0]);R.aggr=T.aggr[0]+Math.random()*(T.aggr[1]-T.aggr[0]);R.lane=T.lane+Math.random()*0.5;R.front=T.front;}
-    R.wp=R.player?20000:19500+Math.random()*1000;R.frontT=0;R.pullLen=14+Math.random()*10;
+    R.wp=R.player?20000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;   // every bot has his own hidden tank and his own recoveryR.frontT=0;R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
     if(mode==='kilo'&&R===player){R.s=START_S-0.6;R.w=0.5;}
     R.targetWp=R.w;R.model.g.rotation.set(0,0,0);
     R.h=surfY(R.s,R.w);R.targetW=R.w;R.prevS=R.s;});
@@ -1129,7 +1129,7 @@ function setupBunchStart(){const L=riders.filter(r=>!r.partner);const bots=L.fil
   bots.forEach((R,i)=>{const top=i%2===0;Object.assign(R,{s:SF-1.2-(i>>1)*2.6,w:top?TW-0.6:0.45,v:0});R.targetW=R.w;R.targetWp=R.w;R.h=surfY(R.s,R.w);R.prevS=R.s;});
   NEU={on:true};makeHolders(bots);}
 function isNeutral(){return mode==='madison'?!!(MT&&MT.neutral):!!(NEU&&NEU.on);}
-function startBunchRace(){NEU.on=false;startGun();showMsg('🔫<small>Výstřel – letmý start, závod běží!</small>',2.0);}
+function startBunchRace(){NEU.on=false;goT=raceTime;startGun();showMsg('🔫<small>Výstřel – letmý start, závod běží!</small>',2.0);}
 
 // ---------- audio ----------
 let actx=null;
@@ -1219,17 +1219,18 @@ function physics(R,dt){
   // fatigue: hard riding (front work, chasing, sprinting) drains, recovery only when sheltered/easy
   const bunchChase=mode==='elim'&&R.chaseT>0;   // the bunch shares the chase – one bot stands for the whole pack bringing the escapee back
   if(R.energy<25&&!bunchChase)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
-  const Pe=Math.max(P,0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*1.8;
+  const Pe=Math.max(P,0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*(R.recK||1.8);
   let dE=(rec-drain*(mode==='elim'?(R.draft>0.1||bunchChase?0.45:1.5):1))/R.wp*100;   // elimination: in the wheels you spend almost nothing, in the wind a lot
   if(R.resting&&Pe<R.ftp)dE+=2.0;   // the resting partner recovers up on the banking
-  if(mode!=='kilo'&&mode!=='keirin'&&!R.resting&&R.draft<0.08&&Pe>0.8*R.ftp)dE-=(Pe/R.ftp-0.8)*(mode==='points'&&R.attackT>0?1.1:2.6);
+  if(mode!=='kilo'&&mode!=='keirin'&&!R.resting&&R.draft<0.08&&Pe>0.8*R.ftp)dE-=(Pe/R.ftp-0.8)*(mode==='points'&&R.attackT>0?1.1:mode==='scratch'||mode==='points'||mode==='madison'?1.4:2.6);
   if(mode==='elim'&&!bunchChase&&!R.resting&&!R.out&&R.draft<0.08&&phase==='race'&&!isNeutral()&&R.v>8)dE-=2.2+Math.max(0,R.v-11)*0.8;   // elimination: riding on the front / off the front burns the tank fast   // pulling at the front in the wind: extra cost
   if(R.draft>0.1&&Pe<R.ftp*1.1&&!R.resting)dE+=R.draft*3.2*(1-Math.max(0,Pe-0.8*R.ftp)/(0.3*R.ftp));   // sitting on a wheel really refills the tank
   R.eRate+=(dE-R.eRate)*Math.min(1,dt*2);R.energy=clamp(R.energy+dE*dt,0,100);
   R.realP=P;
   let draft=0;
-  if(mode!=='kilo'){let n=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<6&&dd<0.9)draft=Math.max(draft,0.45*(1-(gap-0.3)/5.7)*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;}
+  if(mode!=='kilo'){let n=0,nA=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<6&&dd<0.9)draft=Math.max(draft,0.45*(1-(gap-0.3)/5.7)*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;if(gap>0.3&&gap<12&&dd<1.7)nA++;}
     if(draft>0.05)draft=Math.min(0.66,draft+0.045*Math.max(0,n-1));
+    if(nA>=2)draft=Math.max(draft,Math.min(0.32,0.11*nA));   // inside a bunch the air is moving with you even a few lengths back
     if(mode==='keirin'&&dernyOn()){const gap=gapTo(R,DERNY),dd=Math.abs(DERNY.w-R.w);if(gap>0.3&&gap<7&&dd<0.9)draft=Math.max(draft,0.55*(1-(gap-1.6)/5.4)*(1-dd/0.9*0.5));}}   // deeper in the bunch = more shelter; the derny + its upright pilot = a big hole in the air
   R.draft=draft;
   const m=80,v=R.v;const onBand=R.w<-0.05;
@@ -1240,7 +1241,8 @@ function physics(R,dt){
   const f=frameAt(R.s);
   const b=R.w>=0?f.b:8*deg;const hc=R.w*Math.cos(b);
   let slipping=false;
-  if(f.k>0.02&&R.w>0.3){const vmin=Math.sqrt(9.81*(1/f.k+hc)*Math.tan(b)*0.26);if(R.v<vmin){slipping=true;R.w-=(vmin-R.v)*0.5*dt;if(R===player&&msgT<=0&&R.v>1&&raceTime>6)showMsg(R.slipT>0.9?'<small>⚠️ Podkluzuje ti kolo! Šlápni, nebo sjeď dolů!</small>':'<small>⚠️ Málo rychlosti – sjíždíš z klopení</small>',0.5);}}
+  const restMad=mode==='madison'&&R.resting;   // madison, resting: rolling slowly up the banking is normal – only crawling right up by the barrier brings you down
+  if(f.k>0.02&&R.w>0.3){const vmin=restMad?(R.w>TW-1.6&&!(R.slT>0)?3.0:0):Math.sqrt(9.81*(1/f.k+hc)*Math.tan(b)*0.26);if(R.v<vmin){slipping=true;R.w-=(vmin-R.v)*0.5*dt;if(R===player&&msgT<=0&&R.v>1&&raceTime>6)showMsg(R.slipT>0.9?'<small>⚠️ Podkluzuje ti kolo! Šlápni, nebo sjeď dolů!</small>':'<small>⚠️ Málo rychlosti – sjíždíš z klopení</small>',0.5);}}
   // too slow up on the banking for 2 s -> the tyres let go and you slide down the boards
   if(R===player){if(slipping&&raceTime>(mode==='keirin'?12:6)&&phase==='race'&&!R.finished&&!R.out&&!isNeutral()){   // also while resting in the madison – up on the banking you still have to hold your speed
       const s0=R.slipT||0;R.slipT=s0+dt;R.w-=R.slipT*0.35*dt;
@@ -1255,73 +1257,157 @@ function physics(R,dt){
 }
 
 // ---------- race AI: pace, chasing, rotating, positioning, sprint ----------
-let racePace=11.6,paceT=0;
+let racePace=11.6,racePaceNow=11.6,paceT=0,goT=-99;
 function updatePace(dt){if(mode==='kilo')return;if(mode==='elim'){elimPace(dt);return;}
   if(mode==='keirin'){if(!KR||!KR.free){racePace=Math.max(DERNY.v,8);return;}const ld=active().filter(r=>!r.crashed&&!r.dsq).reduce((a,b)=>a.s>b.s?a:b,player),lf=(FIN-ld.s)/L0;racePace=lf<1.4?16.4:lf<2.4?15.7:15.1;return;}   // after the derny: ~54 km/h, wound up to the sprint
   const lead=active().filter(r=>!r.crashed&&!r.resting).reduce((a,b)=>effS(a)>effS(b)?a:b,player);const left=((mode==='madison'||mode==='points'?nextSprintLine(effS(lead)):FIN)-effS(lead))/L0;
-  paceT-=dt;if(paceT<=0){paceT=12+Math.random()*14;racePace=mode==='madison'?12.7+Math.random()*1.1:mode==='points'?11.9+Math.random()*1.0:11.2+Math.random()*1.1;}if(isNeutral()){racePace=NEU_V-0.2;return;}
-  const md=mode==='madison'?0.7:mode==='points'?0.4:0;if(left<4)racePace=Math.max(racePace,12.3+md);if(left<2.2)racePace=Math.max(racePace,12.9+md);if(left<1.4)racePace=Math.max(racePace,13.5+md);}
-function freeAt(R,w,ds){ds=ds||2.0;for(const o of riders){if(o===R||!o.model.g.visible)continue;if(o.crashed&&(o.crash.t>1.5||o.w<-0.4))continue;const g=gapTo(R,o);const back=o.v>R.v+0.5?4.5:3;const fwd=ds+Math.max(0,R.v-o.v)*1.6;if(g<fwd&&g>-back&&Math.abs(o.w-w)<0.64)return false;}return true;}
+  paceT-=dt;if(paceT<=0){paceT=12+Math.random()*14;racePace=mode==='madison'?12.4+Math.random()*1.0:mode==='points'?11.4+Math.random()*0.8:11.2+Math.random()*1.0;}if(isNeutral()){racePace=NEU_V-0.2;return;}
+  if(mode==='points'){if(left<3)racePace=Math.max(racePace,12.0);if(left<2)racePace=Math.max(racePace,12.5);if(left<1.2)racePace=Math.max(racePace,13.0);}   // wound up before every sprint, but a points race is long
+  else{const md=mode==='madison'?0.5:0;if(left<4)racePace=Math.max(racePace,12.3+md);if(left<2.2)racePace=Math.max(racePace,12.9+md);if(left<1.4)racePace=Math.max(racePace,13.5+md);}
+  const rpT=Math.min(racePace,NEU_V+Math.max(0,raceTime-goT)*0.22);racePaceNow+=(rpT-racePaceNow)*Math.min(1,dt/5);}   // the bunch changes pace gradually, not in steps   // after the flying start the bunch winds it up over ~15 s
+function freeAt(R,w,ds){ds=ds||2.0;for(const o of riders){if(o===R||!o.model.g.visible)continue;if(o.crashed&&(o.crash.t>1.5||o.w<-0.4))continue;const g=gapTo(R,o);if(g<0&&Math.abs(o.w-R.w)<0.64&&Math.abs(o.w-w)>=Math.abs(o.w-R.w))continue;   /* the man right on my wheel doesn't stop me moving away from him */const back=o.v>R.v+0.5?4.5:3;const fwd=ds+Math.max(0,R.v-o.v)*1.6;if(g<fwd&&g>-back&&Math.abs(o.w-w)<0.64)return false;}return true;}
 function strength(R){return R.str*(0.6+0.4*R.energy/100)*(1+0.35*clamp((R.realP||0)/R.ftp-1,0,1.5));}
-function botAI(R,dt){
+// ---------- race brain: groups, chases, rotating pacelines, attacks; every bot has his own hidden stamina (energy) and rides by it ----------
+let AIG=null;
+function mateAhead(R){if(mode==='madison'||!R.grp)return false;for(let q=R.grp.ahead;q;q=q.ahead)for(const o of q.m)if(o!==R&&o.team===R.team)return true;return false;}   // a teammate up the road: I don't chase him down
+function vEq(o){const d=o.h-surfY(o.s,0.4);return Math.sqrt(Math.max(0,o.v*o.v+2*9.81*GBOOST*d));}   // speed as if down on the black line – riders ride by feel, not by every bump of the banking
+function aiPace(){return mode==='keirin'||isNeutral()?racePace:racePaceNow;}
+function analyzeField(){const RP=aiPace();const L=riders.filter(o=>o.model.g.visible&&!o.crashed&&!o.resting&&!o.out&&!o.finished&&!o.dsq).sort((a,b)=>effS(b)-effS(a));
+  const G=[];let cur=null;for(const o of L){if(!cur||effS(cur.m[cur.m.length-1])-effS(o)>GROUP_GAP){cur={m:[],i:G.length};G.push(cur);}cur.m.push(o);o.grp=cur;}
+  let bunch=G[0];for(const g of G)if(g.m.length>bunch.m.length||(g.m.length===bunch.m.length&&g.i>bunch.i&&g.m.length<2))bunch=g;
+  // a rider a lap down (or a lap up) who is physically right with the bunch rides in the bunch – he isn't a break and he isn't dropped
+  if(mode==='points'&&bunch)for(const g of G){if(g===bunch)continue;for(let k=g.m.length-1;k>=0;k--){const o=g.m[k];if((o.lapNet||0)===(bunch.m[0].lapNet||0))continue;
+    let near=false;for(const b of bunch.m){const d=gapTo(b,o);if(d>-GROUP_GAP&&d<GROUP_GAP){near=true;break;}}if(near){g.m.splice(k,1);bunch.m.push(o);o.grp=bunch;}}}
+  for(let k=G.length-1;k>=0;k--)if(!G[k].m.length)G.splice(k,1);G.forEach((g,i)=>g.i=i);
+  if(bunch){bunch.m.sort((a,b)=>gapTo(b,a));bunch.head=bunch.m[0];bunch.tail=bunch.m[bunch.m.length-1];}   // bunch order on the boards
+  for(const g of G){g.head=g.m[0];g.tail=g.m[g.m.length-1];g.ahead=g.i>0?G[g.i-1]:null;g.gapAhead=g.ahead?effS(g.ahead.tail)-effS(g.head):0;g.gapFront=effS(G[0].head)-effS(g.head);g.bunch=g===bunch;g.brk=g.i<bunch.i;
+    if(g.bunch)for(const o of g.m)o.brkFlag=false;   // caught: the move is over
+    g.intent=g.brk&&g.m.some(o=>o.brkFlag||o.player);}   // a real break (somebody attacked) – not just a few riders who rolled off the front
+  const since=(mode==='points'||mode==='madison')&&G[0]?(effS(G[0].head)-(nextSprintLine(effS(G[0].head))-(mode==='points'?PT_EVERY:MAD_EVERY)*L0))/L0:9,easy=since>0&&since<1.1;   // just after a sprint the bunch sits up and regroups
+  for(const g of G){const W=g.m.filter(o=>!o.player&&o.energy>18&&!mateAhead(o));g.workers=W.length;g.eAvg=W.length?W.reduce((a,o)=>a+o.energy,0)/W.length:0;
+    g.chase=chaseDesire(g);
+    let v=RP;
+    if(g.i>bunch.i){const gap=g.gapAhead;v=RP+clamp(gap*0.03,0.3,1.6);}   // dropped: try to get back on
+    else if(g.chase>0.2)v=g.workers?RP+Math.min(1.6,g.chase*(0.7+1.0*clamp(g.gapAhead/55,0,1))*(0.45+0.55*g.eAvg/100)*(g.workers>=3?1:g.workers===2?0.85:0.65)):RP-0.3;   // nobody willing to work -> the chase dies
+    else if(g.brk&&!g.intent)v=RP-(easy?1.6:1.1);   // rolled off the front by accident: sit up and wait for the bunch
+    else if(g.brk){const e=g.m.reduce((a,o)=>a+o.energy,0)/g.m.length;v=g.m.length===1&&e<30&&!g.head.player?RP-0.6:RP+0.7+0.9*e/100;}   // the break rides to stay away – or sits up when it's empty
+    if(easy&&!g.intent&&g.chase<=0.2&&g.i<=bunch.i)v=Math.min(v,RP-0.9);
+    if(g===bunch&&g.m.length>2){const len=effS(g.head)-effS(g.tail),mx=2.1*g.m.length+2;if(len>mx)v-=Math.min(g.chase>0.2?0.3:0.8,(len-mx)*0.08);}   // the line behind snaps: the front eases
+    g.vT=v;g.vHead=vEq(g.head);}
+  if(player.model.g.visible&&!player.crashed){player.atkT=Math.max(0,(player.atkT||0)-1/30);if((player.realP||0)>1.45*player.ftp&&!isNeutral())player.atkT=4;}   // the player is going for it
+  AIG={G,bunch,n:L.length};}
+// how badly a group wants the group in front of it back – what's at stake, how big the gap, who's up there
+function chaseDesire(g){if(!g.ahead||!g.ahead.intent||g.gapAhead<GROUP_GAP*0.8||isNeutral()||!(g.bunch||g.brk))return 0;const eS=effS(g.head),toFin=(FIN-eS)/L0,gap=g.gapAhead;let d;
+  if(mode==='points'){const toSp=(nextSprintLine(eS)-eS)/L0;d=0.55+Math.min(0.5,gap/80)+(toSp<3?0.3:0)+(gap>L0*0.4?0.45:0);}   // a break takes sprint points – and if it laps us, +20 each
+  else if(mode==='madison')d=0.6+Math.min(0.6,gap/90);
+  else if(mode==='keirin')d=1.3;
+  else d=(toFin>9?0.3:toFin>5?0.65:1.05)+Math.min(0.4,gap/100);
+  let danger=0;for(const o of g.ahead.m)danger+=o.player?1.1:o.energy>55?0.6:0.3;   // the player and fresh riders are dangerous, an empty soloist less so
+  d*=clamp(0.6+0.35*danger,0.6,1.7);if(!g.bunch&&g.m.length<g.ahead.m.length)d*=0.5;
+  return clamp(d,0,1.7);}
+function botAI(R,dt){const RP=aiPace();
   if(R.crashed)return;
-  R.mood=clamp(R.mood+(Math.random()-.5)*dt*0.08,0.96,1.04);
-  const eS=effS(R),toGo=(mode==='madison'||mode==='points'?nextSprintLine(eS):FIN)-eS,lapsLeft=toGo/L0;
+  R.mood=clamp(R.mood+(Math.random()-.5)*dt*0.03,0.985,1.015);
+  const eS=effS(R),toGo=(mode==='madison'||mode==='points'?nextSprintLine(eS):FIN)-eS,lapsLeft=toGo/L0,toFin=(FIN-eS)/L0;
   if(R.finished){R.power=170;R.targetW=2.6+R.lane*0.5;steerBot(R,dt,false);return;}
-  // who is ahead: in my line, and anyone ahead
+  const g=R.grp||{m:[R],head:R,tail:R,vT:RP,chase:0,bunch:true,brk:false,i:0,workers:1,eAvg:R.energy};
+  // what I see: the wheel in my line, anyone ahead, crashes and cans in my way
   let ahead=null,gap=1e9,anyA=null,gapA=1e9,wreck=null;
-  for(const o of riders){if(o===R||!o.model.g.visible)continue;const g=gapTo(R,o);if(g<=0)continue;
-    if(o.crashed){if(g<25&&Math.abs(o.w-R.w)<1.3&&o.w>-0.4&&o.crash.t<2.5)wreck=o;continue;}
-    if(g<gapA&&g<70&&!o.resting){gapA=g;anyA=o;}
-    if(g<gap&&g<40&&Math.abs(o.w-R.w)<0.9){gap=g;ahead=o;}}
-  let front=-1e9;for(const o of riders)if(o.model.g.visible&&!o.crashed&&!o.resting&&!o.dsq&&effS(o)>front)front=effS(o);const gapFront=front-eS;
-  if(mode==='madison')for(const o of riders){if(!o.resting||o.crashed||teamOf(o)===teamOf(R))continue;const g=gapTo(R,o);if(g>0&&g<20&&Math.abs(o.w-R.w)<1.0&&o.v<R.v){wreck={w:o.w>1.1?0.4:o.w+0.95,crash:{t:0},mad:true};if(g<10&&o.slowT>0)wreck.brake=o.v+0.3;}}
-  for(const c of cans){if(c.t<-0.3)continue;const g=gapTo(R,c);if(g>0&&g<22&&Math.abs(c.w-R.w)<0.9)wreck={w:c.w,crash:{t:0}};}
-  const sprinting=toGo<R.sprintAt&&R.energy>2;
-  if(R.attackT>0){R.attackT-=dt;if(mode==='points'&&PR&&R.attackT<=0&&R.energy>38&&R.s-PR.med-R.lapNet*L0>30)R.attackT=10;}   // points race: a break that has a gap commits and goes for the lap
-  else if(mode==='points'){if(lapsLeft>1.6&&R.energy>70&&Math.random()<dt/(lapsLeft>8.5?22:40)*R.aggr)R.attackT=14+Math.random()*18;}   // points race: counter-attacks right after a sprint, long enough to try to take a lap
-  else if(mode==='keirin'){if(lapsLeft>1.7&&lapsLeft<4.8&&R.energy>70&&Math.random()<dt/16*R.aggr)R.attackT=4+Math.random()*5;}   // keirin: somebody always goes long after the derny pulls off
-  else if(lapsLeft>1.6&&lapsLeft<9&&R.energy>75&&Math.random()<dt/45*R.aggr)R.attackT=6+Math.random()*7;
-  if(R.pullT>0)R.pullT-=dt;
-  let vT=racePace*R.mood;
+  for(const o of riders){if(o===R||!o.model.g.visible)continue;const d=gapTo(R,o);if(d<=0)continue;
+    if(o.crashed){if(d<25&&Math.abs(o.w-R.w)<1.3&&o.w>-0.4&&o.crash.t<2.5)wreck=o;continue;}
+    if(o.resting||(o.pullT>0&&!(R.pullT>0)&&!o.player)||(o===R.passWho&&R.passT>0))continue;   // a man swinging off isn't a wheel to follow
+    if(d<gapA&&d<70){gapA=d;anyA=o;}
+    if(d<gap&&d<40&&Math.abs(o.w-R.w)<0.9){gap=d;ahead=o;}}
+  if(mode==='madison')for(const o of riders){if(!o.resting||o.crashed||teamOf(o)===teamOf(R))continue;const d=gapTo(R,o);if(d>0&&d<20&&Math.abs(o.w-R.w)<1.0&&o.v<R.v){wreck={w:o.w>1.1?0.4:o.w+0.95,crash:{t:0},mad:true};if(d<10&&o.slowT>0)wreck.brake=o.v+0.3;}}
+  for(const c of cans){if(c.t<-0.3)continue;const d=gapTo(R,c);if(d>0&&d<22&&Math.abs(c.w-R.w)<0.9)wreck={w:c.w,crash:{t:0}};}
+  const lastLine=toGo>=FIN-eS-1,inter=(mode==='points'||mode==='madison')&&!lastLine;
+  const sprinting=toGo<R.sprintAt*(inter?0.6:1)*(0.65+0.35*R.energy/100)&&R.energy>(inter?30:2)&&(!inter||!R.grp||R.grp.i===0||R.grp.gapFront<12);   // an empty tank waits longer before it kicks; a mid-race sprint is only worth it with legs and a place near the front
+  const neutral=isNeutral(),keirin=mode==='keirin';
+  // ---- decisions, a couple of times a second: attack, follow a move, give up a hopeless chase ----
+  R.thinkT=(R.thinkT||Math.random()*0.5)-dt;
+  if(R.thinkT<=0){R.thinkT=0.45+Math.random()*0.2;
+    const attackers=riders.filter(o=>o!==R&&o.attackT>0&&o.model.g.visible&&!o.crashed).length,brkN=AIG&&AIG.G[0]&&AIG.G[0].brk?AIG.G[0].m.length:0;
+    if(!neutral&&!sprinting&&R.attackT<=0&&g.bunch&&R.energy>(mode==='points'?52:65)&&attackers===0&&brkN<3&&eS-START_S>0.7*L0){
+      let rate=0;const since=mode==='points'||mode==='madison'?(eS-(nextSprintLine(eS)-(mode==='points'?PT_EVERY:MAD_EVERY)*L0))/L0:99;
+      if(mode==='points'&&lapsLeft>1.3&&toFin>2)rate=(0.0008+0.004*R.aggr)*(since<1.5?3:1);              // counters right after a sprint
+      else if(mode==='madison'&&lapsLeft>1.3)rate=0.0006+0.003*R.aggr;
+      else if(mode==='scratch'&&toFin>1.8&&toFin<10)rate=0.0006+0.003*R.aggr;
+      else if(keirin&&lapsLeft>1.7&&lapsLeft<4.6)rate=R.aggr/16;                                           // somebody always goes long after the derny
+      if(Math.random()<rate*0.5){R.brkFlag=true;R.attackT=keirin?4+Math.random()*5:mode==='points'?10+Math.random()*10:6+Math.random()*7;R.attackFrom=R.s;}}
+    // follow a fresh move: an aggressive rider with legs jumps across to the attacker
+    if(!neutral&&!sprinting&&R.attackT<=0&&g.bunch&&R.energy>66&&R.aggr>0.55&&!keirin)for(const o of riders){if(o===R||!(o.attackT>0)||o.crashed||o.team===R.team)continue;const d=gapTo(R,o);
+      if(d>4&&d<28&&!riders.some(x=>x.bridge===o)&&Math.random()<0.12*R.aggr){R.attackT=5+Math.random()*4;R.bridge=o;R.brkFlag=true;break;}}}
+  if(R.attackT>0){R.attackT-=dt;if(R.attackT<=0)R.bridge=null;}
+  // somebody sits in front of me and won't ride: come round him and do the work myself
+  R.passT=Math.max(0,(R.passT||0)-dt);
+  if(anyA&&gapA<8&&!neutral&&R.grp&&anyA.grp===R.grp&&vEq(anyA)<R.grp.vT-1.0&&(anyA.player||anyA.energy<=18||mateAhead(anyA))&&!sprinting&&R.energy>25&&!mateAhead(R)){R.stuckT=(R.stuckT||0)+dt;if(R.stuckT>2.5){R.passT=7;R.passWho=anyA;R.stuckT=0;}}else R.stuckT=0;   // whoever dawdles in front of me (the player too): I go round
+  // ---- my job in the group ----
+  const front=!anyA||gapA>GROUP_GAP*0.8;                           // first man of my group: in the wind
+  const worker=!R.player&&R.energy>18&&!mateAhead(R);
+  const others=g.m.length>1;
+  let onWheel=false;for(const o of riders){if(o===R||!o.model.g.visible||o.crashed||o.resting)continue;const d=gapTo(R,o);if(d<-0.3&&d>-6&&Math.abs(o.w-R.w)<0.9){onWheel=true;break;}}
+  const chasing=g.chase>0.2,lineW=chasing||g.brk?0.5:clamp(0.45+(R.lane-0.4)*0.35,0.45,0.95);   // the bunch rides low – up on the banking every bump costs speed
+  // rotating: pull through, swing up, drift back down the line, drop in on the last wheel
+  if(front&&!sprinting&&R.attackT<=0&&R.pullT<=0&&onWheel&&!keirin)R.frontT+=dt;else if(!front)R.frontT=Math.max(0,R.frontT-dt*2);
+  const pullLen=chasing||g.brk?(4.5+6*R.energy/100)*(g.workers<=2?1.5:1):R.pullLen*(0.5+0.5*R.energy/100)*clamp(1.5-(RP-10.8)*0.45,0.45,1.4);
+  if(!keirin&&!sprinting&&R.pullT<=0&&R.attackT<=0&&front&&onWheel&&others&&lapsLeft>1.4&&(R.frontT>pullLen||(!worker&&R.frontT>1.2))){R.pullT=9;R.frontT=0;}
+  if(R.pullT>0){R.pullT-=dt;let behind=0;for(const o of g.m)if(o!==R&&gapTo(R,o)<-1.0)behind++;if(!behind||sprinting||R.attackT>0)R.pullT=0;else if(R.pullT<6&&!g.m.some(o=>o!==R&&!o.pullT&&gapTo(R,o)>-0.5&&gapTo(R,o)<6))R.pullT=0;}   // nobody comes through: take it up again   // the whole line has come past -> back in at the end
+  // ---- speed ----
+  let vT=g.vT*R.mood;
+  if(neutral){const ld=AIG&&AIG.G[0]?effS(AIG.G[0].head):eS;vT=NEU_V+clamp((ld-eS-4)*0.15,0,2.2);}   // neutral lap: close up into a compact bunch
   if(raceTime<5)vT=Math.min(vT,2+raceTime*2.2);
-  if(R.attackT>0)vT=racePace+(mode==='points'?1.7:2.6);
-  // chasing a break: teammates of a rider up the road block, the rest chase harder the closer the finish and the stronger the break
-  let chase=1;if(gapFront>GROUP_GAP){let mate=false,strong=false;for(const o of riders){if(o===R||!o.model.g.visible||o.crashed||o.resting)continue;const g=gapTo(R,o);if(g>GROUP_GAP&&o.s>=front-GROUP_GAP*2){if(o.team===R.team)mate=true;if(STRONG(o)||o.player)strong=true;}}
-    chase=mate&&mode!=='madison'?0:(lapsLeft>8?0.3:lapsLeft>4?0.6:1)*(strong?1.25:0.85)*(0.6+0.6*R.aggr);}
-  if(anyA&&gapA>4.5)vT=Math.max(vT,anyA.v+Math.min(3.2,(gapA-3)*0.09)*(gapA<GROUP_GAP?1:chase));   // close small gaps in the line / chase the break
-  if(gapFront>15&&!R.finished)vT=Math.max(vT,racePace+Math.min(2.5,gapFront*0.025)*chase);   // bridge to the front group
-  const vWant=vT;
-  if(ahead&&gap<6&&!sprinting&&R.attackT<=0)vT=Math.min(vT+0.6,ahead.v+(gap-2.0)*0.7);  // sit on the wheel
-  if(R.pullT>0)vT=Math.min(vT,racePace-0.9);
+  if(R.attackT>0)vT=R.bridge&&!R.bridge.crashed?Math.max(vEq(R.bridge)+Math.min(2.4,gapTo(R,R.bridge)*0.12),RP+1):RP+(mode==='points'?1.9:2.5);
+  if(!front&&!(R.attackT>0)&&R.pullT<=0&&anyA){const tgt=ahead&&gap<12?ahead:anyA;const d=tgt===ahead?gap:gapA;
+    if(d<6&&!neutral)vT=Math.min(vT+0.6,vEq(tgt)+(d-1.9)*0.7);   // sit on the wheel
+    else if(d<6)vT=Math.min(vT,vEq(tgt)+(d-1.9)*0.7);
+    else vT=Math.max(vT,vEq(tgt)+Math.min(2.4,(d-3)*0.12));   // a gap opened in the line: close it
+    if(!worker&&chasing&&d>5)vT=Math.min(vT,g.vT);}
+  if(R.pullT>0)vT=g.vT-0.85;   // swung off: soft-pedal and let the line come past
+  if(!worker&&front&&!sprinting&&!(R.attackT>0)&&others&&!g.brk)vT=Math.min(vT,RP-0.3);   // not going to pull for them
+  const empty=R.energy<14&&R.draft<0.15&&!sprinting;   // empty and in the wind: ride within yourself and recover, or you're finished for the day
+  if(R.energy<12&&!sprinting)vT=Math.min(vT,RP-0.4);
+  // the bunch is a compact pack: the front sets the pace (or the chase), the back never lets a gap open, everybody drifts to the depth he likes
+  const B=AIG&&AIG.bunch,inPack=!!B&&!keirin&&!(R.attackT>0)&&!sprinting&&!neutral&&R.pullT<=0&&R.energy>4&&(g===B||(g.i>B.i&&effS(B.tail)-eS<55));
+  let packLim=0,packTw=null;
+  if(inPack){const P=B.m,n=P.length;let cen=0,ld=-1e9,tl=1e9,ldR=null;for(const o of P){if(o===R)continue;const d=gapTo(R,o);cen+=d;if(d>ld){ld=d;ldR=o;}if(d<tl)tl=d;}
+    if(g!==B){cen=effS(B.tail)-eS+4;ld=Math.max(ld,cen);}
+    cen/=Math.max(1,n-1);ld=Math.max(ld,0);tl=Math.min(tl,0);
+    const maxLen=2.1*n+2,len=ld-tl;
+    if(!anyA||gapA>GROUP_GAP)vT=g.vT*R.mood;   // front of the bunch: sets the pace
+    else{const want=(lapsLeft<2.2&&R.aggr>0.5&&R.energy>40)?1.2:1.9;vT=0.5*vEq(anyA)+0.5*(B.vHead||vEq(anyA))+clamp((gapA-want)*0.5,-1.5,1.8);   // on a wheel, always – riding the bunch's rhythm, not every twitch of the man in front
+      const att=anyA.attackT>0||anyA.atkT>0;
+      if(att&&R.atkSeen!==anyA){R.atkSeen=anyA;R.followAtk=R.energy>50&&Math.random()<0.15+0.55*R.aggr*(R.energy/100)*(lapsLeft<2?1.5:1);}   // a jump: some go with it at once, the rest let it go and organise the chase
+      if(gapA>4.5&&(!att||R.followAtk)){vT=Math.max(vT,vEq(anyA)+Math.min(3,(gapA-3)*0.4));packLim=R.ftp*(att?2.2:1.6);}   // a gap: shut it at once
+      else if(gapA>4.5)vT=Math.min(vT,g.vT);}
+    if(g!==B&&ldR){vT=Math.max(vT,vEq(ldR)+Math.min(3,(effS(B.tail)-eS)*0.06+0.4));packLim=R.ftp*1.6;}   // dropped off the back: get back on
+    if(ahead&&gap<4&&ahead!==anyA)vT=Math.min(vT,vEq(ahead)+(gap-1.9)*0.7);
+    packTw=anyA&&gapA<GROUP_GAP?clamp(anyA.w,0.45,1.35):lineW;}   // follow the wheel, but the bunch stays down by the black and red lines
   if(sprinting)vT=25;
+  // never ride into the back wheel in front: look further ahead the faster I'm closing
+  const clos=ahead?R.v-ahead.v:0,dGap=ahead?1.9+Math.max(0,clos)*1.3:0;
+  if(ahead&&gap<dGap+1.5&&Math.abs(ahead.w-R.w)<0.5&&!(sprinting&&Math.abs(R.targetW-R.w)>0.3))vT=Math.min(vT,vEq(ahead)+(gap-dGap)*0.8);
   if(wreck)vT=Math.min(vT,R.v);
-  if(wreck&&wreck.brake)vT=Math.min(vT,wreck.brake);   // a thrower slowing down in front: brake and go round
-  // pulling at the front too long -> swing up and let others through
-  let onWheel=false;for(const o of riders){if(o===R||!o.model.g.visible||o.crashed||o.resting)continue;const g=gapTo(R,o);if(g<-0.3&&g>-6&&Math.abs(o.w-R.w)<0.9){onWheel=true;break;}}
-  if(mode!=='keirin'&&!sprinting&&R.draft<0.08&&(!anyA||gapA>12)&&onWheel&&R.pullT<=0&&R.attackT<=0)R.frontT+=dt;else R.frontT=Math.max(0,R.frontT-dt*2);   // in a keirin nobody swings off to share the work
-  const pullK=clamp(1.5-(racePace-10.8)*0.45,0.45,1.4);   // fast pace -> short turns
-  if(!sprinting&&R.pullT<=0&&lapsLeft>1.4&&onWheel&&(R.frontT>R.pullLen*pullK||(R.frontT>4&&R.energy<R.pullAt))){R.pullT=8;R.swing=1.3;R.frontT=0;}
-  if(mode!=='keirin'&&!sprinting&&(!ahead||gap>6)&&R.energy<R.pullAt-15&&R.pullT<=0&&lapsLeft>1.2&&gapFront<40){R.pullT=8;R.swing=1.3;}
-  const cda=R.cda*(1-R.draft);
-  const Pneed=(0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT;
-  const capP=mode==='keirin'?(sprinting?R.ftp*3.2:R.ftp*2.3):sprinting?R.ftp*3:(lapsLeft>2.5&&R.attackT<=0?R.ftp*(0.95+0.4*R.energy/100):R.ftp*1.45);   // keirin riders are sprinters: big anaerobic capacity, short race   // nobody kills himself chasing 8 laps from home
-  R.power=clamp(Pneed+620*(vT-R.v)*(vT<R.v-0.3?R.v/5:1),-2600,capP);
+  if(wreck&&wreck.brake)vT=Math.min(vT,wreck.brake);
+  const cda=R.cda*(1-R.draft),Pneed=(0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT;
+  const capP0=keirin?(sprinting?R.ftp*3.2:R.ftp*2.3):sprinting?R.ftp*(inter?2.2:3):R.attackT>0?R.ftp*1.7:front&&(chasing||g.brk)?R.ftp*(0.95+0.6*R.energy/100):lapsLeft>2.5?R.ftp*(0.95+0.4*R.energy/100):R.ftp*1.45,capP=empty?R.ftp*0.68:packLim&&R.energy>15?Math.max(packLim,capP0):capP0;
+  const closing=!front&&anyA&&gapA>3.5&&gapA<GROUP_GAP*1.5&&R.energy>12;   // a short dig to get back on a wheel is always worth it
+  const Rv=vEq(R);const tight=ahead&&gap<dGap+1&&clos>0.8&&Math.abs(ahead.w-R.w)<0.5;R.power=clamp(Pneed+(sprinting||R.attackT>0||tight?620:380)*(vT-Rv)*(vT<Rv-0.3?Rv/5:1),wreck||tight?-2000:-900,closing&&!empty?Math.max(capP,R.ftp*1.35):capP);   // no brakes on a track bike: you back off the pedals
   if(raceTime<5)R.power=clamp(R.power,0,R.ftp*1.2);
-  // lateral line choice
-  let tw=mode==='madison'?0.4+R.lane*0.3:R.lane;   // madison: the race is on the black line, the resting riders are up top
-  if(lapsLeft<1.7&&!sprinting)tw=mode==='madison'?Math.min(R.highLane,1.6):R.highLane;           // climb for the sprint
-  if(sprinting){tw=0.55;if(ahead&&gap<16&&ahead.v<R.v-1.2)tw=ahead.w+0.9;}                                 // dive to the black line
-  if(R.pullT>0)tw=R.lane+R.swing;
-  let wantPass=ahead&&gap<5&&(vWant>ahead.v+(R.front>0?0.15:0.5)||sprinting||R.attackT>0);
-  if(wantPass&&!sprinting&&R.attackT<=0)R.power=Math.max(R.power,clamp((0.5*1.2*R.cda*(1-R.draft)*vWant*vWant+2)*vWant,0,R.ftp*1.3));
+  // ---- line ----
+  let tw=packTw!=null?packTw:front?lineW:(ahead&&gap<10?ahead.w:anyA&&gapA<12?anyA.w:lineW);   // get on a wheel – the draft is everything
+  if(packTw!=null&&ahead&&gap<5&&((lapsLeft<2.2&&R.aggr>0.5&&R.energy>40)||vEq(ahead)<(B.vHead||RP)-1.0)&&!(lapsLeft<1.3)){const up=ahead.w+0.75,dn=ahead.w-0.75,fu=up<2.3&&slotFree(R,up),fd=dn>=0.4&&slotFree(R,dn);tw=fd?dn:fu?up:R.w;}   // come past in the pack: below if there's room, else above
+  if(R.pullT>0)tw=lineW+0.8;
+  else if(lapsLeft<1.3&&!sprinting&&!keirin)tw=mode==='madison'?Math.min(R.highLane,1.4):R.highLane;   // up the banking for the sprint
+  else if(keirin&&!sprinting&&front)tw=0.45;
+  if(sprinting){tw=0.55;if(ahead&&gap<16&&ahead.v<R.v-1.2)tw=ahead.w+0.9;}
+  const wantPass=ahead&&gap<5&&(vT>ahead.v+0.4||sprinting||R.attackT>0)&&R.pullT<=0;
   if(wantPass){const up=ahead.w+0.85;if(freeAt(R,up,3))tw=up;else if(R.aggr>0.65&&lapsLeft<1.2)tw=up;else tw=Math.min(tw,ahead.w);}
-  else if(ahead&&gap<10&&!sprinting&&R.pullT<=0)tw=ahead.w;   // ride in line
-  if(gapFront>40&&gapA>15&&!sprinting)tw=0.45;   // dropped / lapped: hold the black line, others latch on or pass above
+  if(R.attackT>0&&!wantPass)tw=ahead&&gap<8?ahead.w+0.85:0.55;
+  if(g.gapFront>40&&(!anyA||gapA>15)&&!sprinting&&!(R.attackT>0))tw=0.45;   // dropped / lapped: hold the black line, the others pass above
   if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
-  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&gap<3.5;tw=passing?Math.min(tw,ahead.w+0.8):(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}   // on the black line; up only alongside a rider to pass, then straight back down
-  R.targetW=clamp(tw,mode==='madison'?0.25:0.35,mode==='madison'?3.2:TW-0.9);
+  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&gap<3.5;tw=passing?Math.min(tw,ahead.w+0.8):R.pullT>0?1.0:(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}
+  R.targetW=clamp(tw,mode==='madison'?0.25:0.4,mode==='madison'?3.2:TW-1.0);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
   steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0);
 }
@@ -1356,6 +1442,7 @@ function playerControl(dt){
   if(!sd&&!drag&&!R.finished&&mode!=='kilo'&&R.noMagT<=0&&!keys.sprint){let tg=null,tgap=1e9;for(const o of riders){if(o===R||o.crashed||o.resting||o.out||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>-1.8&&g<10&&g<tgap&&Math.abs(o.w-R.targetWp)<0.85){tgap=g;tg=o;}}
     if(tg&&tgap>2.5)R.targetWp+=clamp(tg.w-R.targetWp,-0.8*dt,0.8*dt);}   // only before wheels overlap, gently
   if(sd)R.targetWp=clamp(R.targetWp+sd*2.2*dt,-(BAND-0.08),TW-0.4);
+  keirinAssist(R,dt,!!(sd||drag));
   const st=clamp(R.targetWp-R.w,-1.9*dt,1.9*dt);R.w+=st;R.dw=st/dt;
   R.intent=Math.abs(R.targetWp-R.w)>0.05?Math.sign(R.targetWp-R.w):0;
   if(R.w<-0.05&&!R.finished&&msgT<=0)showMsg('<small>⚠️ Modrý pás – tady se nepředjíždí, brzdí tě to!</small>',0.7);
@@ -1382,6 +1469,7 @@ function resolveContacts(dt){
       const closing=A.v-B.v;
       if(it===0&&solid(A)&&solid(B)&&closing>(A===player?2.5:(B===player?3.0:4.2))&&adw<0.45){crashRider(A,'rear');crashRider(B,'hit');continue;}
       if(B.resting&&!A.resting&&!(B.slowT>0)){B.w+=0.6*dt*8;continue;}
+      if(A.resting&&B.resting&&!(A.slowT>0)&&!(B.slowT>0)){B.w+=(B.w<TW-0.9?1:-1)*0.6*dt*8;continue;}   // two resting riders up on the banking: the slower one moves over, nobody gets stopped dead
       A.s-=BIKE_L-ds;if(A.v>B.v)A.v=B.v;continue;}
     // shoulder to shoulder -> elbowing
     const dir=Math.sign(dw)||1,ov=BODY_W-adw;
@@ -1394,6 +1482,8 @@ function resolveContacts(dt){
     A.energy=Math.max(0,A.energy-dt*2.5);B.energy=Math.max(0,B.energy-dt*2.5);
     if(A===player||B===player){if(thudT<=0&&ST)ST.elbows++;if(thudT<=0){tone(70+Math.random()*30,0.12,0.25,'square');thudT=0.35;}if(elbowMsgT<=0&&msgT<=0){showMsg('<small>💪 Loktování!</small>',0.6);elbowMsgT=2;}}
   }
+  for(const h of HOLDERS){if((h.st!=='push'&&h.st!=='down')||h.cw<-BAND+0.1)continue;   // a holder still standing on the boards is solid – you can't ride through him
+    for(const R of L){if(R.crashed)continue;const g=gapTo(R,{s:h.cs});if(g>0&&g<0.95&&Math.abs(R.w-h.cw)<0.5){R.s-=0.95-g;R.v=Math.min(R.v,0.6);}}}
   if(mode==='keirin'&&dernyOn())for(const R of L){if(R.crashed)continue;const g=gapTo(R,DERNY);if(g>0&&g<1.95&&Math.abs(DERNY.w-R.w)<0.5){R.s-=1.95-g;if(R.v>DERNY.v)R.v=DERNY.v;}}
   for(const R of L){if(R.crashed)continue;R.pushedT=Math.max(0,(R.pushedT||0)-dt);R.contact*=Math.exp(-6*dt);
     if(R.pushedT>0&&R.v>5&&!R.resting){if(R.w<-0.22)crashRider(R,'band');else if(R.w>TW-0.3)crashRider(R,'barrier');}
@@ -1416,8 +1506,9 @@ function simStep(dt,withPlayer){
   raceTime+=dt;if(mode==='keirin')dernyUpdate(dt);updatePace(dt);
   if(withPlayer&&!player.crashed)playerControl(dt);
   if(mode==='elim'&&EL)EL.alive=riders.filter(aliveE);
+  if(mode!=='kilo'&&mode!=='elim')analyzeField();
   if(mode!=='kilo')for(const R of active())if(!R.player){if(R.resting)restAI(R,dt);else if(mode==='elim')elimAI(R,dt);else if(mode==='keirin'&&KR&&!KR.free)keirinPacedAI(R,dt);else botAI(R,dt);}
-  if(isNeutral()){const ld=active().filter(r=>!r.resting&&!r.crashed).reduce((a,b)=>a.s>b.s?a:b);for(const R of active()){if(R.resting||R.crashed)continue;const cap=ld.s-R.s<4?NEU_V-(mode==='elim'?clamp((ld.s-Math.min(...active().filter(r=>!r.crashed&&!r.resting).map(r=>r.s))-7)*0.25,0,2.5):0):NEU_V+(mode==='elim'?2.2:1.6);if(R.v>cap)R.power=Math.min(R.power,R.v>cap+0.6?-400:0);}}   // neutralised lap: the front holds a moderate pace, the back may close up -> compact bunch   // neutralised lap: steady pace, no attacks
+  if(isNeutral()){const ld=active().filter(r=>!r.resting&&!r.crashed).reduce((a,b)=>a.s>b.s?a:b);for(const R of active()){if(R.resting||R.crashed)continue;const cap=ld.s-R.s<4?NEU_V-clamp((ld.s-Math.min(...active().filter(r=>!r.crashed&&!r.resting).map(r=>r.s))-(mode==='elim'?7:12))*0.25,0,2.5):NEU_V+2.2;if(R.v>cap)R.power=Math.min(R.power,R.v>cap+0.6?-400:0);}}   // neutralised lap: the front holds a moderate pace, the back may close up -> compact bunch   // neutralised lap: steady pace, no attacks
   for(const R of active())if(!R.crashed&&(withPlayer||!R.player))physics(R,dt);
   applyShove(dt);resolveContacts(dt);if(mode==='madison')madisonUpdate(dt);if(mode==='elim')elimUpdate(dt);if(mode==='points')pointsUpdate(dt);if(mode==='keirin')keirinUpdate(dt);if(NEU&&NEU.on&&phase==='race'){const ld=active().filter(r=>!r.crashed).reduce((a,b)=>a.s>b.s?a:b);if(ld.s>=START_S)startBunchRace();}if(withPlayer)trackStats(dt);
   for(const R of active())if(R.crashed)crashUpdate(R,dt);}
@@ -1583,7 +1674,13 @@ function buildCoach(){COACH=makeCoach();COACH.g.position.set(PODX,0,2.9);COACH.g
   const sC=LSTR/2+LT+LA/2+L0/2,f=frameAt(sC),p=new THREE.Vector3();surf(sC,TW,p);const top=p.y+0.75;
   const ox=p.x+f.nx*0.9,oz=p.z+f.nz*0.9;
   const box=new THREE.Mesh(new THREE.BoxGeometry(1.8,top+0.5,1.4),mat(0x6e4826));box.position.set(ox,(top-0.5)/2,oz);box.rotation.y=Math.atan2(f.fx,f.fz);scene.add(box);
-  RCOACH=makeCoach();RCOACH.g.position.set(ox,top,oz);RCOACH.baseY=top;RCOACH.g.rotation.y=Math.atan2(-f.nx,-f.nz);RCOACH.s=sC;RCOACH.mood='watch';scene.add(RCOACH.g);}
+  RCOACH=makeCoach();RCOACH.g.position.set(ox,top,oz);RCOACH.baseY=top;RCOACH.g.rotation.y=Math.atan2(-f.nx,-f.nz);RCOACH.s=sC;RCOACH.mood='watch';scene.add(RCOACH.g);
+  // wooden walkway behind the barrier just before the boss – the start holders come up here to watch once they're done
+  {const deck=mat(0x7a5230),side=mat(0x5e3d22),s0=sC-3.2,s1=sC-13.6,q=new THREE.Vector3(),topAt=s=>surfY(s,TW)+0.18;
+   for(let s=s1;s<=s0+0.01;s+=0.9){const fq=frameAt(s);surf(s,TW,q);const tp=topAt(s),x=q.x+fq.nx*0.78,z=q.z+fq.nz*0.78;
+     const b=new THREE.Mesh(new THREE.BoxGeometry(1.15,tp+0.5,1.0),side);b.position.set(x,(tp-0.5)/2,z);b.rotation.y=Math.atan2(fq.fx,fq.fz);scene.add(b);
+     const d=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.05,1.02),deck);d.position.set(x,tp,z);d.rotation.y=b.rotation.y;scene.add(d);}
+   WATCH_BASE={s0:s0-0.6,top:s=>topAt(s)+0.025};}}
 function animCoach(dt,C){C=C||COACH;if(!C)return;C.t+=dt;const t=C.t,H=C.head;
   C.g.scale.y=1+Math.sin(t*2)*0.006;C.tag.lookAt(camera.position);
   const [L,Rr]=C.arms;let face=0xd9a77f;
@@ -1818,7 +1915,7 @@ const HAIRS=[[0x3b2a1e,'short'],[0x1a1410,'short'],[0x7a5a3a,'long'],[0x2a2522,'
 const SKINS=[0xdcae8a,0xe2b896,0xc99a74,0xa8775a,0xeac4a4];
 function makeHolder(s,w){const L=HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LOOKS.length)],H=HAIRS[Math.floor(Math.random()*HAIRS.length)];
   const r=makeHuman(Object.assign({hair:H[0],hairStyle:H[1],capCol:[0x1d3557,0xe63946,0x111111][Math.floor(Math.random()*3)],skin:SKINS[Math.floor(Math.random()*SKINS.length)],zip:0xdddddd,shoes:0xf0f0f0,shoeSole:0x222222,mustache:Math.random()<0.2},L));
-  scene.add(r.g);const h={r,s,w,st:'hold',t:0,ph:0,pos:new THREE.Vector3(),head:0,path:null,wait:Math.random()*0.25,spd:1.25+Math.random()*0.3};
+  scene.add(r.g);const h={r,s,w,cs:s,cw:w,st:'hold',t:0,ph:0,pos:new THREE.Vector3(),head:0,path:null,wait:Math.random()*0.25,spd:1.25+Math.random()*0.3,idx:HOLDERS.length,vel:0};
   surf(s,w,h.pos);const f=frameAt(s);h.head=Math.atan2(f.fx,f.fz);r.g.position.copy(h.pos);r.g.rotation.y=h.head;poseHuman(r,holdPose(0),1);HOLDERS.push(h);return h;}
 function holdPose(t){return {lean:0.42,hx:-0.3,l0h:-0.28,l0k:0.32,l1h:0.05,l1k:0.12,a0x:-1.05+Math.sin(t*1.3)*0.02,a0z:0.05,e0:-0.35,a1x:-1.0,a1z:0.05,e1:-0.4,y:-0.03};}
 function makeHolders(list){clearHolders();for(const A of (list||MT.map(T=>T.act))){if(A.w>1)continue;makeHolder(A.s-1.05,A.w+0.05);}}
@@ -1828,31 +1925,59 @@ function releaseHolders(){for(const h of HOLDERS)if(h.st==='hold'){h.st='push';h
 // position on the track / blue band (w >= -BAND) or on the wooden apron further in (w < -BAND)
 function holderGround(s,w,out){if(w>=-BAND)return surf(s,w,out);const f=frameAt(s),o=BAND*Math.cos(8*deg)+(-BAND-w);return out.set(f.px-f.nx*o,INF_Y,f.pz-f.nz*o);}
 function stairPt(x,y,z){STAIR_O.position.set(STAIR.cx,FLOOR_Y,STAIR.cz);STAIR_O.rotation.set(0,STAIR.rot,0);STAIR_O.updateMatrixWorld();return STAIR_O.localToWorld(new THREE.Vector3(x,y,z));}
-const _hv=new THREE.Vector3();
-function updateHolders(dt){for(let i=HOLDERS.length-1;i>=0;i--){const h=HOLDERS[i],r=h.r;h.t+=dt;r.t+=dt;let T,k=1-Math.exp(-dt*8),moved=0;
+const _hv=new THREE.Vector3(),_hw=new THREE.Vector3();
+// anything rolling on the boards that a holder still on the track must keep out of the way of
+function trackMovers(){const L=[];for(const o of riders)if(o.model.g.visible&&!(o.crashed&&o.crash.t>1.5))L.push(o);if(DERNY&&DERNY.stage&&DERNY.stage!=='off')L.push(DERNY);return L;}
+// lane (s,w) is threatened: something on that line is coming up from behind or is right there
+function laneHit(s,w,L){for(const o of L){let d=(o.s-s)%L0;if(d>L0/2)d-=L0;if(d<-L0/2)d+=L0;const look=1.2+Math.max(o.v,0)*0.9;if(d>-look&&d<1.0&&Math.abs(o.w-w)<0.62&&(o.v>0.3||d>-1.2))return true;}return false;}
+// the start holders after the push: step straight off the track, never into a rider's line, then walk round everything to the stairwell, then go and watch from the barrier
+function updateHolders(dt){const movers=HOLDERS.some(h=>h.st==='push'||h.st==='down')?trackMovers():null;
+  for(let i=HOLDERS.length-1;i>=0;i--){const h=HOLDERS[i],r=h.r;h.t+=dt;r.t+=dt;let T,k=1-Math.exp(-dt*8),moved=0;
   if(h.st==='hold'){T=holdPose(r.t);}
   else if(h.st==='push'){const t=Math.max(0,h.t);const e=sm(0,0.32,t);   // shove: step in, arms straight, then straighten up
-    holderGround(h.s+0.7*e,h.w,h.pos);T={lean:0.55*(1-sm(0.5,1.1,t))+0.05,hx:-0.3,l0h:-0.5*e*(1-sm(0.5,1.1,t)),l0k:0.4*e*(1-sm(0.5,1.1,t)),l1h:0.35*e*(1-sm(0.5,1.1,t)),l1k:0.1,a0x:-1.45*(1-sm(0.45,1.1,t)),e0:-0.05,a1x:-1.45*(1-sm(0.45,1.1,t)),e1:-0.05};k=1-Math.exp(-dt*14);
-    if(t>1.15){h.st='down';h.s0=h.s+0.7;h.w0=h.w;h.u=0;}}
-  else if(h.st==='down'){   // walk diagonally back and down the banking, over the blue band onto the apron
-    const span=Math.hypot(h.w0+BAND+0.75,1.4);h.u=Math.min(1,h.u+dt*h.spd/span);const pS=h.s0-1.4*h.u,pW=h.w0+(-BAND-0.75-h.w0)*h.u;
-    const prev=_hv.copy(h.pos);holderGround(pS,pW,h.pos);moved=prev.distanceTo(h.pos);
+    h.cs=h.s+0.7*e;h.cw=h.w;holderGround(h.cs,h.cw,h.pos);T={lean:0.55*(1-sm(0.5,1.1,t))+0.05,hx:-0.3,l0h:-0.5*e*(1-sm(0.5,1.1,t)),l0k:0.4*e*(1-sm(0.5,1.1,t)),l1h:0.35*e*(1-sm(0.5,1.1,t)),l1k:0.1,a0x:-1.45*(1-sm(0.45,1.1,t)),e0:-0.05,a1x:-1.45*(1-sm(0.45,1.1,t)),e1:-0.05};k=1-Math.exp(-dt*14);
+    const behind=t>0.4&&laneHit(h.cs,h.cw,movers);   // the next rider is rolling up behind -> get out of his way now
+    if(t>0.6||behind){h.st='down';h.cs=h.s+0.7*e;h.cw=h.w;}}
+  else if(h.st==='down'){   // sidestep down the banking onto the apron – waits if the line below is busy, hops aside if his own line is
+    const goal=-BAND-0.75,here=laneHit(h.cs,h.cw,movers),below=laneHit(h.cs-0.1,h.cw-0.45,movers);
+    let vw=0;if(!below)vw=-(here?2.4:1.6);else if(here){const above=laneHit(h.cs,h.cw+0.5,movers);if(!above&&h.cw<TW-0.6)vw=2.0;}
+    if(vw<0&&!here)for(const o of HOLDERS){if(o===h||(o.st!=='down'&&o.st!=='floor'))continue;holderGround(h.cs-0.2,h.cw-0.4,_hw);if(_hw.distanceTo(o.pos)<0.62&&o.idx!==h.idx){vw=0;break;}}   // somebody already walking down there: let him go first
+    h.vel+=(vw-h.vel)*Math.min(1,dt*10);h.cw=Math.max(goal,h.cw+h.vel*dt);if(!here&&!below)h.cs-=0.5*dt;   // a little diagonal, back towards the infield path
+    const prev=_hv.copy(h.pos);holderGround(h.cs,h.cw,h.pos);moved=prev.distanceTo(h.pos);
     if(moved>1e-4)h.head=Math.atan2(h.pos.x-prev.x,h.pos.z-prev.z);
-    if(h.u>=1){h.st='floor';const top=stairPt(0,0,2.55+1.0);h.path=findPath(h.pos,top);h.stairs=[stairPt(0,0,2.55),stairPt(0,-2.6,2.55-3.4),stairPt(0.45,-2.6,-2.55+0.9),stairPt(1.1+0.7,-2.6,-2.55+0.6)];}}
+    if(h.cw<=goal+1e-3){h.st='floor';const top=stairPt(0,0,2.55+1.0);h.path=findPath(h.pos,top,true);h.stairs=[stairPt(0,0,2.55),stairPt(0,-2.6,2.55-3.4),stairPt(0.45,-2.6,-2.55+0.9),stairPt(1.02,-2.6,-2.55+0.6)];}}
   else if(h.st==='floor'||h.st==='stairs'){const list=h.st==='floor'?h.path:h.stairs;const tg=list[0];
-    const dx=tg.x-h.pos.x,dz=tg.z-h.pos.z,L=Math.hypot(dx,dz),sp=h.spd*(h.st==='stairs'?0.75:1)*dt;
-    if(L>1e-3){const m=Math.min(sp,L);h.pos.x+=dx/L*m;h.pos.z+=dz/L*m;moved=m;h.head=Math.atan2(dx,dz);}
+    const dx=tg.x-h.pos.x,dz=tg.z-h.pos.z,L=Math.hypot(dx,dz);let sp=h.spd*(h.st==='stairs'?0.75:1);
+    // keep your distance: queue behind whoever is walking just in front of you (lower index has right of way if two meet)
+    if(L>1e-3)for(const o of HOLDERS){if(o===h||(o.st!=='floor'&&o.st!=='stairs'))continue;const ox=o.pos.x-h.pos.x,oz=o.pos.z-h.pos.z,od=Math.hypot(ox,oz),oy=Math.abs(o.pos.y-h.pos.y);
+      if(od<0.75&&oy<0.6&&(ox*dx+oz*dz)/(od*L+1e-6)>0.25&&!(o.blockBy===h&&o.idx>h.idx)){sp*=clamp((od-0.45)/0.3,0,1);h.blockBy=o;break;}else if(h.blockBy===o)h.blockBy=null;}
+    sp*=dt;if(L>1e-3){const m=Math.min(sp,L);h.pos.x+=dx/L*m;h.pos.z+=dz/L*m;moved=m;h.head=Math.atan2(dx,dz);}
     if(h.st==='floor'){const gy=groundAt(h.pos.x,h.pos.z)+(onCarpet(h.pos.x,h.pos.z)?0.22:0);h.pos.y+=(gy-h.pos.y)*Math.min(1,dt*7);}
     else if(list.length===3){const a=h.stairs0,b=tg;const tot=Math.hypot(b.x-a.x,b.z-a.z)||1;h.pos.y=a.y+(b.y-a.y)*clamp(1-L/tot,0,1);}
     else if(list.length<3)h.pos.y+=(tg.y-h.pos.y)*Math.min(1,dt*6);
     if(L<0.25){if(h.st==='floor'&&list.length>1)list.shift();
       else if(h.st==='floor'){h.st='stairs';h.stairs0=h.stairs[0].clone();}
-      else{h.stairs0=list.shift();if(!list.length){scene.remove(r.g);HOLDERS.splice(i,1);continue;}}}}
-  if(h.st!=='hold'&&h.st!=='push'){h.ph+=moved*4.4;T=walkPose({},h.ph,1);T.hx=0.08;}
-  let da=h.head-r.g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));r.g.rotation.y+=da*Math.min(1,dt*(h.st==='hold'?20:7));
+      else{h.stairs0=list.shift();if(!list.length){h.st='gone';h.t=0;h.back=13+Math.random()*4;r.g.visible=false;continue;}}}}   // into the tunnel under the track
+  else if(h.st==='gone'){if(h.t>=h.back){const sp=watchSpot(h);if(sp){h.st='watch';h.t=0;h.pos.copy(sp.p);h.head=sp.yaw;r.g.rotation.y=sp.yaw;r.g.visible=true;h.look=new THREE.Vector3();judgeTarget(h.look);h.cheerT=0;}}continue;}
+  else if(h.st==='watch'){T=watchPose(h,dt);k=1-Math.exp(-dt*6);}
+  if(h.st!=='hold'&&h.st!=='push'&&h.st!=='watch'){h.ph+=moved*4.4;T=walkPose({},h.ph,1);T.hx=0.08;}
+  if(h.st!=='watch'){let da=h.head-r.g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));r.g.rotation.y+=da*Math.min(1,dt*(h.st==='hold'?20:7));}
   r.g.position.copy(h.pos);poseHuman(r,T,k);}}
+// up on the walkway behind the barrier in the 2nd turn, just before the old boss: leaning on the rail and following the race
+var WATCH_BASE;
+function watchSpot(h){if(!WATCH_BASE)return null;const used=new Set(HOLDERS.filter(o=>o.st==='watch').map(o=>o.slot));let k=0;while(used.has(k))k++;h.slot=k;
+  const s=WATCH_BASE.s0-k*1.05-(k%2?0.12:0),f=frameAt(s),p=new THREE.Vector3();surf(s,TW,p);const o=0.62+(k%3===1?0.12:0);
+  return {p:new THREE.Vector3(p.x+f.nx*o,WATCH_BASE.top(s),p.z+f.nz*o),yaw:Math.atan2(-f.nx,-f.nz)};}
+function watchPose(h,dt){const r=h.r,t=r.t;judgeTarget(_hw);h.look.lerp(_hw,1-Math.exp(-dt*4));_hv.copy(h.look);r.g.worldToLocal(_hv);
+  const yaw=Math.atan2(_hv.x,_hv.z),pitch=Math.atan2(_hv.y-1.55,Math.hypot(_hv.x,_hv.z));
+  const T={lean:0.16,y:0,twist:clamp(yaw*0.4,-0.7,0.7),hx:clamp(-pitch,-0.5,0.45),a0x:-1.05,a0z:0.18,e0:-1.15,a1x:-1.05,a1z:0.18,e1:-1.15,l0h:0.02,l1h:-0.04,l1k:0.06};
+  T.hy=clamp(yaw-T.twist,-1.1,1.1);
+  // cheer when our man flies past right below
+  const g=gapTo(player,{s:WATCH_BASE?WATCH_BASE.s0-h.slot*1.05:0});h.cheerT-=dt;if(phase==='race'&&!player.crashed&&g>-2&&g<3&&h.cheerT<=-4)h.cheerT=1.6;
+  if(h.cheerT>0){T.a0x=T.a1x=-2.8+Math.sin(t*12)*0.2;T.a0z=T.a1z=0.35;T.e0=T.e1=-0.3;T.mo=0.8;T.lean=0;T.y=Math.abs(Math.sin(t*8))*0.04;}
+  return T;}
 const NEU_V=9.3;
-function startMadisonRace(){MT.neutral=false;startGun();showMsg('🔫<small>Výstřel – letmý start, madison běží!</small>',2.0);for(const T of MT){T.stintS=Math.min(T.stintS,T.act.s-L0);T.passed=false;T.armed=!!T.rest&&gapTo(T.act,T.rest)>2;T.nearT=0;}}
+function startMadisonRace(){MT.neutral=false;goT=raceTime;startGun();showMsg('🔫<small>Výstřel – letmý start, madison běží!</small>',2.0);for(const T of MT){T.stintS=Math.min(T.stintS,T.act.s-L0);T.passed=false;T.armed=!!T.rest&&gapTo(T.act,T.rest)>2;T.nearT=0;}}
 function madStandings(){if(!MT)return[];const ok=t=>!t.act.crashed;return MT.slice().sort((a,b)=>(ok(b)-ok(a))||(b.pts-a.pts)||((b.sprints[MAD_LAPS/MAD_EVERY-1]||0)-(a.sprints[MAD_LAPS/MAD_EVERY-1]||0))||(b.act.s-a.act.s));}
 function teamOf(R){return MT&&MT.find(t=>t.act===R||t.rest===R);}
 function restAI(R,dt){const T=teamOf(R);if(!T||R.crashed){return;}const A=T.act;R.mood=1;if(MT.neutral){R.power=0;R.v=0;R.targetW=R.w;return;}
@@ -2040,9 +2165,12 @@ function buildNav(){const poly=infieldPoly(0.15);const g=new Uint8Array(NAV.nx*N
     g[j*NAV.nx+i]=b?1:0;}
   NAV.grid=g;}
 function navCell(x,z){return [clamp(Math.floor((x-NAV.x0)/NAV.c),0,NAV.nx-1),clamp(Math.floor((z-NAV.z0)/NAV.c),0,NAV.nz-1)];}
-function nearestFree(ci,cj){const g=NAV.grid;if(!g[cj*NAV.nx+ci])return [ci,cj];for(let r=1;r<20;r++)for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=NAV.nx||j>=NAV.nz)continue;if(!g[j*NAV.nx+i])return [i,j];}return [ci,cj];}
-function findPath(from,to){if(!NAV.grid)buildNav();const g=NAV.grid,W=NAV.nx,N=W*NAV.nz;
-  const [si,sj]=nearestFree(...navCell(from.x,from.z)),[ti,tj]=nearestFree(...navCell(to.x,to.z));const S=sj*W+si,T=tj*W+ti;
+function nearestFree(ci,cj,g){g=g||NAV.grid;if(!g[cj*NAV.nx+ci])return [ci,cj];for(let r=1;r<20;r++)for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=NAV.nx||j>=NAV.nz)continue;if(!g[j*NAV.nx+i])return [i,j];}return [ci,cj];}
+function walkGrid(){if(NAV.gridW)return NAV.gridW;const g=NAV.grid,W=NAV.nx,H=NAV.nz,o=new Uint8Array(g.length);   // obstacles grown by one cell: people keep their shoulders off walls, booths and bikes
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){let b=0;for(let dj=-1;dj<=1&&!b;dj++)for(let di=-1;di<=1;di++){const x=i+di,y=j+dj;if(x<0||y<0||x>=W||y>=H||g[y*W+x]){b=1;break;}}o[j*W+i]=b;}
+  return NAV.gridW=o;}
+function findPath(from,to,wide){if(!NAV.grid)buildNav();const g=wide?walkGrid():NAV.grid,W=NAV.nx,N=W*NAV.nz;
+  const [si,sj]=nearestFree(...navCell(from.x,from.z),g),[ti,tj]=nearestFree(...navCell(to.x,to.z),g);const S=sj*W+si,T=tj*W+ti;
   const gs=new Float32Array(N).fill(1e9),came=new Int32Array(N).fill(-1),open=[S],inOpen=new Uint8Array(N);gs[S]=0;inOpen[S]=1;
   const h=k=>Math.hypot((k%W)-ti,((k/W)|0)-tj);let it=0;
   while(open.length&&it++<20000){let bi=0,bf=1e9;for(let q=0;q<open.length;q++){const f=gs[open[q]]+h(open[q]);if(f<bf){bf=f;bi=q;}}const cur=open.splice(bi,1)[0];inOpen[cur]=0;if(cur===T)break;
@@ -2626,7 +2754,7 @@ function dernySound(){if(!actx)return;const D=DERNY,on=!muted&&D.stage!=='off'&&
     const p=new THREE.Vector3();D.model.g.getWorldPosition(p);const dist=p.distanceTo(camera.position);
     dSnd.o.frequency.setTargetAtTime(60+D.v*9,tt,0.05);dSnd.o2.frequency.setTargetAtTime(240+D.v*42,tt,0.05);dSnd.g.gain.setTargetAtTime(clamp(0.045*(0.4+D.v/14)*(1-dist/55),0,0.05),tt,0.08);}catch(e){}}
 function setupKeirin(){const L=riders.filter(r=>r.model.g.visible);const order=L.slice().sort(()=>Math.random()-.5);   // the draw
-  order.forEach((R,i)=>{R.draw=i+1;R.wp*=2.3;Object.assign(R,{s:START_S-0.6,w:0.95+i*0.7,v:0,kBehind:false,kMove:0,kMoveT:2+Math.random()*5,sprintAt:190+Math.random()*130});R.targetW=R.w;R.targetWp=R.w;R.h=surfY(R.s,R.w);R.prevS=R.s;});
+  order.forEach((R,i)=>{R.draw=i+1;R.wp*=2.3;Object.assign(R,{s:START_S-0.6,w:0.55+i*0.7,v:0,kBehind:false,kMove:0,kMoveT:2+Math.random()*5,sprintAt:190+Math.random()*130});R.targetW=R.w;R.targetWp=R.w;R.h=surfY(R.s,R.w);R.prevS=R.s;});
   KR={exitS:SF+4*L0,free:false,gun:false,gunT:0,order,lap1:true,yellow:false,warn:false};
   dernyReset(START_S-38);makeKeirinHolders(order);}
 const _kh=new THREE.Vector3();
@@ -2660,17 +2788,31 @@ function keirinUpdate(dt){if(!KR)return;const D=DERNY;KR.gunT+=dt;
   for(const R of al){const g=gapTo(R,D),dw=Math.abs(D.w-R.w);if(g>2.0)R.kBehind=true;
     if(R.kBehind&&!R.finished&&g<1.12&&g>-4&&dw>=0.45){keirinDSQ(R);continue;}   // front wheel past the leading edge of the derny's rear wheel
     if(R===player&&R.kBehind&&g<3.3&&g>-4&&dw>0.32&&msgT<=0)showMsg('⚠️<small>Nepředjížděj dernu – za jejím zadním kolem = DSQ!</small>',0.6);}
-  if(KR.lap1&&KR.gunT>2&&!KR.yellow&&!player.dsq&&!player.crashed){for(const o of al){if(o.draw<player.draw&&gapTo(player,o)<-1.0){KR.yellow=true;if(ST)ST.yellow=true;showMsg('🟨 ŽLUTÁ KARTA<small>V 1. kole se drží pořadí z losu – předjel jsi '+o.name+'</small>',2.8);tone(300,0.3,0.12,'square');break;}}}}
+  if(KR.lap1&&KR.gunT>4&&!KR.yellow&&!player.dsq&&!player.crashed){let o=null;for(const q of al)if(q.draw<player.draw&&gapTo(player,q)<-1.5){o=q;break;}   // only clearly in front of someone drawn ahead of you
+    KR.yT=o?(KR.yT||0)+dt:0;   // and for a while – just getting going next to the line is not a pass
+    if(o&&KR.yT<2.5&&msgT<=0)showMsg('⚠️<small>Pusť '+o.name+' před sebe – v 1. kole platí pořadí z losu!</small>',0.5);
+    if(o&&KR.yT>=2.5){KR.yellow=true;if(ST)ST.yellow=true;showMsg('🟨 ŽLUTÁ KARTA<small>V 1. kole se drží pořadí z losu – předjel jsi '+o.name+'</small>',2.8);tone(300,0.3,0.12,'square');}}}
+function kPred(R){let P=null;for(const o of KR.order)if(o.draw<R.draw&&!o.crashed&&!o.dsq&&(!P||o.draw>P.draw))P=o;return P;}   // the rider drawn nearest ahead of me (still in the race)
+// first lap behind the derny: help the player into his drawn slot – hold him back while the riders drawn ahead of him pass, then drop him in behind
+function keirinAssist(R,dt,steering){if(mode!=='keirin'||!KR||!KR.gun||!KR.lap1||KR.free||R.dsq||R.finished||keys.sprint)return;const P=kPred(R);
+  if(!P){if(!steering&&gapTo(R,DERNY)>1.0)R.targetWp+=clamp(0.35-R.targetWp,-1.4*dt,1.4*dt);return;}
+  const g=gapTo(R,P);   // >0: he is already in front of me
+  if(g<2.6){const vT=Math.max(0,P.v+clamp((g-1.95)*0.6,-2,0.8)),cda=R.cda*(1-R.draft),Pm=(0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+400*(vT-R.v)*(vT<R.v?R.v/5:1);R.power=Math.min(R.power,clamp(Pm,-1500,1150));}   // hold your place behind him
+  if(g<1.6){if(!steering&&R.targetWp<P.w+0.7)R.targetWp+=clamp(P.w+0.7-R.targetWp,-1.4*dt,1.4*dt);
+    if(msgT<=0)showMsg('<small>⏳ Pusť '+P.name+' (los '+P.draw+') před sebe</small>',0.5);}
+  else if(!steering&&R.v<P.v+0.8){const nw=R.targetWp+clamp(P.w-R.targetWp,-0.9*dt,0.9*dt);if(freeAt(R,nw,1.95)||Math.abs(nw-P.w)<0.05)R.targetWp=nw;}}   // drop in behind him, but never across someone's front wheel
 function keirinPacedAI(R,dt){if(R.crashed)return;const D=DERNY;
   if(R.dsq||R.finished){R.power=120;R.targetW=TW-1;steerBot(R,dt,false);return;}
   R.mood=1;const line=active().filter(o=>o!==R&&!o.crashed&&!o.dsq);
   const gD=gapTo(R,D),toEx=(KR.exitS-D.s)/L0;
   let vT,tw,lim=R.ftp*1.7,force=false;
-  if(KR.lap1){   // first lap: everyone drops in behind the rider drawn just ahead of him
-    let P=null;for(const o of KR.order)if(o.draw<R.draw&&!o.crashed&&!o.dsq&&(!P||o.draw>P.draw))P=o;   // the rider drawn nearest ahead of me (still in the race)
-    const T=P||D,inLine=Math.abs(R.w-T.w)<0.2,want=P?(inLine?1.95:2.5):2.2,g=gapTo(R,T);
-    vT=T.v+clamp((g-want)*0.9,-3,4.5);
-    tw=T===D?(g>1.0?0.35:R.w):(g>1.25?T.w:Math.max(R.w,T.w+0.8));
+  if(KR.lap1){   // first lap: everyone drops into his drawn slot in the line behind the derny
+    const P=kPred(R),k=KR.order.filter(o=>o.draw<R.draw&&!o.crashed&&!o.dsq).length;
+    const slotS=Math.min(D.s-2.2-k*1.95,P?P.s-(Math.abs(R.w-P.w)>0.6?1.7:1.95):1e9),gs=slotS-R.s;   // my slot, but never ahead of the man drawn in front of me   // >0: I'm still behind my slot -> go, <0: ahead of it -> ease off
+    vT=D.v+clamp(gs*0.8,-3,4.5);
+    if(P){const g=gapTo(R,P);if(g<2.3&&Math.abs(R.w-P.w)<0.6)vT=Math.min(vT,P.v+(g-1.95)*0.8);   // never into his back wheel
+      tw=g>1.5?P.w:Math.max(R.w,P.w+0.7);}   // stay above him until he's in front, then slot in behind
+    else tw=gapTo(R,D)>1.0?0.35:R.w;
     lim=KR.gunT<6?R.ftp*3:R.ftp*1.8;}
   else{let ah=null,ga=1e9;for(const o of line){const g=gapTo(R,o);if(g>0&&g<25&&g<ga&&Math.abs(o.w-R.w)<0.7){ga=g;ah=o;}}
     if(gD>0&&gD<ga&&Math.abs(D.w-R.w)<0.7){ah=D;ga=gD;}
