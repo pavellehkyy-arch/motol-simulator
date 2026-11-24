@@ -26,7 +26,9 @@
 <meta property="og:locale" content="cs_CZ">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://pavellehkyy-arch.github.io/motol-simulator/og.jpg">
-<link rel="icon" href="og.jpg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#dfe3e2;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
 canvas#c{display:block;width:100vw;height:100vh}
@@ -135,9 +137,59 @@ tr.me td{color:#ffd166;font-weight:800}
   .mgrid{grid-template-columns:repeat(4,1fr)}.mgrid.m2{grid-template-columns:repeat(2,1fr);max-width:50%;margin-right:auto}.mcard{max-width:880px}.mode{padding:30px 10px 26px}
 }
 #keyHelp kbd{display:inline-block;background:#fff;color:#111;border-radius:4px;padding:0 5px;margin:0 2px;font:800 11px system-ui;box-shadow:0 2px 0 #888}
+/* ---- loading screen: Motol track from above, a comet lapping the boards ---- */
+#ld{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;color:#fff;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 45%,#16305a 0%,#0a1423 62%,#050a14 100%);transition:opacity .6s ease,visibility .6s;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#ld.out{opacity:0;visibility:hidden}
+#ld::before{content:"";position:absolute;inset:-10%;background:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 2px,transparent 2px 46px);transform:skewX(-14deg)}
+#ldOval{position:relative;width:min(78vw,430px);aspect-ratio:2.05/1;border-radius:999px;overflow:hidden;
+  background:linear-gradient(180deg,#e2b77c,#c9945a 55%,#b98450);box-shadow:0 18px 60px rgba(0,0,0,.55),inset 0 0 0 3px rgba(255,255,255,.1)}
+#ldOval::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(90,55,20,.18) 0 1px,transparent 1px 7px)}
+#ldSpin{position:absolute;left:50%;top:50%;width:160%;aspect-ratio:1;margin:-80% 0 0 -80%;
+  background:conic-gradient(from 0deg,rgba(198,255,26,0) 0deg,rgba(198,255,26,0) 318deg,rgba(198,255,26,.5) 352deg,#f6ffd8 359deg,rgba(198,255,26,0) 360deg);animation:ldSpin 1.6s linear infinite;will-change:transform}
+@keyframes ldSpin{to{transform:rotate(360deg)}}
+.ldL{position:absolute;border-radius:999px;pointer-events:none}
+#ldIn{inset:30% 17%;background:radial-gradient(ellipse at 50% 50%,#2f6e45,#245737);box-shadow:0 0 0 7px #3f7fd1,0 0 0 9px #b98450,inset 0 6px 18px rgba(0,0,0,.35)}
+#ldL1{inset:calc(30% - 11px) calc(17% - 11px);border:2px solid #161616}
+#ldL2{inset:calc(30% - 21px) calc(17% - 21px);border:2px solid #d62828}
+#ldL3{inset:calc(30% - 34px) calc(17% - 34px);border:2px solid #2b5fb4}
+#ldIn b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;letter-spacing:.02em;line-height:.95;font-size:clamp(22px,7vw,42px);text-shadow:0 3px 14px rgba(0,0,0,.45)}
+#ldIn b i{font-style:normal;color:#c6ff1a;font-size:.48em;letter-spacing:.18em;margin-top:4px}
+#ldBoard{display:flex;align-items:center;gap:12px;z-index:1}
+#ldLap{background:#111;border:3px solid #2a2a2a;border-radius:8px;padding:4px 12px;font:900 30px/1 ui-monospace,Menlo,Consolas,monospace;color:#ffd23f;text-shadow:0 0 10px rgba(255,210,63,.6);min-width:46px;text-align:center}
+#ldLapT{font-size:11px;font-weight:800;letter-spacing:.16em;opacity:.75;text-transform:uppercase;line-height:1.35}
+#ldBar{width:min(70vw,340px);height:8px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden;z-index:1}
+#ldBar div{height:100%;width:100%;background:linear-gradient(90deg,#e63946,#c6ff1a);transform-origin:0 50%;transform:scaleX(.04);transition:transform .5s cubic-bezier(.3,.8,.4,1)}
+#ldBar div.crawl{transition:transform 9s cubic-bezier(.1,.7,.3,1)}
+#ldTip{min-height:20px;font-size:14px;font-weight:700;opacity:.85;text-align:center;padding:0 20px;z-index:1}
+#ldFoot{position:absolute;bottom:max(16px,env(safe-area-inset-bottom));font-size:11px;font-weight:800;letter-spacing:.2em;opacity:.45}
+#ldErr{display:none;z-index:1;text-align:center;font-size:14px;font-weight:700}
+#ldErr button{margin-top:10px;font:inherit;font-weight:900;background:#e63946;color:#fff;border:0;border-radius:12px;padding:10px 18px}
 </style>
 </head>
 <body>
+<div id="ld">
+  <div id="ldOval"><div id="ldSpin"></div><div class="ldL" id="ldL3"></div><div class="ldL" id="ldL2"></div><div class="ldL" id="ldL1"></div><div class="ldL" id="ldIn"><b>MOTOL<i>SIMULATOR</i></b></div></div>
+  <div id="ldBoard"><div id="ldLap">7</div><div id="ldLapT"><span id="ldKol">kol</span><br>do startu</div></div>
+  <div id="ldBar"><div id="ldFill"></div></div>
+  <div id="ldTip">Zametáme palubovku…</div>
+  <div id="ldErr">Hru se nepodařilo spustit – zkontroluj připojení a zkus to znovu.<br><button onclick="location.reload()">Zkusit znovu</button></div>
+  <div id="ldFoot">VELODROM PRAHA-MOTOL · 153,846 m</div>
+</div>
+<script>
+(function(){var tips=['Zametáme palubovku…','Nafukujeme galusky na 12 barů…','Rozhodčí ořezávají tužky…','Nabíjíme dernu…','Držiči si protahují záda…','Starej šéf hledá stopky…','Mažeme řetězy…','Leštíme modrý pás (stejně se po něm nejezdí)…','Klopení 52° – drž se!','Ladíme výstřel startovní pistole…'];
+  var i=Math.floor(Math.random()*tips.length),f=document.getElementById('ldFill'),lap=document.getElementById('ldLap'),tip=document.getElementById('ldTip');tip.textContent=tips[i];
+  var p=0.04,done=false,kol=document.getElementById('ldKol');function setLap(n){lap.textContent=n;kol.textContent=n===1?'kolo':n>1&&n<5?'kola':'kol';}
+  window.__ld=function(v){if(done||v<=p)return;p=v;f.className='';f.style.transform='scaleX('+v+')';setLap(Math.max(0,Math.ceil((1-v)*7)));if(v>=1){done=true;clearInterval(T);tip.textContent='Jedeme!';
+    setTimeout(function(){document.getElementById('ld').classList.add('out');},350);setTimeout(function(){var e=document.getElementById('ld');if(e)e.remove();},1100);}};
+  window.__ldErr=function(){document.getElementById('ldErr').style.display='block';document.getElementById('ldBoard').style.display='none';tip.style.display='none';};
+  addEventListener('error',function(){if(!done)window.__ldErr();});
+  var T=setInterval(function(){i=(i+1)%tips.length;tip.textContent=tips[i];},1700);
+  // while the 3D engine downloads, creep towards 55 % on its own (compositor-driven, keeps moving even when the page is busy)
+  requestAnimationFrame(function(){f.className='crawl';f.style.transform='scaleX(.55)';});
+  var n=6,L=setInterval(function(){if(done||n<=3){clearInterval(L);return;}setLap(n--);},1400);
+})();
+</script>
 <canvas id="c"></canvas>
 
 <div id="hud">
@@ -185,7 +237,7 @@ tr.me td{color:#ffd166;font-weight:800}
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="mgroup"><div class="mhead">⚡ SPRINTERSKÉ DISCIPLÍNY</div>
     <div class="modes mgrid m2">
-      <button class="mode" id="btnKeirin" style="--i:0;--c:#ff7a00"><b>KEIRIN</b><span>za derny · 6 jezdců</span></button>
+      <button class="mode" id="btnKeirin" style="--i:0;--c:#ff7a00"><b>KEIRIN</b><span>za dernou · 6 jezdců</span></button>
       <button class="mode" id="btnKilo" style="--i:1;--c:#c6ff1a;--f:#111"><b>KILOMETR</b><span>6,5 kola na čas</span></button>
     </div></div>
     <div class="mgroup"><div class="mhead e">🫁 VYTRVALOSTNÍ DISCIPLÍNY</div>
@@ -224,7 +276,7 @@ tr.me td{color:#ffd166;font-weight:800}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" onload="window.__ld&&__ld(.6)" onerror="window.__ldErr&&__ldErr()"></script>
 <script>
 (function(){
 const $=id=>document.getElementById(id);
@@ -501,10 +553,9 @@ function buildJudges(){
   const front=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.85,4.8),wood);front.position.set(-0.82,0.85,0);g.add(front);
   // red / white panels on the front like on the photo
   for(let i=0;i<4;i++){const pn=new THREE.Mesh(new THREE.PlaneGeometry(1.05,0.6),new THREE.MeshLambertMaterial({color:i%2?0xffffff:0xd62828,side:THREE.DoubleSide}));pn.position.set(-0.87,0.85,-1.8+i*1.2);pn.rotation.y=-PI/2;g.add(pn);}
-  const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.6,0.45),new THREE.MeshBasicMaterial({map:textTex('ROZHODČÍ','#1d3557','#ffffff'),side:THREE.DoubleSide}));sign.position.set(0.9,2.55,0);sign.rotation.y=-PI/2;g.add(sign);sign.material.side=THREE.FrontSide;const sign2=sign.clone();sign2.rotation.y=PI/2;sign2.position.x=0.92;g.add(sign2);
-  for(const z of [-2.5,2.5]){const pl=new THREE.Mesh(new THREE.BoxGeometry(0.06,2.1,0.06),mat(0x555555));pl.position.set(0.9,1.5,z);g.add(pl);}
+  // (no sign above the desk – the booth looks like the real one without it)
   for(let i=0;i<4;i++){const ch=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.5,0.45),mat(0x2b2b2b));ch.position.set(0.55,0.7,-1.8+i*1.2);g.add(ch);
-    if(i<3){const p=makePerson(0,0,[0x1d3557,0x8a1c1c,0x333333][i],0,true);g.add(p);p.position.set(0.55,0.45,-1.8+i*1.2);p.rotation.y=-PI/2;}
+    if(i<3)makeJudge(i,g);
     const mon=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.32,0.5),mat(0x111111));mon.position.set(-0.45,1.46,-1.8+i*1.2);g.add(mon);}
   JUDGES=g;
   // winners' podium ("bedna") like on the photo: black boxes, dark-red carpet tops, blue numbers; 2 on the viewer's left, 3 on the right
@@ -778,6 +829,120 @@ function makePerson(x,z,col,face,sit){const g=new THREE.Group();const pants=mat(
   const t=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.62,0.24),mat(col));t.position.y=(sit?0.45:0.85)+0.32;g.add(t);
   const hd=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,6),mat(0xdcae8a));hd.position.y=t.position.y+0.45;g.add(hd);
   g.position.set(x,groundAt(x,z),z);g.rotation.y=face;scene.add(g);return g;}
+// articulated person (judges, holders): +z = forward, feet at y=0; joints: hips/knees, waist, neck, shoulders/elbows
+const G_SPH=new THREE.SphereGeometry(1,14,10),G_SPH_LO=new THREE.SphereGeometry(1,8,6),G_BOX=new THREE.BoxGeometry(1,1,1);
+function makeHuman(o){o=o||{};const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  const skin=new THREE.MeshLambertMaterial({color:o.skin||0xdcae8a}),top=o.topMat||mat(o.top||0x24406e),slv=o.sleeveMat||top,
+    pants=mat(o.pants||0x1d2a44),shoe=mat(o.shoes||0x151515),hairM=mat(o.hair==null?0x3b2a1e:o.hair),dark=mat(0x161616);
+  const bx=(m,w,h,d,x,y,z,par)=>{const b=new THREE.Mesh(G_BOX,m);b.scale.set(w,h,d);b.position.set(x,y,z);(par||body).add(b);return b;};
+  const sp=(m,r,x,y,z,sx,sy,sz,par,lo)=>{const s=new THREE.Mesh(lo?G_SPH_LO:G_SPH,m);s.scale.set(r*(sx||1),r*(sy||1),r*(sz||1));s.position.set(x,y,z);(par||body).add(s);return s;};
+  const lb=(m,r,geo,a,b,par)=>{const l=limb(m,r,geo);place(l,a,b);par.add(l);l.castShadow=true;return l;};
+  // legs
+  const legs=[];for(const sx of [-0.1,0.1]){const hip=new THREE.Group();hip.position.set(sx,0.92,0);body.add(hip);
+    lb(pants,0.078,G_THIGH,V(0,0.02,0),V(0,-0.46,0),hip);
+    if(o.stripe)bx(mat(o.stripe),0.012,0.44,0.03,sx>0?0.077:-0.077,-0.22,0,hip);
+    const knee=new THREE.Group();knee.position.y=-0.46;hip.add(knee);
+    lb(pants,0.06,G_CALF,V(0,0.02,0),V(0,-0.4,0),knee);
+    if(o.stripe)bx(mat(o.stripe),0.012,0.4,0.03,sx>0?0.06:-0.06,-0.2,0,knee);
+    const sh=bx(shoe,0.11,0.075,0.27,0,-0.425,0.05,knee);sh.castShadow=true;
+    if(o.shoeSole)bx(mat(o.shoeSole),0.115,0.02,0.275,0,-0.46,0.05,knee);
+    legs.push({hip,knee});}
+  bx(pants,0.33,0.17,0.2,0,0.92,0);
+  // torso pivots at the waist
+  const torso=new THREE.Group();torso.position.y=0.95;body.add(torso);
+  const ch=new THREE.Mesh(G_TORSO,top);ch.scale.set(0.19,0.56,0.12);ch.position.y=0.27;torso.add(ch);ch.castShadow=true;
+  sp(top,0.13,0,0.5,0,1.65,0.45,0.95,torso);   // shoulders
+  if(o.belly)sp(top,0.17,0,0.12,0.04,1.05,1,0.9,torso);
+  if(o.chestTex){const p=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.4),new THREE.MeshLambertMaterial({map:o.chestTex,transparent:true}));p.position.set(0,0.3,0.123);torso.add(p);}
+  if(o.collar)bx(mat(o.collar),0.14,0.1,0.02,0,0.5,0.1,torso);            // shirt collar showing in the jacket's V
+  if(o.tie){bx(mat(o.tie),0.035,0.26,0.012,0,0.4,0.122,torso).rotation.x=-0.06;}
+  if(o.zip)bx(mat(o.zip),0.012,0.5,0.01,0,0.28,0.123,torso);
+  if(o.lanyard){const ly=mat(o.lanyard);for(const s of [-1,1]){const l=bx(ly,0.018,0.26,0.008,s*0.055,0.42,0.124,torso);l.rotation.z=s*0.3;}bx(mat(0xffffff),0.07,0.09,0.01,0,0.27,0.13,torso);}
+  lb(skin,0.052,G_LIMB,V(0,0.54,0),V(0,0.66,0),torso);
+  // head
+  const head=new THREE.Group();head.position.y=0.63;torso.add(head);
+  sp(skin,0.112,0,0.1,0.005,0.92,1.12,1.02,head);sp(skin,0.07,0,0.03,0.04,1.1,0.8,1,head,true);   // skull + jaw
+  const hs=o.hairStyle||'short';
+  if(hs==='short'||hs==='long'){const hr=new THREE.Mesh(new THREE.SphereGeometry(0.118,14,10,0,2*PI,0,PI*0.5),hairM);hr.scale.set(0.95,1.08,1.08);hr.position.set(0,0.11,-0.01);hr.rotation.x=-0.3;head.add(hr);}
+  if(hs==='long'){bx(hairM,0.22,0.24,0.08,0,0.02,-0.07,head);for(const s of [-1,1])bx(hairM,0.035,0.2,0.12,s*0.1,0.03,-0.02,head);}
+  if(hs==='bald'){for(const s of [-1,1])bx(hairM,0.025,0.06,0.09,s*0.1,0.09,-0.03,head);bx(hairM,0.17,0.05,0.03,0,0.08,-0.105,head);}
+  if(hs==='cap'){const cp=new THREE.Mesh(new THREE.SphereGeometry(0.12,14,10,0,2*PI,0,PI*0.5),mat(o.capCol||0x1d3557));cp.scale.set(0.98,0.9,1.05);cp.position.set(0,0.14,0);head.add(cp);
+    bx(mat(o.capCol||0x1d3557),0.17,0.012,0.11,0,0.145,0.12,head).rotation.x=-0.12;}
+  for(const s of [-1,1]){sp(dark,0.014,s*0.04,0.12,0.098,1,1,0.6,head,true);sp(skin,0.026,s*0.104,0.1,0,0.5,1,0.8,head,true);}
+  const brows=[-1,1].map(s=>bx(mat(o.brow==null?(o.hair==null?0x3b2a1e:o.hair):o.brow),0.045,0.011,0.012,s*0.04,0.148,0.103,head));
+  const ns=new THREE.Mesh(new THREE.ConeGeometry(0.017,0.05,8),skin);ns.rotation.x=PI/2;ns.position.set(0,0.085,0.115);head.add(ns);
+  const mouth=bx(mat(0x5a1d1d),0.045,0.012,0.012,0,0.035,0.104,head);
+  if(o.mustache)bx(hairM,0.065,0.018,0.02,0,0.057,0.11,head);
+  if(o.glasses){const gm=mat(0x1a1a1a);for(const s of [-1,1]){const r=new THREE.Mesh(new THREE.TorusGeometry(0.024,0.004,4,12),gm);r.position.set(s*0.042,0.12,0.112);head.add(r);bx(gm,0.004,0.004,0.1,s*0.09,0.125,0.06,head);}bx(gm,0.03,0.004,0.004,0,0.123,0.115,head);}
+  // arms
+  const arms=[];for(const sx of [-1,1]){const shp=new THREE.Group();shp.position.set(sx*0.225,0.52,0);torso.add(shp);
+    lb(slv,0.052,G_UARM,V(0,0.02,0),V(0,-0.29,0),shp);
+    if(o.stripe)bx(mat(o.stripe),0.012,0.3,0.03,sx*0.05,-0.14,0,shp);
+    const el=new THREE.Group();el.position.y=-0.29;shp.add(el);
+    lb(slv,0.044,G_FORE,V(0,0.01,0),V(0,-0.23,0),el);
+    const hand=new THREE.Group();hand.position.y=-0.27;el.add(hand);sp(skin,0.042,0,0,0.005,0.85,1.15,0.7,hand);
+    arms.push({shp,el,hand,sx});}
+  const rig={g,body,torso,head,legs,arms,brows,mouth,skin,skinCol:new THREE.Color(o.skin||0xdcae8a),cur:{},t:Math.random()*10};
+  poseHuman(rig,{},1);return rig;}
+const HUMAN_POSE={y:0,lean:0,twist:0,side:0,hx:0,hy:0,hz:0,l0h:0,l0k:0,l1h:0,l1k:0,a0x:0.05,a0z:0.08,e0:-0.12,a1x:0.05,a1z:0.08,e1:-0.12,mo:0,ba:0,red:0};
+// blend the rig towards the target pose T (missing keys -> neutral standing pose); k = blend factor 0..1
+function poseHuman(r,T,k){const c=r.cur;for(const key in HUMAN_POSE){const tv=T[key]!==undefined?T[key]:HUMAN_POSE[key];c[key]=c[key]===undefined?tv:c[key]+(tv-c[key])*k;}
+  r.body.position.y=c.y;r.torso.rotation.set(c.lean,c.twist,c.side);r.head.rotation.set(c.hx,c.hy,c.hz);
+  r.legs[0].hip.rotation.x=c.l0h;r.legs[0].knee.rotation.x=c.l0k;r.legs[1].hip.rotation.x=c.l1h;r.legs[1].knee.rotation.x=c.l1k;
+  const A=r.arms;A[0].shp.rotation.set(c.a0x,0,-c.a0z);A[0].el.rotation.x=c.e0;A[1].shp.rotation.set(c.a1x,0,c.a1z);A[1].el.rotation.x=c.e1;
+  r.mouth.scale.y=0.012+c.mo*0.04;r.mouth.scale.x=0.045-c.mo*0.012;
+  r.brows[0].rotation.z=-c.ba*0.5;r.brows[1].rotation.z=c.ba*0.5;r.brows[0].position.y=r.brows[1].position.y=0.148-c.ba*0.008;
+  r.skin.color.copy(r.skinCol).lerp(_redFace,c.red*0.55);}
+const _redFace=new THREE.Color(0xd8402e);
+// walking cycle on top of a pose (ph = phase, a = amount 0..1)
+function walkPose(T,ph,a){T.l0h=-Math.sin(ph)*0.5*a;T.l1h=Math.sin(ph)*0.5*a;T.l0k=(0.08+Math.max(0,Math.cos(ph))*0.75)*a;T.l1k=(0.08+Math.max(0,-Math.cos(ph))*0.75)*a;
+  T.a0x=Math.sin(ph)*0.38*a;T.a1x=-Math.sin(ph)*0.38*a;T.e0=T.e1=-0.3*a;T.y=-Math.abs(Math.cos(ph))*0.025*a+0.012;T.lean=0.06*a;return T;}
+// ---------- judges: follow the player with their eyes, take notes, go mad when somebody is passed on the blue band ----------
+const JUDGE_RIGS=[];let judgeAnger=0,judgeAngerT=0;
+function makeJudge(i,g){
+  const looks=[{skin:0xdcae8a,top:0x1d2c4d,collar:0xffffff,tie:0xb3202a,hair:0x8a8a88,hairStyle:'bald',mustache:true,brow:0x6a6a66,glasses:true,pants:0x1d2c4d,belly:true},
+    {skin:0xe2b896,top:0x1d2c4d,collar:0xffffff,hair:0x5a3520,hairStyle:'long',glasses:true,pants:0x1d2c4d},
+    {skin:0xc99a74,top:0x1d2c4d,collar:0xffffff,tie:0xb3202a,hair:0x1a1410,hairStyle:'short',pants:0x1d2c4d}][i];
+  looks.lanyard=0xc6ff1a;const r=makeHuman(looks);r.g.position.set(0.55,0.45,-1.8+i*1.2);r.g.rotation.y=-PI/2;g.add(r.g);
+  const pen=new THREE.Mesh(new THREE.CylinderGeometry(0.007,0.007,0.14,6),mat(0x1d4fbf));pen.position.set(0,-0.03,0.05);pen.rotation.x=1.1;r.arms[0].hand.add(pen);
+  // notebook + a sheet of start lists on the desk in front of every judge
+  const nb=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.015,0.22),mat(0xf4f1e6));nb.position.set(-0.2,1.3,-1.8+i*1.2+0.05);nb.rotation.y=0.1*(i-1);g.add(nb);
+  const ln=new THREE.Mesh(new THREE.PlaneGeometry(0.24,0.17),new THREE.MeshBasicMaterial({map:noteTex()}));ln.rotation.x=-PI/2;ln.rotation.z=PI/2+0.1*(i-1);ln.position.set(-0.2,1.309,-1.8+i*1.2+0.05);g.add(ln);
+  Object.assign(r,{i,mode:'watch',modeT:2+Math.random()*4,delay:0,look:new THREE.Vector3()});JUDGE_RIGS.push(r);}
+let _noteTex=null;function noteTex(){if(_noteTex)return _noteTex;const c=mkCanvas(128,96),q=c.getContext('2d');q.fillStyle='#f4f1e6';q.fillRect(0,0,128,96);
+  q.strokeStyle='rgba(60,90,160,.45)';for(let y=12;y<96;y+=9){q.beginPath();q.moveTo(6,y);q.lineTo(122,y);q.stroke();}
+  q.strokeStyle='#1d2a5a';q.lineWidth=1.3;for(let y=10;y<80;y+=9){q.beginPath();let x=10;q.moveTo(x,y);while(x<40+Math.random()*80){x+=3;q.lineTo(x,y-Math.random()*3);}q.stroke();}
+  return _noteTex=new THREE.CanvasTexture(c);}
+const _jp=new THREE.Vector3(),_jl=new THREE.Vector3();
+function judgeTarget(out){const R=player&&player.model&&player.model.g.visible?player:riders.find(o=>o.model.g.visible)||player;R.model.g.getWorldPosition(out);out.y+=1.1;return out;}
+// somebody (= the player) got past a rider below him, on the blue band
+function checkBlueBand(){if(phase!=='race'||!player||player.crashed||player.finished)return;
+  const low=player.w<-0.04;
+  for(const o of riders){if(o===player)continue;const g=gapTo(player,o);
+    if(low&&o._jg!==undefined&&o._jg>0&&g<=0&&g>-3&&o.model.g.visible&&!o.crashed&&!o.resting&&o.w>player.w+0.25)angerJudges();
+    o._jg=g;}}
+function angerJudges(){const d=(((SF+1.5-player.s)%L0)+L0)%L0;const t=clamp(d/Math.max(player.v,6)+3,5,14);
+  if(judgeAnger<=0)JUDGE_RIGS.forEach((r,i)=>r.delay=0.15+i*0.22+Math.random()*0.1);judgeAnger=Math.max(judgeAnger,t);judgeAngerT=0;}
+function updateJudges(dt){if(!JUDGE_RIGS.length)return;checkBlueBand();
+  if(judgeAnger>0){judgeAnger-=dt;judgeAngerT+=dt;}
+  if(phase==='menu'||phase==='intro')judgeAnger=0;
+  judgeTarget(_jp);const k=1-Math.exp(-dt*7);
+  for(const r of JUDGE_RIGS){r.t+=dt;const t=r.t;
+    r.look.lerp(_jp,1-Math.exp(-dt*5));_jl.copy(r.look);r.g.worldToLocal(_jl);
+    const yaw=Math.atan2(_jl.x,_jl.z),pitch=Math.atan2(_jl.y-1.15,Math.hypot(_jl.x,_jl.z));
+    const angry=judgeAnger>0&&judgeAngerT>r.delay;
+    const T={y:-0.42,l0h:-1.5,l1h:-1.5,l0k:1.5,l1k:1.55,lean:0.08,a0x:-0.62,a0z:-0.12,e0:-1.05,a1x:-0.6,a1z:-0.1,e1:-1.1};
+    if(angry){const a=r.i;T.y=0;T.l0h=T.l1h=-0.15;T.l0k=T.l1k=0.25;T.lean=-0.05;T.mo=0.6+0.4*Math.sin(t*13+a);T.ba=1;T.red=1;
+      T.twist=clamp(yaw*0.6,-0.9,0.9);T.hy=clamp(yaw-T.twist,-0.9,0.9);T.hx=clamp(-pitch,-0.5,0.5);
+      if(a===0){T.a0x=-1.45+Math.sin(t*11)*0.18;T.a0z=0.05;T.e0=-0.05;T.a1x=-0.3;T.a1z=0.55;T.e1=-1.7;T.y=Math.abs(Math.sin(t*6))*0.03;}           // points at you, fist on the hip
+      else if(a===1){T.a0x=T.a1x=-2.7+Math.sin(t*12)*0.25;T.a0z=T.a1z=0.45+Math.sin(t*9)*0.15;T.e0=T.e1=-0.35+Math.sin(t*10)*0.25;T.y=Math.abs(Math.sin(t*7))*0.05;}   // arms in the air
+      else{T.a0x=T.a1x=-2.3;T.a0z=T.a1z=0.95;T.e0=T.e1=-2.3;T.hy+=Math.sin(t*9)*0.45;T.hx=0.15;}                         // hands on the head, shaking it
+    }else{
+      r.modeT-=dt;if(r.modeT<=0){r.mode=r.mode==='write'?'watch':(Math.random()<0.55?'write':'watch');r.modeT=r.mode==='write'?1.2+Math.random()*2.2:2.5+Math.random()*5;}
+      if(r.mode==='write'){T.lean=0.28;T.hx=0.55;T.hy=0.1;T.a0x=-0.78+Math.sin(t*3.1)*0.04;T.a0z=-0.22+Math.sin(t*17)*0.06;T.e0=-1.12+Math.sin(t*23)*0.08;T.a1x=-0.7;T.a1z=-0.25;T.e1=-1.2;}
+      else{T.twist=clamp(yaw*0.45,-0.75,0.75);T.hy=clamp(yaw-T.twist,-1.15,1.15);T.hx=clamp(-pitch,-0.45,0.4);if(Math.abs(yaw)>1.3)T.side=0;}
+      if(judgeAnger>0&&!angry)T.ba=0.5;}
+    poseHuman(r,T,angry?Math.min(1,k*1.6):k);}}
 function freeSpot(margin,tries){const poly=infieldPoly(margin);for(let i=0;i<(tries||60);i++){const x=(Math.random()-.5)*60,z=(Math.random()-.5)*30;if(inPoly(x,z,poly)&&Math.hypot(x-STAIR.cx,z-STAIR.cz)>4.5)return [x,z];}return null;}
 // infield layout following the sketch: booths 3–14 with benches, round podium 15, rollers (*) and hanging stands (o)
 const OBST={cols:[],rollers:[],hangs:[]};
@@ -1326,7 +1491,7 @@ function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
   else if(mode==='scratch'){let pos=1;for(const o of riders)if(o!==R&&!o.crashed){if(o.finished&&R.finished?o.time<R.time:o.s>R.s)pos++;}$('posLbl').textContent='Pořadí';$('pos').textContent=pos+'/'+riders.filter(r=>!r.crashed).length;}
   else{$('posLbl').textContent='Mezičas';$('pos').textContent=splits.length?fmt(splits[splits.length-1]):'—';}
   if(mode!=='elim')$('pos').style.color=R.dsq?'#ff5a5f':'';
-  $('lap').textContent=R.finished?'CÍL':mode==='keirin'&&KR?(R.dsq?'Diskvalifikace':!KR.gun?'Pozice '+R.draw+' z losu · start výstřelem':!KR.free?'Za derny '+(DERNY.v*3.6).toFixed(0)+' km/h · odstoupí za '+Math.max(1,Math.ceil((KR.exitS-DERNY.s)/L0))+(KR.lap1?' · 1. kolo: drž pořadí':''):'Sprint · kolo '+currentLap(R)+'/'+Math.ceil(LAPS)):mode==='points'&&PR?(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+currentLap(R)+'/'+LAPS+' · '+(nextSprintLine(effS(R))>=FIN-1?'cílový sprint ×2':'sprint')+' za '+Math.max(1,Math.ceil((nextSprintLine(effS(R))-effS(R))/L0))):mode==='elim'&&EL?(R.out?'VYŘAZEN':nextElimLine(R.s)>=FIN-0.5?'FINÁLE · kolo '+currentLap(R)+'/'+Math.ceil(LAPS):EL.crossed.has(R)?'✅ v bezpečí · kolo '+currentLap(R):(isNeutral()?'Neutrální kolo · ':'')+'Kolo '+currentLap(R)+' · vyřazení za '+Math.max(1,Math.ceil((nextElimLine(R.s)-R.s)/L0))):mode==='madison'?(()=>{const T=MT&&MT.find(t=>t.me),A=T?T.act:R;if(MT&&MT.neutral)return 'Neutrální kolo · start výstřelem';return A.finished?'CÍL':(T&&T.rest===R?'😮‍💨 Odpočíváš · ':'')+'Kolo '+currentLap(A)+'/'+LAPS+' · sprint za '+Math.max(1,Math.ceil((nextSprintLine(A.s)-A.s)/L0));})():mode==='kilo'?'Zbývá '+Math.max(0,Math.round(FIN-R.s))+' m':(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+currentLap(R)+'/'+LAPS);$('time').textContent=fmt(R.finished?R.time:raceTime);
+  $('lap').textContent=R.finished?'CÍL':mode==='keirin'&&KR?(R.dsq?'Diskvalifikace':!KR.gun?'Pozice '+R.draw+' z losu · start výstřelem':!KR.free?'Za dernou '+(DERNY.v*3.6).toFixed(0)+' km/h · odstoupí za '+Math.max(1,Math.ceil((KR.exitS-DERNY.s)/L0))+(KR.lap1?' · 1. kolo: drž pořadí':''):'Sprint · kolo '+currentLap(R)+'/'+Math.ceil(LAPS)):mode==='points'&&PR?(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+currentLap(R)+'/'+LAPS+' · '+(nextSprintLine(effS(R))>=FIN-1?'cílový sprint ×2':'sprint')+' za '+Math.max(1,Math.ceil((nextSprintLine(effS(R))-effS(R))/L0))):mode==='elim'&&EL?(R.out?'VYŘAZEN':nextElimLine(R.s)>=FIN-0.5?'FINÁLE · kolo '+currentLap(R)+'/'+Math.ceil(LAPS):EL.crossed.has(R)?'✅ v bezpečí · kolo '+currentLap(R):(isNeutral()?'Neutrální kolo · ':'')+'Kolo '+currentLap(R)+' · vyřazení za '+Math.max(1,Math.ceil((nextElimLine(R.s)-R.s)/L0))):mode==='madison'?(()=>{const T=MT&&MT.find(t=>t.me),A=T?T.act:R;if(MT&&MT.neutral)return 'Neutrální kolo · start výstřelem';return A.finished?'CÍL':(T&&T.rest===R?'😮‍💨 Odpočíváš · ':'')+'Kolo '+currentLap(A)+'/'+LAPS+' · sprint za '+Math.max(1,Math.ceil((nextSprintLine(A.s)-A.s)/L0));})():mode==='kilo'?'Zbývá '+Math.max(0,Math.round(FIN-R.s))+' m':(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+currentLap(R)+'/'+LAPS);$('time').textContent=fmt(R.finished?R.time:raceTime);
   const dr=$('draft');if(R.draft>0.08&&!R.crashed){dr.style.opacity=1;dr.textContent=(R.follow?'🔗 Držíš kolo: '+R.follow.name+(R.follow.energy<35?' (unavený!)':'')+' · ':'V HÁKU ')+'−'+Math.round(R.draft*100)+' % odporu'+(R.eRate>0.03?' · ⚡+'+R.eRate.toFixed(1)+' %/s':'');}else dr.style.opacity=0;
 }
 
@@ -1369,7 +1534,7 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
   if(mode==='elim')me=player.crashed?0:elimStandings().indexOf(player)+1;
   if(mode==='points')me=player.crashed?0:ptsStandings().indexOf(player)+1;
   $('cerTitle').textContent=mode==='kilo'?'⏱️ Kilometr · '+fmt(player.time):me===1?'🏆 Vyhrál jsi!':me>0&&me<=3?'🥈 Jsi na bedně – '+me+'. místo':me>0?(mode==='elim'?'❌ Vyřazen – '+me+'. místo':'Dojel jsi '+me+'.'):'🚑 DNF – vyhlášení bez tebe';
-  if(player.dsq)$('cerTitle').textContent='🟥 DSQ – předjel jsi derny';
+  if(player.dsq)$('cerTitle').textContent='🟥 DSQ – předjel jsi dernu';
   if(player.crashed){$('cerTitle').innerHTML='🚑 Diagnóza: <b>'+DIAG+'</b> – nutný převoz do nemocnice Motol';}
   $('hud').style.display='none';$('ctl').style.display='none';$('ceremony').style.display='block';
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
@@ -1456,7 +1621,7 @@ function spawnDrop(p,v,life){if(drops.length>120)return;const m=new THREE.Mesh(d
 function updateDrops(dt){for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.t+=dt;d.v.y-=9.81*dt;d.m.position.addScaledVector(d.v,dt);d.m.material.opacity=0.9*(1-d.t/d.life);if(d.t>d.life||d.m.position.y<-0.3){scene.remove(d.m);drops.splice(i,1);}}}
 function smash(){tone(1900,0.12,0.05,'triangle');tone(2600,0.1,0.04,'triangle',0.05);if(!actx||muted)return;try{const len=0.4,b=actx.createBuffer(1,actx.sampleRate*len,actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,6);
   const s=actx.createBufferSource(),g=actx.createGain(),fl=actx.createBiquadFilter();fl.type='highpass';fl.frequency.value=2500;g.gain.value=0.35;s.buffer=b;s.connect(fl);fl.connect(g);g.connect(actx.destination);s.start();}catch(e){}}
-function standTxt(){const R=player;if(mode==='kilo')return '⏱ '+fmt(raceTime);if(mode==='points'&&PR){const r=ptsStandings().indexOf(R)+1;return R.pts+' b · '+r+'. místo';}if(mode==='keirin'&&KR&&!KR.free)return 'Za derny · '+rankOf(R)+'. v řadě';if(mode==='madison'&&MT){const T=MT.find(t=>t.me),r=madStandings().indexOf(T)+1,ld=madStandings()[0];return T.pts+' b · '+r+'. místo'+(r>1?' (vede '+TEAMS[ld.key].name+' '+ld.pts+' b)':'');}
+function standTxt(){const R=player;if(mode==='kilo')return '⏱ '+fmt(raceTime);if(mode==='points'&&PR){const r=ptsStandings().indexOf(R)+1;return R.pts+' b · '+r+'. místo';}if(mode==='keirin'&&KR&&!KR.free)return 'Za dernou · '+rankOf(R)+'. v řadě';if(mode==='madison'&&MT){const T=MT.find(t=>t.me),r=madStandings().indexOf(T)+1,ld=madStandings()[0];return T.pts+' b · '+r+'. místo'+(r>1?' (vede '+TEAMS[ld.key].name+' '+ld.pts+' b)':'');}
   if(mode==='elim'&&EL){const n=EL.all.filter(r=>!r.out).length;const k=n-elimRank(R);return 'Jsi '+k+'. z '+n+(k===n?' – POSLEDNÍ!':k===n-1?' – předposlední!':'');}
   return 'Jsi '+rankOf(R)+'. z '+riders.filter(o=>o.model.g.visible&&!o.crashed).length;}
 function bossSay(txt,angry,st){const b=$('boss');b.textContent='';if(st){const d=document.createElement('div');d.textContent=st;d.style.cssText='font-size:1.15em;color:#c1121f;margin-bottom:2px';b.appendChild(d);}if(txt)b.appendChild(document.createTextNode(txt));bossMsgT=3.6;if(RCOACH&&angry){RCOACH.mood='angry';RCOACH.t=0;}}
@@ -1645,10 +1810,47 @@ function setupMadison(){const by=n=>riders.find(r=>r.name===n),P=PARTNER();
     return {key,name:TEAMS[key].name,act:a,rest:b,pts:0,spPts:0,lapNet:0,stintT:0,want:false,slings:0,done:0,prevS:a.s,me:key==='wc',sprints:[],stintS:a.s,waitT:0,pd:99,missed:0,passed:false,nearT:0};});
   MT.neutral=true;MT.hold=MT.map(t=>({R:t.rest,s:t.rest.s,w:t.rest.w}));makeHolders();
   slingT=0;}
-// holders standing behind the riders in the sprinters' lane (until the riders are pushed off)
-let HOLDERS=[];
-function makeHolders(list){clearHolders();for(const A of (list||MT.map(T=>T.act))){if(A.w>1)continue;const g=makePerson(0,0,0x24406e,0,false);surf(A.s-1.05,A.w+0.05,_sw);g.position.copy(_sw);const f=frameAt(A.s);g.rotation.set(0,Math.atan2(f.fx,f.fz),0);HOLDERS.push(g);}}
-function clearHolders(){for(const g of HOLDERS)scene.remove(g);HOLDERS=[];}
+// holders standing behind the riders in the sprinters' lane; after the start they push, step off the track,
+// cross the green infield and disappear down the underpass stairs
+let HOLDERS=[];const STAIR_O=new THREE.Object3D();
+const HOLDER_LOOKS=[{top:0x1d3557,pants:0x1d3557,stripe:0xffffff},{top:0x111418,pants:0x111418,stripe:0xc6ff1a},{top:0x8a1c1c,pants:0x1c1c22,stripe:0xffffff},{top:0x2b5fb4,pants:0x1d2a44,stripe:0xffffff},{top:0x3a3f46,pants:0x23262b,stripe:0xe63946}];
+const HAIRS=[[0x3b2a1e,'short'],[0x1a1410,'short'],[0x7a5a3a,'long'],[0x2a2522,'cap'],[0x8a8a88,'bald'],[0xb08a4a,'short']];
+const SKINS=[0xdcae8a,0xe2b896,0xc99a74,0xa8775a,0xeac4a4];
+function makeHolder(s,w){const L=HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LOOKS.length)],H=HAIRS[Math.floor(Math.random()*HAIRS.length)];
+  const r=makeHuman(Object.assign({hair:H[0],hairStyle:H[1],capCol:[0x1d3557,0xe63946,0x111111][Math.floor(Math.random()*3)],skin:SKINS[Math.floor(Math.random()*SKINS.length)],zip:0xdddddd,shoes:0xf0f0f0,shoeSole:0x222222,mustache:Math.random()<0.2},L));
+  scene.add(r.g);const h={r,s,w,st:'hold',t:0,ph:0,pos:new THREE.Vector3(),head:0,path:null,wait:Math.random()*0.25,spd:1.25+Math.random()*0.3};
+  surf(s,w,h.pos);const f=frameAt(s);h.head=Math.atan2(f.fx,f.fz);r.g.position.copy(h.pos);r.g.rotation.y=h.head;poseHuman(r,holdPose(0),1);HOLDERS.push(h);return h;}
+function holdPose(t){return {lean:0.42,hx:-0.3,l0h:-0.28,l0k:0.32,l1h:0.05,l1k:0.12,a0x:-1.05+Math.sin(t*1.3)*0.02,a0z:0.05,e0:-0.35,a1x:-1.0,a1z:0.05,e1:-0.4,y:-0.03};}
+function makeHolders(list){clearHolders();for(const A of (list||MT.map(T=>T.act))){if(A.w>1)continue;makeHolder(A.s-1.05,A.w+0.05);}}
+function makeKeirinHolders(list){clearHolders();for(const A of list)makeHolder(A.s-1.05,A.w);}
+function clearHolders(){for(const h of HOLDERS)scene.remove(h.r.g);HOLDERS=[];}
+function releaseHolders(){for(const h of HOLDERS)if(h.st==='hold'){h.st='push';h.t=-h.wait;}}
+// position on the track / blue band (w >= -BAND) or on the wooden apron further in (w < -BAND)
+function holderGround(s,w,out){if(w>=-BAND)return surf(s,w,out);const f=frameAt(s),o=BAND*Math.cos(8*deg)+(-BAND-w);return out.set(f.px-f.nx*o,INF_Y,f.pz-f.nz*o);}
+function stairPt(x,y,z){STAIR_O.position.set(STAIR.cx,FLOOR_Y,STAIR.cz);STAIR_O.rotation.set(0,STAIR.rot,0);STAIR_O.updateMatrixWorld();return STAIR_O.localToWorld(new THREE.Vector3(x,y,z));}
+const _hv=new THREE.Vector3();
+function updateHolders(dt){for(let i=HOLDERS.length-1;i>=0;i--){const h=HOLDERS[i],r=h.r;h.t+=dt;r.t+=dt;let T,k=1-Math.exp(-dt*8),moved=0;
+  if(h.st==='hold'){T=holdPose(r.t);}
+  else if(h.st==='push'){const t=Math.max(0,h.t);const e=sm(0,0.32,t);   // shove: step in, arms straight, then straighten up
+    holderGround(h.s+0.7*e,h.w,h.pos);T={lean:0.55*(1-sm(0.5,1.1,t))+0.05,hx:-0.3,l0h:-0.5*e*(1-sm(0.5,1.1,t)),l0k:0.4*e*(1-sm(0.5,1.1,t)),l1h:0.35*e*(1-sm(0.5,1.1,t)),l1k:0.1,a0x:-1.45*(1-sm(0.45,1.1,t)),e0:-0.05,a1x:-1.45*(1-sm(0.45,1.1,t)),e1:-0.05};k=1-Math.exp(-dt*14);
+    if(t>1.15){h.st='down';h.s0=h.s+0.7;h.w0=h.w;h.u=0;}}
+  else if(h.st==='down'){   // walk diagonally back and down the banking, over the blue band onto the apron
+    const span=Math.hypot(h.w0+BAND+0.75,1.4);h.u=Math.min(1,h.u+dt*h.spd/span);const pS=h.s0-1.4*h.u,pW=h.w0+(-BAND-0.75-h.w0)*h.u;
+    const prev=_hv.copy(h.pos);holderGround(pS,pW,h.pos);moved=prev.distanceTo(h.pos);
+    if(moved>1e-4)h.head=Math.atan2(h.pos.x-prev.x,h.pos.z-prev.z);
+    if(h.u>=1){h.st='floor';const top=stairPt(0,0,2.55+1.0);h.path=findPath(h.pos,top);h.stairs=[stairPt(0,0,2.55),stairPt(0,-2.6,2.55-3.4),stairPt(0.45,-2.6,-2.55+0.9),stairPt(1.1+0.7,-2.6,-2.55+0.6)];}}
+  else if(h.st==='floor'||h.st==='stairs'){const list=h.st==='floor'?h.path:h.stairs;const tg=list[0];
+    const dx=tg.x-h.pos.x,dz=tg.z-h.pos.z,L=Math.hypot(dx,dz),sp=h.spd*(h.st==='stairs'?0.75:1)*dt;
+    if(L>1e-3){const m=Math.min(sp,L);h.pos.x+=dx/L*m;h.pos.z+=dz/L*m;moved=m;h.head=Math.atan2(dx,dz);}
+    if(h.st==='floor'){const gy=groundAt(h.pos.x,h.pos.z)+(onCarpet(h.pos.x,h.pos.z)?0.22:0);h.pos.y+=(gy-h.pos.y)*Math.min(1,dt*7);}
+    else if(list.length===3){const a=h.stairs0,b=tg;const tot=Math.hypot(b.x-a.x,b.z-a.z)||1;h.pos.y=a.y+(b.y-a.y)*clamp(1-L/tot,0,1);}
+    else if(list.length<3)h.pos.y+=(tg.y-h.pos.y)*Math.min(1,dt*6);
+    if(L<0.25){if(h.st==='floor'&&list.length>1)list.shift();
+      else if(h.st==='floor'){h.st='stairs';h.stairs0=h.stairs[0].clone();}
+      else{h.stairs0=list.shift();if(!list.length){scene.remove(r.g);HOLDERS.splice(i,1);continue;}}}}
+  if(h.st!=='hold'&&h.st!=='push'){h.ph+=moved*4.4;T=walkPose({},h.ph,1);T.hx=0.08;}
+  let da=h.head-r.g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));r.g.rotation.y+=da*Math.min(1,dt*(h.st==='hold'?20:7));
+  r.g.position.copy(h.pos);poseHuman(r,T,k);}}
 const NEU_V=9.3;
 function startMadisonRace(){MT.neutral=false;startGun();showMsg('🔫<small>Výstřel – letmý start, madison běží!</small>',2.0);for(const T of MT){T.stintS=Math.min(T.stintS,T.act.s-L0);T.passed=false;T.armed=!!T.rest&&gapTo(T.act,T.rest)>2;T.nearT=0;}}
 function madStandings(){if(!MT)return[];const ok=t=>!t.act.crashed;return MT.slice().sort((a,b)=>(ok(b)-ok(a))||(b.pts-a.pts)||((b.sprints[MAD_LAPS/MAD_EVERY-1]||0)-(a.sprints[MAD_LAPS/MAD_EVERY-1]||0))||(b.act.s-a.act.s));}
@@ -1950,7 +2152,7 @@ const SHORT={band:'Vyjeď z modrý!',kstart:'Z místa naplno!',kline:'Dolů k č
   letthem:'Netahej, ať stíhaj jiní!',ignore:'Nech je jet, uvařej se!',pull:'Netahej jim to zadarmo!',tired:'Schovej se do háku!',nosprint:'Proč sprintuješ?! Šetři se!',high:'Sjeď dolů do balíku!',
   chance:'Balík spí – zkus to!',good:'Dobře, vez se!',move:'Dopředu, do první čtyřky!',early:'Moc brzo na špici!',climb:'Vyjeď si nahoru!',tooearly:'Ještě ne! Čekej!',go:'TEĎ! SPRINT!',
   boxed:'Jsi zavřenej! Vrchem!',bellfront:'Jeď nahoře a hlídej je!',
-  krpass:'Nepředjížděj derny!',krslot:'Zařaď se do řady!',krfront:'Za derny budeš vodit!',krback:'Vzadu tě zavřou! Dopředu!',krready:'Derny odstupuje – připrav se!',krsave:'Za derny šetři!',kratt:'Skoč mu na kolo!',krlead:'Vodíš je zadarmo!',
+  krpass:'Nepředjížděj dernu!',krslot:'Zařaď se do řady!',krfront:'Za dernou budeš vodit!',krback:'Vzadu tě zavřou! Dopředu!',krready:'Derna odstupuje – připrav se!',krsave:'Za dernou šetři!',kratt:'Skoč mu na kolo!',krlead:'Vodíš je zadarmo!',
   psppos:'Dopředu, bude sprint!',pspgo:'TEĎ! Sprint o body!',plap:'Drž to, bude kolo navíc!',pcounter:'Teď nastup!',pdrop:'Odpadáš! Dojeď je!'};
 function shortOf(a){const k=a.k.replace(/[0-9]+$/,'');
   if(SHORT[k])return SHORT[k];
@@ -1993,12 +2195,12 @@ function coachTick(dt){RAD.t+=dt;
   // -------- KEIRIN --------
   if(mode==='keirin'&&KR){const D=DERNY,rank=rankOf(R);
     if(!KR.free){const gD=gapTo(R,D),dw=Math.abs(D.w-R.w),toEx=(KR.exitS-D.s)/L0;
-      if(R.kBehind&&gD<3.4&&dw>0.32)add(4,'krpass','Nepředjížděj derny! Jakmile se dostaneš k jeho zadnímu kolu, je to diskvalifikace.',0,4);
+      if(R.kBehind&&gD<3.4&&dw>0.32)add(4,'krpass','Nepředjížděj dernu! Jakmile se dostaneš k jejímu zadnímu kolu, je to diskvalifikace.',0,4);
       if(KR.lap1&&KR.gunT>1.5&&R.w>0.9)add(2.6,'krslot','Sjeď dolů a zařaď se do řady – máš '+R.draw+'. pozici z losu.',0,8);
-      if(!KR.lap1&&rank===1&&toEx>0.6)add(1.8,'krfront','Jsi hned za derny. Až odstoupí, budeš vodit – nejlepší je sedět 2. nebo 3.',0,25);
-      if(!KR.lap1&&rank>=5&&toEx<2.2)add(2.6,'krback','Vzadu tě zavřou! Vyjeď vedle řady a posuň se dopředu, dokud jede derny.',0,12);
-      if(toEx<1.1&&toEx>0.2)add(2.9,'krready','Derny odstupuje na cílové čáře – buď připravenej a nenech se zavřít u černé!',0,99);
-      if(sprinting&&KR.gunT>7)add(2.2,'krsave','Za derny se nesprintuje. Drž kolo a šetři to na posledních 5 kol.',0,14);
+      if(!KR.lap1&&rank===1&&toEx>0.6)add(1.8,'krfront','Jsi hned za dernou. Až odstoupí, budeš vodit – nejlepší je sedět 2. nebo 3.',0,25);
+      if(!KR.lap1&&rank>=5&&toEx<2.2)add(2.6,'krback','Vzadu tě zavřou! Vyjeď vedle řady a posuň se dopředu, dokud jede derna.',0,12);
+      if(toEx<1.1&&toEx>0.2)add(2.9,'krready','Derna odstupuje na cílové čáře – buď připravenej a nenech se zavřít u černé!',0,99);
+      if(sprinting&&KR.gunT>7)add(2.2,'krsave','Za dernou se nesprintuje. Drž kolo a šetři to na posledních 5 kol.',0,14);
       return pickAdvice(c);}
     for(const x of riders){if(x===R||!x.model.g.visible||x.crashed||!(x.attackT>0))continue;const g=gapTo(R,x);if(g>-3&&g<25){add(2.6,'kratt'+x.name,x.name+' to rozjíždí zdaleka! Skoč mu hned na kolo.',0,20);break;}}
     if(lapsLeft>2.2&&R.draft<0.1&&rank===1)add(2,'krlead','Vodíš to a všichni ti sedí na kole. Buď jeď hodně rychle, ať tě nepřeskočí, nebo je pusť dopředu.',0,16);
@@ -2165,12 +2367,12 @@ function coachVerdict(){
     if(pct(S.draft)<25)m.push('V háku jsi jel jen '+pct(S.draft)+' %. Schovej se mezi ostatní!');
     return {mood:'angry',lines:b.concat(m.slice(0,3),[pick(['Zítra v sedm na dráze!','Teď mi zmiz z očí!','Přemejšlej o tom!'])])};}
   if(mode==='keirin'){
-    if(R.dsq)return {mood:'angry',lines:[pick(['Diskvalifikace?! To snad není pravda!','Ty jsi předjel derny?!']),'Pravidlo číslo jedna v keirinu: dokud jede derny, nesmíš se dostat přes jeho zadní kolo. To ví každej žák!','Ještě jednou a vyhodím tě z repre!','Zítra deset keirinů za derny, dokud to nepochopíš.']};
+    if(R.dsq)return {mood:'angry',lines:[pick(['Diskvalifikace?! To snad není pravda!','Ty jsi předjel dernu?!']),'Pravidlo číslo jedna v keirinu: dokud jede derna, nesmíš se dostat přes její zadní kolo. To ví každej žák!','Ještě jednou a vyhodím tě z repre!','Zítra deset keirinů za dernou, dokud to nepochopíš.']};
     const rk=standings().filter(r=>!r.crashed&&!r.dsq).indexOf(R)+1;
-    if(rk===1){const g=[pick(['Tak tohle byl keirin!','Výborně, sprintere!','Krása, takhle se jezdí keirin!'])];if(S.posExit&&S.posExit<=3&&S.posExit>1)g.push('Když derny odstupoval, byl jsi '+S.posExit+'. – výborně postavenej.');else if(S.posExit===1)g.push('Vodil jsi to od derny až do cíle a ustál jsi to – to chce sílu.');if(S.sprintAt!==null)g.push('Sprint jsi nahodil '+Math.round(S.sprintAt)+' m před cílem.');if(S.yellow)g.push('Jen tu žlutou kartu z prvního kola si příště odpusť.');g.push('Ale nezvykej si!');return {mood:'happy',lines:g};}
+    if(rk===1){const g=[pick(['Tak tohle byl keirin!','Výborně, sprintere!','Krása, takhle se jezdí keirin!'])];if(S.posExit&&S.posExit<=3&&S.posExit>1)g.push('Když derna odstupovala, byl jsi '+S.posExit+'. – výborně postavenej.');else if(S.posExit===1)g.push('Vodil jsi to od derny až do cíle a ustál jsi to – to chce sílu.');if(S.sprintAt!==null)g.push('Sprint jsi nahodil '+Math.round(S.sprintAt)+' m před cílem.');if(S.yellow)g.push('Jen tu žlutou kartu z prvního kola si příště odpusť.');g.push('Ale nezvykej si!');return {mood:'happy',lines:g};}
     const b=[pick(['Co to bylo za keirin?!','Tohle že je sprinter?!','To snad není možný!']),rk<=3?'Bedna?! U mě se vyhrává! Vyhodím tě z repre!':'Vyhodím tě z repre, slyšíš?!'],m=[];
-    if(S.posExit&&S.posExit>=5)m.push('Když derny odstupoval, byl jsi až '+S.posExit+'. Odtamtud to nevyhraješ – musíš se posunout dopředu, dokud jede derny!');
-    if(S.posExit===1)m.push('Byl jsi hned za derny a pak jsi vodil. Všichni ti seděli na kole a přeskočili tě.');
+    if(S.posExit&&S.posExit>=5)m.push('Když derna odstupovala, byl jsi až '+S.posExit+'. Odtamtud to nevyhraješ – musíš se posunout dopředu, dokud jede derna!');
+    if(S.posExit===1)m.push('Byl jsi hned za dernou a pak jsi vodil. Všichni ti seděli na kole a přeskočili tě.');
     if(S.sprintAt!==null&&S.sprintAt>360)m.push('Sprint jsi nahodil '+Math.round(S.sprintAt)+' m před cílem – to nevydrží nikdo.');
     if(S.sprintAt===null)m.push('Ty jsi vůbec nesprintoval!');else if(S.sprintAt<110)m.push('Do sprintu jsi šel pozdě, to už bylo rozhodnutý.');
     if(S.yellow)m.push('A ještě žlutá karta za předjíždění v prvním kole!');
@@ -2251,7 +2453,7 @@ function showResults(display){
     h+='<tr><td>Průměr</td><td></td><td>'+(1000/player.time*3.6).toFixed(1)+' km/h</td></tr>';}
   $('resTable').innerHTML=h;if(display!==false)$('results').style.display='flex';$('ctl').style.display='none';}
 
-const MODE_TXT={keirin:['KEIRIN','za derny 30 → 50 km/h · derny odstoupí 5 kol před cílem · pak sprint'],points:['BODOVAČKA','40 kol · sprint každých 10 kol (5-3-2-1, v cíli ×2) · kolo navíc +20'],scratch:['SCRATCH','neutrální kolo + 13 kol · letmý start · vyhrává první v cíli'],kilo:['KILOMETR','6,5 kola na čas · z místa'],madison:['MADISON','30 kol · sprint každých 10 kol'],elim:['VYLUČOVAČKA','neutrální kolo, pak každá 2 kola vypadává poslední']};
+const MODE_TXT={keirin:['KEIRIN','za dernou 30 → 50 km/h · derna odstoupí 5 kol před cílem · pak sprint'],points:['BODOVAČKA','40 kol · sprint každých 10 kol (5-3-2-1, v cíli ×2) · kolo navíc +20'],scratch:['SCRATCH','neutrální kolo + 13 kol · letmý start · vyhrává první v cíli'],kilo:['KILOMETR','6,5 kola na čas · z místa'],madison:['MADISON','30 kol · sprint každých 10 kol'],elim:['VYLUČOVAČKA','neutrální kolo, pak každá 2 kola vypadává poslední']};
 const CTL_TXT=HAS_TOUCH_UI()?'◀ ▶ prst kdekoliv = výška · posuvník vpravo = síla':'A/D výška · W/S nebo kolečko síla · Shift sprint';
 function HAS_TOUCH_UI(){return ('ontouchstart' in window)&&matchMedia('(hover:none)').matches;}
 let wipeBusy=false;
@@ -2295,14 +2497,14 @@ updateVKBadge();
 // UCI: lots decide the start order (no. 1 lowest on the track), riders held at the line, derny comes up from behind on the inside,
 // 30 km/h -> 50 km/h, riders may not pass the leading edge of the derny's rear wheel (DSQ), drawn order kept for the first lap,
 // derny leaves the track ~750 m before the finish (here at the finish line, 5 laps = 769 m to go)
-const DERNY={name:'derny',energy:100,s:0,w:0.28,v:0,dw:0,crank:0,lean:0,stage:'off',look:0,lookT:3,lookHold:0,footK:1,hd:0,pp:null,exitT:0,waitT:0,model:null};
+const DERNY={name:'derna',energy:100,s:0,w:0.28,v:0,dw:0,crank:0,lean:0,stage:'off',look:0,lookT:3,lookHold:0,footK:1,hd:0,pp:null,exitT:0,waitT:0,model:null};
 const _ik1=new THREE.Vector3(),_ik2=new THREE.Vector3();
 function ik2(A,C,L1,L2,pole,out){_ik1.subVectors(C,A);const d=Math.max(_ik1.length(),1e-4);const dc=clamp(d,0.05,L1+L2-0.002);_ik1.multiplyScalar(1/d);
   const a=(L1*L1-L2*L2+dc*dc)/(2*dc),h=Math.sqrt(Math.max(0,L1*L1-a*a));_ik2.copy(pole).addScaledVector(_ik1,-pole.dot(_ik1)).normalize();return out.copy(A).addScaledVector(_ik1,a).addScaledVector(_ik2,h);}
 function dernyTex(flip){const c=mkCanvas(256,128),g=c.getContext('2d');if(flip){g.translate(256,0);g.scale(-1,1);}
   g.fillStyle='#ff6a00';g.fillRect(0,0,256,128);g.fillStyle='#111';g.fillRect(0,0,256,16);g.fillRect(0,112,256,16);
   g.fillStyle='#8a2be2';g.fillRect(0,16,256,6);g.fillRect(0,106,256,6);
-  g.fillStyle='#111';g.font='italic 900 56px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('DERNY',128,58);g.font='800 15px system-ui,Arial';g.fillText('E-PACER · UCI KEIRIN',128,92);
+  g.fillStyle='#111';g.font='italic 900 56px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('DERNA',128,58);g.font='800 15px system-ui,Arial';g.fillText('E-PACER · UCI KEIRIN',128,92);
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;}
 function pacerSuitTex(){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');g.fillStyle='#1b1f2b';g.fillRect(0,0,W,H);
   g.fillStyle='#ff6a00';g.fillRect(0,60,W,26);g.fillStyle='#8a2be2';g.fillRect(0,86,W,12);                       // keirin pacer colours: orange + purple
@@ -2428,13 +2630,12 @@ function setupKeirin(){const L=riders.filter(r=>r.model.g.visible);const order=L
   KR={exitS:SF+4*L0,free:false,gun:false,gunT:0,order,lap1:true,yellow:false,warn:false};
   dernyReset(START_S-38);makeKeirinHolders(order);}
 const _kh=new THREE.Vector3();
-function makeKeirinHolders(list){clearHolders();for(const A of list){const g=makePerson(0,0,0x24406e,0,false);g.rotation.order='YXZ';surf(A.s-1.05,A.w,_kh);g.position.copy(_kh);const f=frameAt(A.s);g.rotation.set(0.12,Math.atan2(f.fx,f.fz),0);g.userData={s:A.s-1.05,w:A.w,push:-1};HOLDERS.push(g);}}
 // before the gun: TV-style shot from the infield at the start line – riders with their holders, the derny coming up from behind
 function keirinStartCam(dt){const D=DERNY;dernyWorld(START_S+8.5,-2.4,_t);_t.y+=1.45;surf(START_S-1.2,2.1,_l);_l.y+=0.75;
   if(D.stage!=='off'){surf(D.s,0.3,_g);_g.y+=0.9;_l.lerp(_g,0.5*clamp(1-(START_S-D.s-4)/34,0,1)*clamp((START_S-D.s)/6,0,1));}
   const a=1-Math.exp(-dt*3);camPos.lerp(_t,a);camLook.lerp(_l,a);camUp.set(0,1,0);camera.position.copy(camPos);camera.up.copy(camUp);camera.lookAt(camLook);}
 function keirinPre(dt){const D=DERNY;if(!KR)return;
-  if(D.stage==='wait'){D.waitT+=dt;if(D.waitT>0.5){D.stage='approach';showMsg('<small>🛵 Derny přijíždí zezadu<br>start výstřelem, až vás bude míjet</small>',4.5);}}
+  if(D.stage==='wait'){D.waitT+=dt;if(D.waitT>0.5){D.stage='approach';showMsg('<small>🛵 Derna přijíždí zezadu<br>start výstřelem, až vás bude míjet</small>',4.5);}}
   dernyUpdate(dt);
   for(const R of active()){R.v=0;R.power=0;}   // still held by the holders
   const g=START_S-(D.s+1.0);
@@ -2442,25 +2643,23 @@ function keirinPre(dt){const D=DERNY;if(!KR)return;
   if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').innerHTML='';}
   if(D.stage==='approach'&&D.s+1.0>=START_S-4.5)keirinGun();}
 function keirinGun(){phase='race';msgT=0;raceTime=0;KR.gun=true;KR.gunT=0;DERNY.stage='pace';startGun();showCount(0);
-  for(const h of HOLDERS)h.userData.push=0;
+  releaseHolders();
   for(const R of active())R.v=1.6;   // the holders' shove
-  showMsg('🔫<small>Start! Zařaď se za derny – máš '+player.draw+'. pozici z losu</small>',2.8);}
+  showMsg('🔫<small>Start! Zařaď se za dernu – máš '+player.draw+'. pozici z losu</small>',2.8);}
 function keirinRelease(){KR.free=true;if(ST)ST.posExit=rankOf(player);
-  if(phase==='race'&&!player.dsq)showMsg('🛵↘ DERNY ODSTUPUJE<small>5 kol do cíle – závod je volný!</small>',2.4);tone(880,0.12,0.1,'square');tone(1175,0.2,0.1,'square',0.12);
+  if(phase==='race'&&!player.dsq)showMsg('🛵↘ DERNA ODSTUPUJE<small>5 kol do cíle – závod je volný!</small>',2.4);tone(880,0.12,0.1,'square');tone(1175,0.2,0.1,'square',0.12);
   for(const R of active()){if(R.player)continue;R.attackT=0;R.pullT=0;R.frontT=0;R.lane=0.4+Math.random()*0.8;R.highLane=1.4+Math.random()*1.4;}}
 function keirinDSQ(R){if(R.dsq)return;R.dsq=true;R.out=true;R.outT=0;
-  if(R.player){showMsg('🟥 DISKVALIFIKACE<small>Předjel jsi derny dřív, než odstoupil</small>',3.6);tone(220,0.4,0.15,'sawtooth');tone(160,0.6,0.15,'sawtooth',0.25);if(ST)ST.dsq=true;}
-  else if(phase==='race')showMsg('🟥<small>'+R.name+' předjel derny – DSQ</small>',1.8);}
+  if(R.player){showMsg('🟥 DISKVALIFIKACE<small>Předjel jsi dernu dřív, než odstoupila</small>',3.6);tone(220,0.4,0.15,'sawtooth');tone(160,0.6,0.15,'sawtooth',0.25);if(ST)ST.dsq=true;}
+  else if(phase==='race')showMsg('🟥<small>'+R.name+' předjel dernu – DSQ</small>',1.8);}
 function keirinUpdate(dt){if(!KR)return;const D=DERNY;KR.gunT+=dt;
-  for(const h of HOLDERS){const u=h.userData;if(u.push<0)continue;u.push+=dt;const k=sm(0,0.32,u.push);surf(u.s+0.85*k,u.w,_kh);h.position.copy(_kh);h.rotation.x=0.12+0.5*k*(1-sm(0.6,1.5,u.push));}   // the holders shove and stay bent over, then walk off
-  if(KR.gunT>3.4&&HOLDERS.length)clearHolders();
   const al=active().filter(r=>!r.crashed&&!r.dsq);
   if(KR.lap1&&al.length&&Math.max(...al.map(r=>r.s))>=START_S+L0)KR.lap1=false;
   for(const R of riders)if(R.dsq&&!R.crashed){R.outT+=dt;if(R.outT>4.5&&R.model.g.visible&&!R.player)R.model.g.visible=false;}
   if(KR.free||!dernyOn())return;
   for(const R of al){const g=gapTo(R,D),dw=Math.abs(D.w-R.w);if(g>2.0)R.kBehind=true;
     if(R.kBehind&&!R.finished&&g<1.12&&g>-4&&dw>=0.45){keirinDSQ(R);continue;}   // front wheel past the leading edge of the derny's rear wheel
-    if(R===player&&R.kBehind&&g<3.3&&g>-4&&dw>0.32&&msgT<=0)showMsg('⚠️<small>Nepředjížděj derny – za jeho zadním kolem = DSQ!</small>',0.6);}
+    if(R===player&&R.kBehind&&g<3.3&&g>-4&&dw>0.32&&msgT<=0)showMsg('⚠️<small>Nepředjížděj dernu – za jejím zadním kolem = DSQ!</small>',0.6);}
   if(KR.lap1&&KR.gunT>2&&!KR.yellow&&!player.dsq&&!player.crashed){for(const o of al){if(o.draw<player.draw&&gapTo(player,o)<-1.0){KR.yellow=true;if(ST)ST.yellow=true;showMsg('🟨 ŽLUTÁ KARTA<small>V 1. kole se drží pořadí z losu – předjel jsi '+o.name+'</small>',2.8);tone(300,0.3,0.12,'square');break;}}}}
 function keirinPacedAI(R,dt){if(R.crashed)return;const D=DERNY;
   if(R.dsq||R.finished){R.power=120;R.targetW=TW-1;steerBot(R,dt,false);return;}
@@ -2521,13 +2720,15 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
 // ---------- loop ----------
 resetRiders();clearHolders();
-let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
-function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;
+let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
+let ldF=0;
+function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
   if(phase==='intro'){updateIntro(dt);placeModels(dt);updateBoss(dt);renderer.render(scene,camera);return;}
   if(phase==='countdown'&&mode==='keirin'){if(!paused)keirinPre(dt*TS);}
-  else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;beep(n<=0);showCount(n);if(n<=0){if(mode!=='kilo'){tone(2900,0.6,0.12,'sine');tone(3100,0.6,0.08,'sine');clearHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
+  else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;beep(n<=0);showCount(n);if(n<=0){if(mode!=='kilo'){tone(2900,0.6,0.12,'sine');tone(3100,0.6,0.08,'sine');releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
   if(GATE&&GATE.visible){const o=GATE.userData.open;if(o>0){GATE.userData.open=Math.min(1,o+dt*2.5);const k=GATE.userData.open;GATE.userData.arms.forEach((a,i)=>a.rotation.z=(i?1:-1)*k*1.3);if(phase==='race'&&raceTime>2.5)GATE.visible=false;}}
   if(paused){renderer.render(scene,camera);return;}
   if(keys.effUp)setEffort(effort+0.65*dt);if(keys.effDn)setEffort(effort-0.65*dt);
@@ -2552,7 +2753,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-las
     if(phase==='done'&&!resultsShown){finishWait+=dt;if(finishWait>3.5&&(!raceOpen()||finishWait>15)){resultsShown=true;startCeremony();}}
   }
   updateBoss(dt);updateRescue(dt);updateSlingUI(dt);placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
-requestAnimationFrame(frame);
+requestAnimationFrame(frame);if(window.__ld)window.__ld(.85);
 })();
 </script>
 </body>
