@@ -30,6 +30,13 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin>
 <style>
+#refBub{position:absolute;left:0;top:0;transform:translate(-16px,calc(-100% - 20px));background:#fffdf2;color:#111;font-size:26px;font-weight:900;padding:4px 14px;border-radius:16px;border:3px solid #111;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;z-index:5}
+#refBub::before,#refBub::after{content:"";position:absolute;width:0;height:0;border-style:solid}
+#refBub::before{left:6px;bottom:-23px;border-width:22px 18px 0 0;border-color:#111 transparent transparent transparent}
+#refBub::after{left:10px;bottom:-15px;border-width:14px 11px 0 0;border-color:#fffdf2 transparent transparent transparent}
+#refBub.fl{transform:translate(calc(-100% + 16px),calc(-100% - 20px))}
+#refBub.fl::before{left:auto;right:6px;border-width:22px 0 0 18px;border-color:#111 transparent transparent transparent}
+#refBub.fl::after{left:auto;right:10px;border-width:14px 0 0 11px;border-color:#fffdf2 transparent transparent transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#dfe3e2;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
 canvas#c{display:block;width:100vw;height:100vh}
 #hud{position:fixed;inset:0;pointer-events:none;display:none}
@@ -207,7 +214,7 @@ tr.me td{color:#ffd166;font-weight:800}
   </div>
   <div id="msg"></div>
   <div id="boss" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);max-width:220px;background:#fffdf2;color:#111;font-size:13px;font-weight:800;padding:6px 10px;border-radius:12px;border:2px solid #111;opacity:0;transition:opacity .2s;text-align:center;pointer-events:none;white-space:normal"></div>
-  <div id="refBub" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);background:#fffdf2;color:#111;font-size:26px;font-weight:900;padding:4px 14px;border-radius:14px;border:3px solid #111;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap"></div>
+  <div id="refBub"></div>
   <div id="pBadge" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:none;pointer-events:none;background:rgba(15,25,40,.75);color:#fff;font-size:12px;font-weight:800;padding:3px 8px 3px 3px;border-radius:14px;white-space:nowrap"><span style="display:inline-block;width:18px;height:18px;line-height:18px;border-radius:50%;background:#e63946;text-align:center;margin-right:5px">P</span>Parťák</div>
   <div id="sling" style="display:none;position:absolute;left:50%;bottom:120px;transform:translateX(-50%);text-align:center;pointer-events:none">
     <div style="width:124px;height:64px;position:relative;margin:0 auto;border-radius:64px 64px 0 0;background:conic-gradient(from -90deg at 50% 100%,#2b3038 0deg 70deg,#2fd36b 70deg 110deg,#2b3038 110deg 180deg,transparent 180deg);border:3px solid #0d0f12;border-bottom:none;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.5)">
@@ -2428,15 +2435,15 @@ function refCount(n){if(!REF||REF.st!=='stand')return;REF.n=n;REF.bub=n>0?0.85:1
 function refPath(){const L=(x,z,plat)=>{const v=JUDGES.localToWorld(new THREE.Vector3(x,0,z));v.y=plat?FLOOR_Y+0.45:FLOOR_Y;v.plat=plat;return v;};JUDGES.updateMatrixWorld();
   const a=L(1.88,4.35,false);const p=findPath(REF.pos,a,true);p.push(L(1.88,1.8,false),L(1.15,1.8,true),L(0.62,1.8,true));return p;}
 function updateRef(dt){if(!REF)return;const R=REF,r=R.r;r.t+=dt;R.t+=dt;
-  // speech bubble with the count over his head
-  const bb=$('refBub');if(R.bub>0&&(phase==='countdown'||phase==='race')){R.bub-=dt;r.head.getWorldPosition(_rb);const dist=_rb.distanceTo(camera.position);_rb.y+=0.38;_rb.project(camera);
-    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'JEĎTE! 🏁';bb.style.left=((_rb.x+1)/2*innerWidth)+'px';bb.style.top=((1-_rb.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
+  // comic speech bubble with the count, its tail pointing at his mouth (bubble leans towards the screen centre)
+  const bb=$('refBub');if(R.bub>0&&(phase==='countdown'||phase==='race')){R.bub-=dt;_rb.set(0,0.035,0.11);r.head.localToWorld(_rb);const dist=_rb.distanceTo(camera.position);_rb.project(camera);
+    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'JEĎTE! 🏁';bb.classList.toggle('fl',_rb.x>0.25);bb.style.left=((_rb.x+1)/2*innerWidth)+'px';bb.style.top=((1-_rb.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
   if(R.st==='sit')return;
   let T={},k=1-Math.exp(-dt*8),moved=0;
   if(R.st==='stand'){   // flag up for the count, a little shake on every number
-    const up=R.n<=3;T={a0x:up?-2.85+Math.sin(R.t*14)*0.12*Math.max(0,1-R.t*2):-0.2,a0z:0.12,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25,hx:-0.08,lean:-0.03};}
+    const up=R.n<=3;T={a0x:up?-2.85+Math.sin(R.t*14)*0.12*Math.max(0,1-R.t*2):-0.2,a0z:0.12,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25,hx:-0.08,lean:-0.03,mo:up&&R.t<0.45?1:0};}
   else if(R.st==='wait'){   // flag swept down, then off he goes
-    T={a0x:-1.1+Math.min(1,R.t*2)*0.9,a0z:0.1,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25};
+    T={a0x:-1.1+Math.min(1,R.t*2)*0.9,a0z:0.1,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25,mo:R.t<0.7?1.25:0,hx:R.t<0.7?-0.15:0};
     if(R.t>1.6){R.st='walk';R.path=refPath();R.flag.rotation.x=-2.9;}}
   else if(R.st==='walk'){const tg=R.path[0],dx=tg.x-R.pos.x,dz=tg.z-R.pos.z,L=Math.hypot(dx,dz);let sp=1.3;
     // yield to the holders walking off the track / to the stairwell – never walk through anyone
