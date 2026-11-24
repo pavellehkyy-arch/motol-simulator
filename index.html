@@ -37,10 +37,10 @@ canvas#c{display:block;width:100vw;height:100vh}
 .big{font-size:24px;font-weight:800;line-height:1.05}
 .mid{font-size:14px;font-weight:700}
 .small{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.06em}
-#map{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:min(30vw,190px);height:64px;border-radius:10px;background:rgba(10,20,35,.45)}
+
 #energy{width:100%;height:7px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden;margin-top:3px}
 #energy>div{height:100%;background:#4dde88;width:100%}
-#draft{position:absolute;top:80px;left:50%;transform:translateX(-50%);font-weight:800;font-size:13px;color:#7cf7b0;text-shadow:0 1px 4px rgba(0,0,0,.7);opacity:0;transition:opacity .2s;white-space:nowrap}
+#draft{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-weight:800;font-size:13px;color:#7cf7b0;text-shadow:0 1px 4px rgba(0,0,0,.7);opacity:0;transition:opacity .2s;white-space:nowrap}
 #msg{position:absolute;top:27%;left:0;right:0;text-align:center;font-size:44px;font-weight:900;text-shadow:0 3px 12px rgba(0,0,0,.6);padding:0 10px}
 #msg small{display:block;font-size:18px;font-weight:700;margin-top:6px}
 #ctl{position:fixed;left:0;right:0;bottom:0;padding:10px 12px 16px;display:none;justify-content:space-between;align-items:flex-end;pointer-events:none}
@@ -120,20 +120,12 @@ tr.me td{color:#ffd166;font-weight:800}
 #flash{position:fixed;inset:0;background:#fff;pointer-events:none;opacity:0;z-index:14}
 #flash.on{animation:flash .5s ease-out}
 @keyframes flash{from{opacity:.75}to{opacity:0}}
-/* ---- coach radio ---- */
-#radio{position:fixed;top:102px;left:50%;transform:translate(-50%,-12px);display:flex;gap:9px;align-items:center;max-width:min(92vw,460px);background:rgba(255,253,242,.96);color:#141414;border-radius:14px;padding:7px 12px 8px 8px;box-shadow:0 6px 22px rgba(0,0,0,.35);border:2px solid #141414;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:12}
-#radio.on{opacity:1;transform:translate(-50%,0)}
-#radio.hot{border-color:#e63946;box-shadow:0 0 0 3px rgba(230,57,70,.35),0 6px 22px rgba(0,0,0,.35)}
-#radio.good{border-color:#2fb35e}
-#radio .rface{font-size:28px;line-height:1}
-#radio .rlbl{font-size:9px;font-weight:900;letter-spacing:.08em;opacity:.55}
-#radioTxt{font-size:14px;font-weight:800;line-height:1.25}
 /* ---- big screens / mouse ---- */
 @media (min-width:900px) and (hover:hover){
   .big{font-size:34px}.mid{font-size:17px}.small{font-size:12px}
   #tl,#tr{min-width:150px;padding:10px 14px}#tl{top:14px;left:14px}#tr{top:14px;right:14px}
-  #map{width:300px;height:100px;top:14px}#radio{top:150px;max-width:560px}#radioTxt{font-size:18px}#radio .rface{font-size:36px}
-  #msg{font-size:56px}#msg small{font-size:22px}#draft{font-size:16px;top:122px}
+  
+  #msg{font-size:56px}#msg small{font-size:22px}#draft{font-size:16px;top:20px}
   #eff{height:min(52vh,380px);width:72px}#hbar{width:220px;height:28px}
   #ctl{padding:14px 20px 54px}
   .mgrid{grid-template-columns:repeat(4,1fr)}.mcard{max-width:880px}.mode{padding:30px 10px 26px}
@@ -150,16 +142,13 @@ tr.me td{color:#ffd166;font-weight:800}
     <div class="mid"><span id="pwr">0</span> W · <span id="rpm">0</span> rpm</div>
     <div id="energy"><div id="en"></div></div>
   </div>
-  <canvas id="map"></canvas>
   <div id="draft">V HÁKU</div>
   <div id="keyHelp" style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:700;background:rgba(10,20,35,.6);padding:6px 12px;border-radius:8px;white-space:nowrap"><kbd>A</kbd><kbd>D</kbd> výška · <kbd>W</kbd><kbd>S</kbd> / kolečko síla · <kbd>1</kbd>–<kbd>4</kbd> volno/tempo/naplno/sprint · <kbd>Shift</kbd> sprint · <kbd>Q</kbd> ohlédnutí · <kbd>C</kbd> kamera · <kbd>P</kbd> pauza</div>
   <div id="tr" class="panel">
     <div class="small" id="posLbl">Pořadí</div><div class="big" id="pos">1/8</div>
     <div class="mid" id="lap">Kolo 1/10</div>
     <div class="mid" id="time">0:00.0</div>
-    <div class="mid" id="alt" style="margin-top:2px">⛰️ 0,0 m</div><div id="altBar" style="height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-top:2px"><div id="altFill" style="height:100%;width:0;background:#7cc7ff;margin-left:auto"></div></div>
   </div>
-  <div id="dive" style="position:absolute;bottom:34%;left:50%;transform:translateX(-50%);font-weight:900;font-size:17px;text-shadow:0 2px 6px rgba(0,0,0,.8);opacity:0;transition:opacity .15s;white-space:nowrap;pointer-events:none"></div>
   <div id="msg"></div>
   <div id="boss" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);max-width:220px;background:#fffdf2;color:#111;font-size:13px;font-weight:800;padding:6px 10px;border-radius:12px;border:2px solid #111;opacity:0;transition:opacity .2s;text-align:center;pointer-events:none;white-space:normal"></div>
   <div id="pBadge" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:none;pointer-events:none;background:rgba(15,25,40,.75);color:#fff;font-size:12px;font-weight:800;padding:3px 8px 3px 3px;border-radius:14px;white-space:nowrap"><span style="display:inline-block;width:18px;height:18px;line-height:18px;border-radius:50%;background:#e63946;text-align:center;margin-right:5px">P</span>Parťák</div>
@@ -202,7 +191,6 @@ tr.me td{color:#ffd166;font-weight:800}
 <div id="wipe"><i></i><i></i><i></i></div>
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><div id="introSkip">ťukni pro přeskočení</div></div>
 <div id="count"></div><div id="flash"></div>
-<div id="radio"><div class="rface">🧔</div><div><div class="rlbl">ŠÉF · VYSÍLAČKA</div><div id="radioTxt"></div></div></div>
 
 <div id="ceremony" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:12px 14px 18px;pointer-events:none;text-align:center">
   <div class="panel" style="display:inline-block;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
@@ -380,8 +368,8 @@ const holePath=()=>new THREE.Path(STAIR.corners.map(([x,z])=>new THREE.Vector2(x
  const pos=[],idx=[],uv=[];let n=0;const o1=BAND*Math.cos(8*deg)-0.02,o2=o1+1.1;
  for(let s=0;s<=L0+0.01;s+=0.5){const f=frameAt(s);pos.push(f.px-f.nx*o1,INF_Y+0.014,f.pz-f.nz*o1,f.px-f.nx*o2,INF_Y+0.014,f.pz-f.nz*o2);uv.push(0,s/4,1,s/4);if(n>0){const a=(n-1)*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}n++;}
  const ag=new THREE.BufferGeometry();ag.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));ag.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));ag.setIndex(idx);ag.computeVertexNormals();
- const ac=mkCanvas(128,256),acg=ac.getContext('2d');acg.fillStyle='#d9b680';acg.fillRect(0,0,128,256);
- for(let x=0;x<128;x+=8){acg.fillStyle='hsl('+(31+Math.random()*7)+','+(42+Math.random()*14)+'%,'+(64+Math.random()*12)+'%)';acg.fillRect(x,0,8,256);acg.fillStyle='rgba(110,70,35,.25)';acg.fillRect(x,0,1,256);let y=Math.random()*256;acg.fillStyle='rgba(100,65,30,.45)';acg.fillRect(x,y,8,1.5);}
+ const ac=mkCanvas(128,256),acg=ac.getContext('2d');acg.fillStyle='#b88a55';acg.fillRect(0,0,128,256);
+ for(let x=0;x<128;x+=8){acg.fillStyle='hsl('+(29+Math.random()*6)+','+(40+Math.random()*10)+'%,'+(53+Math.random()*9)+'%)';acg.fillRect(x,0,8,256);acg.fillStyle='rgba(110,70,35,.25)';acg.fillRect(x,0,1,256);let y=Math.random()*256;acg.fillStyle='rgba(100,65,30,.45)';acg.fillRect(x,y,8,1.5);}
  acg.fillStyle='rgba(0,0,0,.18)';acg.fillRect(124,0,4,256);
  const at=new THREE.CanvasTexture(ac);at.wrapT=THREE.RepeatWrapping;at.anisotropy=MAXANI;
  scene.add(new THREE.Mesh(ag,new THREE.MeshPhongMaterial({map:at,side:THREE.DoubleSide,specular:0x181512,shininess:20})));}
@@ -1099,16 +1087,6 @@ function updateCamera(dt){
   const bf=camera.userData.baseFov||62;if(Math.abs(camera.fov-(bf+fovK))>0.05){camera.fov=bf+fovK;camera.updateProjectionMatrix();}
 }
 
-// minimap
-const map=$('map'),mg=map.getContext('2d');let mapW=0,mapH=0,mapSc=1;
-function setupMap(){const dpr=Math.min(devicePixelRatio||1,2);mapW=map.clientWidth*dpr;mapH=map.clientHeight*dpr;map.width=mapW;map.height=mapH;mapSc=Math.min(mapW/(HL-2),mapH/(2*HW-2));}
-function mp(s,w){surf(s,w,_pos);return [mapW/2+_pos.x*mapSc,mapH/2+_pos.z*mapSc];}
-function drawMap(){mg.clearRect(0,0,mapW,mapH);mg.lineWidth=6*mapSc*2;mg.strokeStyle='#e0c08c';mg.beginPath();for(let i=0;i<=80;i++){const p=mp(i/80*L0,2);i?mg.lineTo(p[0],p[1]):mg.moveTo(p[0],p[1]);}mg.closePath();mg.stroke();
-  const fl=mp(SF,0),fl2=mp(SF,TW);mg.strokeStyle='#111';mg.lineWidth=2;mg.beginPath();mg.moveTo(fl[0],fl[1]);mg.lineTo(fl2[0],fl2[1]);mg.stroke();
-  const lastE=mode==='elim'&&EL&&EL.alive.length>2?EL.alive.reduce((a,b)=>a.s<b.s?a:b):null;
-  for(const R of active()){const p=mp(R.s,R.w);mg.globalAlpha=R.out?0.35:1;mg.fillStyle=R===player?'#e63946':hex(R.jersey);mg.beginPath();mg.arc(p[0],p[1],(R===player?4.5:3)*(mapW/190),0,7);mg.fill();if(R===player){mg.strokeStyle='#fff';mg.lineWidth=1.5;mg.stroke();}
-    if(R===lastE){mg.strokeStyle='#ff2020';mg.lineWidth=2;mg.beginPath();mg.arc(p[0],p[1],6*(mapW/190),0,7);mg.stroke();}}mg.globalAlpha=1;}
-
 const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(1);};
 let hudT=0;
 function currentLap(R){return clamp(Math.floor((R.s-START_S)/L0)+1,1,Math.ceil(LAPS));}
@@ -1122,13 +1100,8 @@ function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
   else{$('posLbl').textContent='Mezičas';$('pos').textContent=splits.length?fmt(splits[splits.length-1]):'—';}
   if(mode!=='elim')$('pos').style.color='';
   $('lap').textContent=R.finished?'CÍL':mode==='elim'&&EL?(R.out?'VYŘAZEN':nextElimLine(R.s)>=FIN-0.5?'FINÁLE · kolo '+currentLap(R)+'/'+Math.ceil(LAPS):EL.crossed.has(R)?'✅ v bezpečí · kolo '+currentLap(R):(R.s<elimLine(0)?'Neutrál · ':'')+'Kolo '+currentLap(R)+' · vyřazení za '+Math.max(1,Math.ceil((nextElimLine(R.s)-R.s)/L0))):mode==='madison'?'Kolo '+currentLap(R)+'/'+LAPS+' · sprint za '+Math.max(1,Math.ceil((nextSprintLine(R.s)-R.s)/L0)):mode==='kilo'?'Zbývá '+Math.max(0,Math.round(FIN-R.s))+' m':'Kolo '+currentLap(R)+'/'+LAPS;$('time').textContent=fmt(R.finished?R.time:raceTime);
-  {$('alt').textContent=(R.gAcc>0.5?'⬇️ ':R.gAcc<-0.5?'⬆️ ':'⛰️ ')+Math.max(0,surfY(R.s,R.w)).toFixed(1).replace('.',',')+' m';$('altFill').style.width=clamp(surfY(R.s,R.w)/3.6*100,0,100)+'%';
-   const dv=$('dive');if(!R.crashed){const g=R.diveGain||0;
-     if(R.gAcc>0.6&&g>1.5){dv.style.opacity=1;dv.style.color='#7cf7b0';dv.textContent='⬇️ SJEZD +'+Math.round(g)+' km/h';}
-     else if(R.gAcc<-0.6&&g<-1.5){dv.style.opacity=1;dv.style.color='#ffd166';dv.textContent='⬆️ NABÍRÁŠ VÝŠKU · '+Math.round(g)+' km/h do zásoby';}
-     else dv.style.opacity=0;}}
   const dr=$('draft');if(R.draft>0.08&&!R.crashed){dr.style.opacity=1;dr.textContent=(R.follow?'🔗 Držíš kolo: '+R.follow.name+(R.follow.energy<35?' (unavený!)':'')+' · ':'V HÁKU ')+'−'+Math.round(R.draft*100)+' % odporu'+(R.eRate>0.03?' · ⚡+'+R.eRate.toFixed(1)+' %/s':'');}else dr.style.opacity=0;
-  drawMap();}
+}
 
 function bestKilo(){try{return parseFloat(localStorage.getItem('motol_kilo_pb'))||0;}catch(e){return 0;}}
 function standings(){const key=r=>r.crashed?2e9+(r.player?1:0):(r.finished?r.time:1e9-r.s);return active().slice().sort((a,b)=>key(a)-key(b));}
@@ -1149,7 +1122,7 @@ function makeStanding(R,rank){const g=new THREE.Group();const KM2=kitMats(R.team
   return g;}
 let cerObjs=[],confetti=null,cerT=0;const _cp=new THREE.Vector3(),_cl=new THREE.Vector3();
 function clearCeremony(){if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
-function startCeremony(){$('radio').classList.remove('on');$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('dive').style.opacity=0;$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
+function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
   if(mode==='kilo'){const pb=bestKilo();player.isPB=player.finished&&(!pb||player.time<pb);}
   showResults(false);phase='ceremony';cerT=0;clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;
   const E=earnedCredits();lastEarned=E.n;const tot=addVK(E.n);
@@ -1228,49 +1201,64 @@ function animCoach(dt,C){C=C||COACH;if(!C)return;C.t+=dt;const t=C.t,H=C.head;
     H.userData['brow-1'].rotation.z=0.15;H.userData['brow1'].rotation.z=-0.15;H.userData.mouth.rotation.z=PI;}
   else if(C.mood==='watch'){for(const a of C.arms){a.piv.rotation.x=-1.25;a.piv.rotation.z=-a.sx*0.35;a.el.rotation.x=-1.75;}   // binoculars to the eyes
     H.rotation.y=C.yaw;H.rotation.x=0.12;C.g.position.y=C.baseY;H.userData['brow-1'].rotation.z=-0.3;H.userData['brow1'].rotation.z=0.3;H.userData.mouth.rotation.z=0;}
-  else if(C.mood==='throw'){const k=clamp(C.t/0.6,0,1);const a=C.arms[1];a.piv.rotation.x=-3.0+k*2.6;a.piv.rotation.z=0.2;a.el.rotation.x=-1.2+k*1.1;C.arms[0].piv.rotation.x=-0.6;C.arms[0].el.rotation.x=-0.8;
+  else if(C.mood==='throw'){const k=sm(0.25,0.6,C.t);const a=C.arms[1];a.piv.rotation.x=-3.0+k*2.6;a.piv.rotation.z=0.2;a.el.rotation.x=-1.2+k*1.1;C.arms[0].piv.rotation.x=-0.6;C.arms[0].el.rotation.x=-0.8;
     H.rotation.y=C.yaw;C.g.position.y=C.baseY;face=0xe0624c;H.userData.mouth.rotation.z=0;}
   else{for(const a of C.arms){a.piv.rotation.x=-0.35;a.piv.rotation.z=a.sx*0.55;a.el.rotation.x=-1.9;}   // hands on hips
     H.rotation.y=Math.sin(t*0.7)*0.3;H.rotation.x=0;C.g.position.y=C.baseY;H.userData['brow-1'].rotation.z=-0.15;H.userData['brow1'].rotation.z=0.15;H.userData.mouth.rotation.z=0;}
-  C.bino.visible=C.mood==='watch';C.beer.visible=C.mood==='throw'&&C.t<0.45;
+  C.bino.visible=C.mood==='watch';C.beer.visible=false;
   C.skin.color.lerp(new THREE.Color(face),Math.min(1,dt*4));}
 
 // ---------- the boss during the race: shouting + beer cans that can bring riders down ----------
-let cans=[],yellT=6,throwT=14,bossMsgT=0;const canGeo=new THREE.CylinderGeometry(0.035,0.035,0.17,10),canMat=new THREE.MeshLambertMaterial({color:0x2f6b2a});
-const foamMat=new THREE.MeshBasicMaterial({color:0xf6e7a6,transparent:true,opacity:0.8,depthWrite:false}),warnMat=new THREE.MeshBasicMaterial({color:0xffd166,transparent:true,opacity:0.7,depthWrite:false,side:THREE.DoubleSide});
+let cans=[],drops=[],yellT=6,throwT=14,bossMsgT=0;
+const beerSpriteMat=(()=>{const c=mkCanvas(128,128),g=c.getContext('2d');const gr=g.createRadialGradient(64,64,10,64,64,64);gr.addColorStop(0,'rgba(255,230,120,.85)');gr.addColorStop(0.55,'rgba(255,200,60,.35)');gr.addColorStop(1,'rgba(255,200,60,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
+  g.font='64px system-ui,"Apple Color Emoji","Segoe UI Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText('🍺',64,68);return new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true});})();
+const glassMat=new THREE.MeshPhongMaterial({color:0x2f8a2a,specular:0xffffff,shininess:110,transparent:true,opacity:0.92}),labelMat=new THREE.MeshLambertMaterial({color:0xf2c230}),capMat=mat(0xd9d9d9);
+function makeBottle(){const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.15,12),glassMat);body.position.y=-0.03;g.add(body);
+  const sh=new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.04,0.05,12),glassMat);sh.position.y=0.07;g.add(sh);
+  const nk=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.016,0.05,10),glassMat);nk.position.y=0.115;g.add(nk);
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.012,10),capMat);cap.position.y=0.145;g.add(cap);
+  const lab=new THREE.Mesh(new THREE.CylinderGeometry(0.0415,0.0415,0.06,12),labelMat);lab.position.y=-0.03;g.add(lab);
+  g.scale.setScalar(2.4);
+  const sp=new THREE.Sprite(beerSpriteMat);sp.scale.set(0.6,0.6,1);g.add(sp);g.userData.sp=sp;return g;}
+const foamMat=new THREE.MeshBasicMaterial({color:0xf6e7a6,transparent:true,opacity:0.85,depthWrite:false}),warnMat=new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,opacity:0.8,depthWrite:false,side:THREE.DoubleSide});
+const dropGeo=new THREE.SphereGeometry(0.03,6,4),dropMat=new THREE.MeshBasicMaterial({color:0xfff2b8,transparent:true,opacity:0.9,depthWrite:false});
+function spawnDrop(p,v,life){if(drops.length>120)return;const m=new THREE.Mesh(dropGeo,dropMat.clone());m.position.copy(p);scene.add(m);drops.push({m,v,life,t:0});}
+function updateDrops(dt){for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.t+=dt;d.v.y-=9.81*dt;d.m.position.addScaledVector(d.v,dt);d.m.material.opacity=0.9*(1-d.t/d.life);if(d.t>d.life||d.m.position.y<-0.3){scene.remove(d.m);drops.splice(i,1);}}}
+function smash(){tone(1900,0.12,0.05,'triangle');tone(2600,0.1,0.04,'triangle',0.05);if(!actx||muted)return;try{const len=0.4,b=actx.createBuffer(1,actx.sampleRate*len,actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,6);
+  const s=actx.createBufferSource(),g=actx.createGain(),fl=actx.createBiquadFilter();fl.type='highpass';fl.frequency.value=2500;g.gain.value=0.35;s.buffer=b;s.connect(fl);fl.connect(g);g.connect(actx.destination);s.start();}catch(e){}}
 function bossSay(txt,angry){$('boss').textContent=txt;bossMsgT=3.6;if(RCOACH&&angry){RCOACH.mood='angry';RCOACH.t=0;}}
-function bossLine(){const R=player,toGo=FIN-R.s;if(R.finished||R.crashed)return null;
-  let lead=true;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0&&g<10)lead=false;}
-  let front=-1e9;for(const o of riders)if(!o.crashed&&o.model.g.visible)front=Math.max(front,o.s);
-  if(mode==='kilo')return pick(['Zrychli!','Makej, ručička letí!','Nepovoluj!','Šlápni do toho!','To je tempo jak na procházce!']);
-  if(toGo<L0*0.9)return pick(['TEĎ! JEĎ!','Sprint, sprint, sprint!','Dej tam všechno!']);
-  if(R.w<-0.05)return 'Vypadni z modrý!';
-  if(front-R.s>25)return pick(['Dojeď je, ty lemro!','Co tam vzadu děláš?! Zrychli!','Ujíždí ti to! Šlápni do toho!']);
-  if(lead&&R.draft<0.1)return pick(['Co děláš na špici?! Schovej se!','Netahej jim to zadarmo!','Za kolo, sakra!']);
-  if(R.energy<20)return pick(['Ty už jsi uvařenej?!','Dýchej a drž kolo!']);
-  if(toGo<L0*2.2)return pick(['Jeď nahoru, připrav si to!','Pozor na pozici, buď vepředu!','Hlídej si Tufo!']);
-  return pick(['Drž kolo!','Hlavně se nenech zavřít!','Co to je za tempo?!','Makej!','Nespi!']);}
-function throwBeer(){const cands=riders.filter(r=>!r.crashed&&!r.finished&&!r.resting&&r.model.g.visible&&Math.abs(gapTo({s:RCOACH.s},r))<45);if(!cands.length)return false;
-  const tgt=cands.includes(player)&&Math.random()<0.7?player:pick(cands);const T=1.25,ls=tgt.s+tgt.v*T+4+Math.random()*4,lw=clamp(tgt.w+(Math.random()-.5)*0.5,0.15,TW-0.6);
-  const st=new THREE.Vector3();RCOACH.arms[1].el.getWorldPosition(st);
-  const m=new THREE.Mesh(canGeo,canMat);m.position.copy(st);scene.add(m);
-  const warn=new THREE.Mesh(new THREE.RingGeometry(0.25,0.4,20),warnMat);scene.add(warn);
-  cans.push({s:ls,w:lw,vw:0,t:-T,T,from:st.clone(),mesh:m,warn,foam:null,tgt,dodged:false});
-  RCOACH.mood='throw';RCOACH.t=0;$('boss').textContent=tgt===player?pick(['Na, chlastej!','Chyť, ty lemro!','Tumáš!']):pick(['Na, '+tgt.name+'!','Tumáš, '+tgt.name+'!']);bossMsgT=2.2;return true;}
-const _cv=new THREE.Vector3(),_cn=new THREE.Vector3();
-function updateCans(dt){for(let i=cans.length-1;i>=0;i--){const c=cans[i];c.t+=dt;const f=frameAt(c.s);const b=c.w>=0?f.b:8*deg;surf(c.s,c.w,_cv);
+const WIND=0.45,FLY=2.4;   // wind-up in the boss's hand, then a long high lob that lands well ahead of the target
+function throwBeer(){const cands=riders.filter(r=>{if(r.crashed||r.finished||r.resting||!r.model.g.visible)return false;const g=gapTo(r,{s:RCOACH.s});return g>20&&g<70;});if(!cands.length)return false;
+  const tgt=cands.includes(player)&&Math.random()<0.7?player:pick(cands);const ls=tgt.s+tgt.v*(WIND+FLY)+14+Math.random()*8,lw=clamp(tgt.w+(Math.random()-.5)*0.6,0.15,TW-0.6);
+  const m=makeBottle();scene.add(m);
+  const shadow=new THREE.Mesh(new THREE.CircleGeometry(0.3,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0,depthWrite:false}));scene.add(shadow);
+  const warn=new THREE.Group();const wr=new THREE.Mesh(new THREE.RingGeometry(0.55,0.72,32),warnMat.clone()),wd=new THREE.Mesh(new THREE.CircleGeometry(0.55,32),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,opacity:0.22,depthWrite:false}));warn.add(wr,wd);warn.material=wr.material;scene.add(warn);
+  cans.push({s:ls,w:lw,vw:0,t:-(WIND+FLY),from:new THREE.Vector3(),mesh:m,shadow,warn,foam:null,tgt,dodged:false,spin:7+Math.random()*4,trailT:0});
+  RCOACH.mood='throw';RCOACH.t=0;$('boss').textContent=tgt===player?pick(['Na, chlastej!','Chyť, ty lemro!','Tumáš!']):pick(['Na, '+tgt.name+'!','Tumáš, '+tgt.name+'!']);bossMsgT=2.4;
+  if(tgt===player&&msgT<=0)showMsg('<small>🍺 Šéf hází pivo – sleduj červený kruh!</small>',1.6);return true;}
+const _cv=new THREE.Vector3(),_cn=new THREE.Vector3(),_ch=new THREE.Vector3();
+function updateCans(dt){updateDrops(dt);for(let i=cans.length-1;i>=0;i--){const c=cans[i];c.t+=dt;const f=frameAt(c.s);const b=c.w>=0?f.b:8*deg;surf(c.s,c.w,_cv);
     _cn.set(-f.nx*Math.sin(b),Math.cos(b),-f.nz*Math.sin(b));
-    c.warn.position.copy(_cv).addScaledVector(_cn,0.02);c.warn.lookAt(_cv.x+_cn.x,_cv.y+_cn.y,_cv.z+_cn.z);c.warn.visible=c.t<0;
-    if(c.t<0){const k=1+c.t/c.T;c.mesh.position.lerpVectors(c.from,_cv,k);c.mesh.position.y+=Math.sin(k*PI)*3.2;c.mesh.rotation.x+=dt*12;c.mesh.rotation.z+=dt*7;continue;}
-    if(!c.foam){c.foam=new THREE.Mesh(new THREE.CircleGeometry(0.45,16),foamMat);scene.add(c.foam);tone(900,0.08,0.08,'square');}
+    const orient=(o,lift)=>{o.position.copy(_cv).addScaledVector(_cn,lift);o.lookAt(_cv.x+_cn.x,_cv.y+_cn.y,_cv.z+_cn.z);};
+    if(c.t<-FLY){RCOACH.arms[1].el.updateMatrixWorld();_ch.set(0,-0.34,0);RCOACH.arms[1].el.localToWorld(_ch);c.mesh.position.copy(_ch);c.from.copy(_ch);c.mesh.rotation.set(0.3,0,0);   // still in the boss's hand
+      c.warn.visible=false;c.shadow.visible=false;continue;}
+    if(c.t<0){const k=1+c.t/FLY;                        // in the air: high arc, spinning, dripping foam
+      c.mesh.position.lerpVectors(c.from,_cv,k);c.mesh.position.y+=Math.sin(k*PI)*6.0;c.mesh.rotation.x+=dt*c.spin;c.mesh.rotation.z+=dt*c.spin*0.4;
+      c.trailT-=dt;if(c.trailT<=0){c.trailT=0.05;spawnDrop(c.mesh.position,new THREE.Vector3((Math.random()-.5)*0.6,-0.3,(Math.random()-.5)*0.6),0.7);}
+      orient(c.warn,0.02);c.warn.visible=true;c.warn.scale.setScalar((1+0.18*Math.sin(c.t*14))*(1.6-0.6*k));c.warn.material.opacity=0.45+0.45*k;
+      orient(c.shadow,0.015);c.shadow.visible=true;c.shadow.scale.setScalar(0.5+0.9*k);c.shadow.material.opacity=0.15+0.4*k;continue;}
+    if(!c.foam){c.foam=new THREE.Mesh(new THREE.CircleGeometry(0.5,20),foamMat.clone());scene.add(c.foam);c.warn.visible=false;c.shadow.visible=false;smash();
+      for(let q=0;q<26;q++){const a=Math.random()*2*PI,sp=1+Math.random()*2.5;spawnDrop(_cv.clone().addScaledVector(_cn,0.05),new THREE.Vector3(Math.cos(a)*sp,2+Math.random()*2.5,Math.sin(a)*sp),0.9);}}
     c.vw-=9.81*Math.sin(b)*0.25*dt;c.vw*=Math.exp(-0.8*dt);c.w=Math.max(-BAND-0.3,c.w+c.vw*dt);
-    surf(c.s,c.w,_cv);c.mesh.position.copy(_cv).addScaledVector(_cn,0.035);c.mesh.rotation.set(0,Math.atan2(f.fx,f.fz),PI/2);c.mesh.rotateX(c.t*6);
-    c.foam.position.copy(_cv).addScaledVector(_cn,0.012);c.foam.lookAt(_cv.x+_cn.x,_cv.y+_cn.y,_cv.z+_cn.z);
+    surf(c.s,c.w,_cv);c.mesh.userData.sp.visible=false;c.mesh.position.copy(_cv).addScaledVector(_cn,0.07);c.mesh.rotation.set(0,Math.atan2(f.fx,f.fz),PI/2);c.mesh.rotateX(c.t*6);
+    orient(c.foam,0.012);c.foam.scale.setScalar(Math.min(1.4,0.3+c.t*4));c.foam.material.opacity=0.85*Math.max(0,1-c.t/7);
     if(phase==='race')for(const R of riders){if(R.crashed||R.finished||!R.model.g.visible)continue;const g=gapTo(R,c),dw=Math.abs(R.w-c.w);
       if(Math.abs(g)<0.55&&dw<0.3&&R.v>3){crashRider(R,'beer');if(R!==player&&!player.crashed)showMsg('<small>🍺 '+R.name+' to dostal pivem!</small>',1.6);}
       else if(R===player&&!c.dodged&&g<-0.6&&g>-3&&dw<1.6){c.dodged=true;if(c.tgt===player){raceBonus+=5;showMsg('<small>🍺 Uhnul jsi pivu! +5 🎖️</small>',1.2);}}}
-    if(c.t>7||c.w<=-BAND-0.3){scene.remove(c.mesh);c.foam&&scene.remove(c.foam);scene.remove(c.warn);cans.splice(i,1);}}}
-function clearCans(){for(const c of cans){scene.remove(c.mesh);c.foam&&scene.remove(c.foam);scene.remove(c.warn);}cans=[];}
+    if(c.t>7||c.w<=-BAND-0.3){removeCan(c);cans.splice(i,1);}}}
+function removeCan(c){scene.remove(c.mesh);c.foam&&scene.remove(c.foam);scene.remove(c.warn);scene.remove(c.shadow);}
+function clearCans(){for(const c of cans)removeCan(c);cans=[];for(const d of drops)scene.remove(d.m);drops=[];}
 function updateBoss(dt){if(!RCOACH)return;RCOACH.g.updateMatrixWorld();
   // look towards the player
   const wp=new THREE.Vector3();player.model.g.getWorldPosition(wp);const cp=new THREE.Vector3();RCOACH.g.getWorldPosition(cp);
@@ -1283,7 +1271,11 @@ function updateBoss(dt){if(!RCOACH)return;RCOACH.g.updateMatrixWorld();
     if(on){bb.style.left=((hp.x+1)/2*innerWidth)+'px';bb.style.top=((1-hp.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(17-dist*0.12,10,16)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
   if(phase!=='race')return;
   const gb=gapTo(player,{s:RCOACH.s});const near=gb>6&&gb<55;   // boss is ahead of us, in view
-  throwT-=dt;if((mode==='scratch'||mode==='kilo')&&raceTime>12&&throwT<=0&&gb>14&&gb<40){throwT=throwBeer()?14+Math.random()*16:1;}
+  if(!near)RAD.pass=false;
+  else if(!RAD.pass&&RAD.best&&!player.crashed&&!player.finished&&!player.out){const a=RAD.best;RAD.pass=true;RAD.said[a.k]=RAD.t;const s=shortOf(a);
+    bossSay(s,!a.good);if(a.good){RCOACH.mood='happy';RCOACH.t=0;}if(!muted)tone(a.p>=2.5?220:180,0.18,0.06,'sawtooth');
+    if(TS>1)(window.__log=window.__log||[]).push(Math.round(raceTime)+'s '+s);}
+  throwT-=dt;if((mode==='scratch'||mode==='kilo')&&raceTime>12&&throwT<=0&&gb>32&&gb<62){throwT=throwBeer()?14+Math.random()*16:1;}
   updateCans(dt);}
 
 // ---------- ELBOW: a short hard shove into the rider beside you ----------
@@ -1553,20 +1545,31 @@ const names=a=>{const n=a.filter(o=>!o.player).map(o=>o.name);return n.length<=2
 const sec=x=>x.toFixed(1).replace('.',',')+' s';
 const lapsTxt=x=>{const n=Math.max(1,Math.round(x));return n+(n===1?' kolo':n<5?' kola':' kol');};
 let RAD={t:0,show:0,prio:-1,key:'',said:{},evalT:0,frontT:0,trA:null,trB:null,lastSplit:-1,lastElimK:-1};
-function radioReset(){RAD={t:0,show:0,prio:-1,key:'',said:{},evalT:0,frontT:0,trA:null,trB:null,lastSplit:-1,lastElimK:-1};const r=$('radio');r.classList.remove('on','hot','good');}
-function radioSay(a){RAD.show=a.p>=2?4.2:3.6;RAD.prio=a.p;RAD.key=a.k;RAD.said[a.k]=RAD.t;RAD.last=RAD.t;
-  const r=$('radio');$('radioTxt').textContent=a.txt;r.classList.toggle('hot',a.p>=2.5);r.classList.toggle('good',!!a.good);r.classList.add('on');
-  if(!muted){if(a.p>=2.5)tone(988,0.07,0.05,'square'),tone(988,0.07,0.05,'square',0.1);else tone(740,0.06,0.04,'square');}
-  if(TS>1)(window.__log=window.__log||[]).push(Math.round(raceTime)+'s '+a.txt);
-  $('boss').textContent=a.txt;bossMsgT=3.6;if(RCOACH&&a.p>=2){RCOACH.mood=a.good?'happy':'angry';RCOACH.t=0;}
-  if(ST){ST.advice=(ST.advice||0)+1;ST.lastAdv={k:a.k,t:raceTime,w:player.w,e:effort,pos:null};}}
+function radioReset(){RAD={t:0,said:{},evalT:0,frontT:0,trA:null,trB:null,lastSplit:-1,lastElimK:-1,best:null,pass:false};}
+// short shouts for the boss on the banking (full sentences stay in the code as the reasoning)
+const SHORT={band:'Vyjeď z modrý!',kstart:'Z místa naplno!',kline:'Dolů k černý!',keff:'Nepovoluj!',kempty:'Drž kadenci!',klast:'Poslední kolo! Až za čáru!',
+  efin:'Nevoď to! Sedni mu na kolo!',efin2:'Na kolo a pusť to z klopení!',esafe:'Jsi přes čáru, dýchej!',elast:'JSI POSLEDNÍ! Předjeď ho!',e2nd:'Zavři dveře dole!',e3rd:'Hlídej si spodek!',
+  eback:'Nejezdi na chvostu!',efront:'Na špici umíráš!',eenergy:'Schovej se do balíku!',esprint:'Teď nesprintuj!',
+  mswap:'Předej parťákovi!',mlong:'Předávej, jsi prázdnej!',mspfresh:'Předej před sprintem!',msppos:'Dopředu, bude sprint!',mspgo:'TEĎ! Sprint o body!',mlap:'Drž to, bude kolo navíc!',mdrop:'Odpadáš! Dojeď je!',
+  bfin:'Naplno do cíle!',bgiveup:'Nech se pohltit, šetři se!',bclose:'Dojíždějí tě! Přidej!',bline:'Jeď dole u černý!',bsprint:'Nesprintuj, jeď tempo!',bempty:'Uber, nebo to nedojedeš!',
+  bnoturn:'Už nestřídej, šetři na sprint!',bturn:'Střídejte se!',bwork:'Vystřídej je!',bok:'Střídejte se pravidelně!',
+  emptychase:'Nestíhej, vydýchej se!',dropped:'Odpadáš! Dojeď je!',bridge:'Přeskoč k nim, teď!',lostbreak:'Vyhraj aspoň balík!',chasealone:'Nikdo nestíhá – zavři to!',chase:'Ujíždí ti to! Stíhej!',
+  letthem:'Netahej, ať stíhaj jiní!',ignore:'Nech je jet, uvařej se!',pull:'Netahej jim to zadarmo!',tired:'Schovej se do háku!',nosprint:'Proč sprintuješ?! Šetři se!',high:'Sjeď dolů do balíku!',
+  chance:'Balík spí – zkus to!',good:'Dobře, vez se!',move:'Dopředu, do první čtyřky!',early:'Moc brzo na špici!',climb:'Vyjeď si nahoru!',tooearly:'Ještě ne! Čekej!',go:'TEĎ! SPRINT!',
+  boxed:'Jsi zavřenej! Vrchem!',bellfront:'Jeď nahoře a hlídej je!'};
+function shortOf(a){const k=a.k.replace(/[0-9]+$/,'');
+  if(SHORT[k])return SHORT[k];
+  if(k==='bstate')return a.txt.split('. ')[0]+' – drž tempo!';
+  if(k==='ksplit')return a.txt.split('. ')[0].replace(/!$/,'')+'!';
+  if(a.k.startsWith('att'))return a.good?'Nech ho jet!':a.txt.split('!')[0]+'! Na kolo!';
+  if(k==='wheel')return a.txt.replace(/^Najdi si kolo – (.+?) to bude.*$/,'Najdi si kolo: $1!');
+  return a.txt.split(/(?<=[!?.])\s/)[0];}
 // smoothed rate of change of a gap to a reference rider (m/s, + = gap grows)
 // gap trend = least-squares slope of the gap over the last ~16 s (m/s, + = gap grows); restarts when the groups reshuffle
 function trend(tr,ref,gap,dt){if(!ref)return null;if(!tr||Math.abs(gap-tr.gap)>12)tr={h:[],gap,rate:0,age:0};tr.gap=gap;tr.age+=dt;tr.h.push([RAD.t,gap]);while(tr.h.length&&RAD.t-tr.h[0][0]>16)tr.h.shift();
   const n=tr.h.length;if(n>4){let st=0,sg=0,stt=0,stg=0;for(const [x,y] of tr.h){st+=x;sg+=y;stt+=x*x;stg+=x*y;}const d=n*stt-st*st;tr.rate=d>1e-6?(n*stg-st*sg)/d:0;}return tr;}
 function coachTick(dt){RAD.t+=dt;
-  if(RAD.show>0){RAD.show-=dt;if(RAD.show<=0){$('radio').classList.remove('on');RAD.prio=-1;}}
-  RAD.evalT-=dt;if(RAD.evalT>0)return;const step=0.4;RAD.evalT=step;
+  RAD.evalT-=dt;if(RAD.evalT>0)return;const step=0.4;RAD.evalT=step;RAD.best=null;
   const R=player;if(phase!=='race'||R.crashed||R.finished||R.out||raceTime<2.5)return;
   const c=[];const add=(p,k,txt,good,cd)=>c.push({p,k,txt,good,cd:cd||16});
   const toGo=FIN-R.s,lapsLeft=toGo/L0,v=Math.max(R.v,6),e=keys.sprint?1:effort,sprinting=e>=0.8;
@@ -1681,11 +1684,7 @@ function sprintRules(add,toGo,lapsLeft,sprinting,pos,n,e){const R=player;
     else if(pos>3&&toGo>200)add(2.8,'boxed','Jsi zavřenej vzadu – objeď to vrchem, hned!',0,6);
     else if(pos===0&&toGo>300&&n>2)add(2,'bellfront','Na zvonec vepředu: jeď nahoře, hlídej je a nástup až z poslední zatáčky.',0,99);}}
 function pickAdvice(c){if(!c.length)return;c.sort((a,b)=>b.p-a.p);
-  for(const a of c){const last=RAD.said[a.k];if(last!==undefined&&RAD.t-last<a.cd)continue;
-    const since=RAD.t-(RAD.last||-99);
-    if(RAD.show>0){if(a.p<RAD.prio+0.8||RAD.t-RAD.said[RAD.key]<1.2)return;}
-    else if(since<(a.p>=2.5?1.0:a.p>=2?2.5:5))return;
-    radioSay(a);return;}}
+  for(const a of c){const last=RAD.said[a.k];if(last!==undefined&&RAD.t-last<a.cd)continue;RAD.best=a;return;}}
 
 // ---------- race stats for the coach ----------
 let ST=null;
@@ -1826,7 +1825,7 @@ function updateIntro(dt){introT+=dt;const u=clamp(introT/INTRO_DUR,0,1),e=u<0.5?
   introPath.getPoint(e,camPos);introLook.getPoint(Math.min(1,e*1.05),camLook);camUp.set(0,1,0);camera.position.copy(camPos);camera.up.copy(camUp);camera.lookAt(camLook);
   for(const R of riders)if(R.model.g.visible){R.crank+=dt*0.4*Math.sin(introT*2+R.s);}
   if(introT>=INTRO_DUR){endIntro();}}
-function endIntro(){if(phase!=='intro')return;$('intro').style.display='none';raceCamTarget(player,0);camPos.copy(_t);camLook.copy(_l);camUp.copy(_u);camInit=true;phase='countdown';countT=3.999;lastBeep=4;$('ctl').style.display='flex';$('hud').style.display='block';setupMap();}
+function endIntro(){if(phase!=='intro')return;$('intro').style.display='none';raceCamTarget(player,0);camPos.copy(_t);camLook.copy(_l);camUp.copy(_u);camInit=true;phase='countdown';countT=3.999;lastBeep=4;$('ctl').style.display='flex';$('hud').style.display='block';}
 $('intro').addEventListener('pointerdown',e=>{e.preventDefault();if(phase==='intro')introT=Math.max(introT,INTRO_DUR-0.5);});
 function showCount(n){const c=$('count');c.style.display='block';c.textContent=n>0?n:'JEĎ!';c.className='';void c.offsetWidth;c.className=n>0?'pop':'goo';}
 function startGun(){const f=$('flash');f.classList.remove('on');void f.offsetWidth;f.classList.add('on');shake=0.5;
@@ -1857,7 +1856,7 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
 // ---------- loop ----------
 resetRiders();
-let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__R=riders;window.__MT=()=>MT;window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
+let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__MT=()=>MT;window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
