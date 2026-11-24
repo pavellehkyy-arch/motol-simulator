@@ -207,6 +207,7 @@ tr.me td{color:#ffd166;font-weight:800}
   </div>
   <div id="msg"></div>
   <div id="boss" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);max-width:220px;background:#fffdf2;color:#111;font-size:13px;font-weight:800;padding:6px 10px;border-radius:12px;border:2px solid #111;opacity:0;transition:opacity .2s;text-align:center;pointer-events:none;white-space:normal"></div>
+  <div id="refBub" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);background:#fffdf2;color:#111;font-size:26px;font-weight:900;padding:4px 14px;border-radius:14px;border:3px solid #111;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap"></div>
   <div id="pBadge" style="position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:none;pointer-events:none;background:rgba(15,25,40,.75);color:#fff;font-size:12px;font-weight:800;padding:3px 8px 3px 3px;border-radius:14px;white-space:nowrap"><span style="display:inline-block;width:18px;height:18px;line-height:18px;border-radius:50%;background:#e63946;text-align:center;margin-right:5px">P</span>Parťák</div>
   <div id="sling" style="display:none;position:absolute;left:50%;bottom:120px;transform:translateX(-50%);text-align:center;pointer-events:none">
     <div style="width:124px;height:64px;position:relative;margin:0 auto;border-radius:64px 64px 0 0;background:conic-gradient(from -90deg at 50% 100%,#2b3038 0deg 70deg,#2fd36b 70deg 110deg,#2b3038 110deg 180deg,transparent 180deg);border:3px solid #0d0f12;border-bottom:none;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.5)">
@@ -214,6 +215,7 @@ tr.me td{color:#ffd166;font-weight:800}
     <button class="go" id="slingBtn" style="pointer-events:auto;margin-top:8px;min-width:0;padding:10px 18px;font-size:15px;background:#2fd36b;color:#111;box-shadow:0 4px 14px rgba(47,211,107,.4)">🤝 PŘEDAT (E)</button>
     <div id="slingHint" style="font-size:12px;font-weight:800;margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.8)">Trefa do zelené = silnější vrh</div>
   </div>
+  <button class="go" id="skipResc" style="display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:90px;flex:none;min-width:0;padding:10px 16px;font-size:15px;background:rgba(15,25,40,.82);border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4)">⏩ Přeskočit (Mezerník)</button>
 </div>
 
 <div id="ctl">
@@ -600,6 +602,63 @@ function buildJudges(){
   const bez=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.05,1.75),mat(0x111111));bez.position.set(0,1.95,0);tvG.add(bez);
   TVMESH=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.92),new THREE.MeshBasicMaterial({map:tvTex}));TVMESH.rotation.y=PI/2;TVMESH.position.set(0.065,1.95,0);tvG.add(TVMESH);drawTV(null);
 }
+// ---------- training rollers (two kinds, after the photos) ----------
+// three drums: the rear wheel sits between two drums, the front wheel on one; a belt drives the front drum from the rear one
+const ROLL_R=0.056,ROLL_L=0.42,ROLL_RZ=[-0.6,-0.4],ROLL_FZ=0.5,ROLL_DY=0.1;
+const ROLL_Y=ROLL_DY+Math.sqrt((0.349+ROLL_R)**2-0.01)-0.34;                       // bike height so the rear tyre touches both rear drums
+const ROLL_FDY=ROLL_Y+0.34-(0.349+ROLL_R);                                          // front drum just under the front tyre
+function shapeGeo(sh,thick,bev){bev=bev||0.004;const g=new THREE.ExtrudeGeometry(sh,{depth:thick-2*bev,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:2,curveSegments:8});g.translate(0,0,-(thick-2*bev)/2);g.rotateY(-PI/2);g.computeVertexNormals();return g;}
+const RG={};function rollerGeos(){if(RG.ok)return RG;
+  RG.drum=new THREE.CylinderGeometry(ROLL_R,ROLL_R,ROLL_L,28);RG.drum.rotateZ(PI/2);
+  RG.cap=new THREE.CylinderGeometry(ROLL_R+0.012,ROLL_R+0.012,0.035,24);RG.cap.rotateZ(PI/2);
+  RG.capRim=new THREE.TorusGeometry(ROLL_R+0.006,0.006,6,24);RG.capRim.rotateY(PI/2);
+  RG.axle=new THREE.CylinderGeometry(0.008,0.008,ROLL_L+0.16,8);RG.axle.rotateZ(PI/2);
+  RG.rail=new THREE.BoxGeometry(0.03,0.022,1.46);
+  RG.foot=new THREE.CylinderGeometry(0.02,0.026,0.04,10);
+  RG.hinge=new THREE.BoxGeometry(0.04,0.04,0.06);
+  RG.belt=new THREE.BoxGeometry(0.004,1,0.006);
+  RG.pulley=new THREE.CylinderGeometry(0.028,0.028,0.012,14);RG.pulley.rotateZ(PI/2);
+  // composite side frame: a sculpted beam with bosses at the drum axles and two big lightening cut-outs
+  {const sh=new THREE.Shape();const z0=-0.8,z1=0.72;
+   sh.moveTo(z0,0.02);sh.lineTo(z0+0.04,0.0);sh.lineTo(-0.66,0.0);sh.quadraticCurveTo(-0.5,0.035,-0.34,0.0);sh.lineTo(0.0,0.0);sh.quadraticCurveTo(0.2,0.04,0.42,0.0);sh.lineTo(0.62,0.0);sh.lineTo(z1,0.02);
+   sh.quadraticCurveTo(z1+0.01,0.1,0.62,0.14);sh.quadraticCurveTo(0.5,0.17,0.4,0.12);sh.quadraticCurveTo(0.1,0.07,-0.25,0.11);sh.quadraticCurveTo(-0.38,0.17,-0.5,0.15);sh.quadraticCurveTo(-0.62,0.17,-0.72,0.13);sh.quadraticCurveTo(z0-0.01,0.09,z0,0.02);
+   const h1=new THREE.Path();h1.moveTo(-0.27,0.04);h1.quadraticCurveTo(-0.12,0.03,0.02,0.045);h1.quadraticCurveTo(-0.1,0.085,-0.25,0.085);h1.quadraticCurveTo(-0.3,0.06,-0.27,0.04);
+   const h2=new THREE.Path();h2.moveTo(0.08,0.045);h2.quadraticCurveTo(0.22,0.04,0.36,0.05);h2.quadraticCurveTo(0.24,0.085,0.1,0.08);h2.quadraticCurveTo(0.06,0.06,0.08,0.045);
+   sh.holes.push(h1,h2);RG.side=shapeGeo(sh,0.035,0.006);}
+  {const sh=new THREE.Shape();sh.moveTo(-0.02,-0.2);sh.lineTo(0.02,-0.2);sh.lineTo(0.02,0.2);sh.lineTo(-0.02,0.2);RG.cross=new THREE.BoxGeometry(0.5,0.02,0.05);RG.xbar=new THREE.BoxGeometry(0.02,0.018,0.5);}
+  RG.ok=true;return RG;}
+const RM={};function rollerMats(){if(RM.ok)return RM;
+  RM.alu=new THREE.MeshPhongMaterial({color:0xb7bcc2,specular:0xffffff,shininess:110});
+  RM.drumAlu=new THREE.MeshPhongMaterial({color:0xaeb4bb,specular:0xffffff,shininess:130});
+  RM.red=new THREE.MeshPhongMaterial({color:0xc8202b,specular:0x553333,shininess:50});
+  RM.drumRed=new THREE.MeshPhongMaterial({color:0xd0222c,specular:0x775555,shininess:70});
+  RM.black=new THREE.MeshPhongMaterial({color:0x141416,specular:0x333333,shininess:30});
+  RM.rubber=mat(0x0c0c0c);RM.steel=new THREE.MeshPhongMaterial({color:0x9aa0a6,specular:0xffffff,shininess:90});
+  {const c=mkCanvas(256,32),q=c.getContext('2d');q.fillStyle='#202226';q.fillRect(0,0,256,32);q.fillStyle='#e8e8e8';q.font='italic 900 20px system-ui';q.textBaseline='middle';q.fillText('MOTOL',10,17);q.fillStyle='#e63946';q.fillText('ROLL 3',92,17);q.fillStyle='#9aa0a6';q.font='700 11px system-ui';q.fillText('PARABOLIC DRUMS',168,17);
+   RM.label=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)});}
+  RM.ok=true;return RM;}
+function rollerDrums(g,body,cap,ax){const G=rollerGeos(),M=rollerMats();const Z=[...ROLL_RZ,ROLL_FZ],Y=[ROLL_DY,ROLL_DY,ROLL_FDY];
+  Z.forEach((z,k)=>{const d=new THREE.Mesh(G.drum,body);d.position.set(0,Y[k],z);g.add(d);
+    for(const sx of [-1,1]){const c=new THREE.Mesh(G.cap,cap);c.position.set(sx*(ROLL_L/2+0.012),Y[k],z);g.add(c);const r=new THREE.Mesh(G.capRim,M.black);r.position.set(sx*(ROLL_L/2-0.004),Y[k],z);g.add(r);}
+    const a=new THREE.Mesh(G.axle,ax);a.position.set(0,Y[k],z);g.add(a);});
+  // drive belt on the left: rear-most drum to the front drum, round two little pulleys
+  const bx=-(ROLL_L/2+0.045);for(const z of [ROLL_RZ[1],ROLL_FZ]){const p=new THREE.Mesh(G.pulley,M.black);p.position.set(bx,z===ROLL_FZ?ROLL_FDY:ROLL_DY,z);g.add(p);}
+  for(const dy of [0.028,-0.028]){const b=new THREE.Mesh(G.belt,M.rubber);place2(b,V(bx,ROLL_DY+dy,ROLL_RZ[1]),V(bx,ROLL_FDY+dy,ROLL_FZ));g.add(b);}}
+// A: folding aluminium frame, silver drums with red end caps, black feet (the silver one in the photo)
+function rollersA(g){const G=rollerGeos(),M=rollerMats();const X=ROLL_L/2+0.075;
+  for(const sx of [-1,1]){const r=new THREE.Mesh(G.rail,M.alu);r.position.set(sx*X,ROLL_DY,-0.04);g.add(r);
+    for(const z of [-0.36,0.25]){const h=new THREE.Mesh(G.hinge,M.black);h.position.set(sx*X,ROLL_DY+0.004,z);g.add(h);}
+    for(const z of [-0.74,-0.36,0.25,0.66]){const f=new THREE.Mesh(G.foot,M.rubber);f.position.set(sx*X,0.02,z);g.add(f);const st=limb(M.black,0.008);place(st,V(sx*X,0.035,z),V(sx*X,ROLL_DY,z));g.add(st);}
+    const lb=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.02),M.label);lb.position.set(sx*(X+0.0155),ROLL_DY,0.0);lb.rotation.y=sx*PI/2;g.add(lb);}
+  rollerDrums(g,M.drumAlu,M.red,M.steel);}
+// B: moulded black composite side frames with cut-outs, red drums, black caps, X-braced middle (the black/red one)
+function rollersB(g){const G=rollerGeos(),M=rollerMats();const X=ROLL_L/2+0.07;
+  for(const sx of [-1,1]){const sd=new THREE.Mesh(G.side,M.black);sd.position.set(sx*X,0.0,0);g.add(sd);
+    for(const z of [-0.76,0.68]){const f=new THREE.Mesh(G.foot,M.rubber);f.scale.set(1.3,0.6,1.3);f.position.set(sx*X,0.008,z);g.add(f);}}
+  const c=new THREE.Mesh(G.cross,M.black);c.scale.x=(2*X)/0.5;c.position.set(0,0.035,-0.05);g.add(c);
+  for(const s of [-1,1]){const xb=new THREE.Mesh(G.xbar,M.black);xb.position.set(0,0.03,-0.05);xb.rotation.y=s*0.62;g.add(xb);}
+  const knob=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.02,0.03,12),M.black);knob.position.set(0,0.055,-0.05);g.add(knob);
+  rollerDrums(g,M.drumRed,M.black,M.steel);}
 function buildHallExtras(){
   // two long fabric air-ducts under the roof
   const dm=mat(0xf1f1ee);
@@ -675,34 +734,125 @@ const discTex=(()=>{const c=mkCanvas(256,256),g=c.getContext('2d');const gr=g.cr
   g.fillStyle='#888';g.beginPath();g.arc(128,128,14,0,7);g.fill();return new THREE.CanvasTexture(c);})();
 const discMat=new THREE.MeshPhongMaterial({map:discTex,specular:0x555555,shininess:50});
 const carbon=new THREE.MeshPhongMaterial({color:0x17181b,specular:0x444444,shininess:40});
-function makeBike(o){
+// ---- track bikes: aero carbon frames built from side profiles (deep tubes, seat tube hugging the rear wheel, dropped stays, wide fork),
+// gum-wall tubulars, discs / blade wheels / deep spoked rims, big chainring, track drops – geometry is shared, only paint differs per bike
+const BIKEG={};const _bm={};
+function bikeMat(c,sh){const k=c+'|'+(sh||0);return _bm[k]||(_bm[k]=new THREE.MeshPhongMaterial({color:c,specular:0x8a8f99,shininess:sh||90}));}
+// a 2-D "sweep": centre-line points (z,y) with a depth at each one -> closed outline -> extruded sideways (x) with a soft bevel
+function profileGeo(pts,ws,thick,bev){const L=[],R=[];for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];let tz=b[0]-a[0],ty=b[1]-a[1];const tl=Math.hypot(tz,ty)||1;tz/=tl;ty/=tl;const w=ws[i]/2;
+    L.push([pts[i][0]-ty*w,pts[i][1]+tz*w]);R.push([pts[i][0]+ty*w,pts[i][1]-tz*w]);}
+  const sh=new THREE.Shape();const all=L.concat(R.reverse());
+  // rounded caps: nudge the end points outwards along the tangent
+  sh.moveTo(all[0][0],all[0][1]);for(let i=1;i<all.length;i++)sh.lineTo(all[i][0],all[i][1]);sh.closePath();
+  bev=bev==null?Math.min(thick*0.45,0.012):bev;
+  const g=new THREE.ExtrudeGeometry(sh,{depth:Math.max(0.001,thick-2*bev),bevelEnabled:bev>0,bevelThickness:bev,bevelSize:bev*0.9,bevelSegments:2,curveSegments:4});
+  g.translate(0,0,-(thick-2*bev)/2);g.rotateY(-PI/2);g.computeVertexNormals();return g;}
+const bez=(a,b,c,n)=>{const o=[];for(let i=0;i<=n;i++){const t=i/n,u=1-t;o.push([u*u*a[0]+2*u*t*b[0]+t*t*c[0],u*u*a[1]+2*u*t*b[1]+t*t*c[1]]);}return o;};
+const lerpW=(a,b,n)=>{const o=[];for(let i=0;i<=n;i++)o.push(a+(b-a)*i/n);return o;};
+function bikeGeos(){if(BIKEG.ok)return BIKEG;const B=BIKEG;
+  B.down=profileGeo(bez([-0.03,0.31],[0.2,0.45],[0.445,0.615],8),[0.11,0.092,0.084,0.08,0.078,0.076,0.075,0.075,0.076],0.042);
+  B.head=profileGeo([[0.462,0.585],[0.405,0.875]],[0.075,0.07],0.046);
+  B.headBand=profileGeo([[0.442,0.67],[0.418,0.79]],[0.079,0.075],0.05);
+  B.top=profileGeo(bez([0.415,0.845],[0.12,0.84],[-0.19,0.79],6),lerpW(0.05,0.042,6),0.036);
+  B.seat=profileGeo(bez([-0.045,0.3],[-0.05,0.6],[-0.205,0.8],8),[0.12,0.1,0.088,0.08,0.074,0.068,0.064,0.06,0.058],0.04);
+  B.post=profileGeo([[-0.2,0.78],[-0.262,0.945]],[0.05,0.042],0.03);
+  B.sstay=profileGeo(bez([-0.49,0.355],[-0.3,0.5],[-0.13,0.63],5),lerpW(0.022,0.032,5),0.014,0.005);
+  B.cstay=profileGeo([[-0.49,0.335],[-0.03,0.3]],[0.03,0.042],0.016,0.006);
+  B.fork=profileGeo(bez([0.458,0.6],[0.49,0.47],[0.5,0.34],5),lerpW(0.055,0.03,5),0.02,0.007);
+  B.crown=new THREE.BoxGeometry(0.15,0.035,0.07);
+  B.drop=new THREE.BoxGeometry(0.012,0.03,0.03);
+  // saddle: narrow nose, wide back, seen from above, extruded a few cm
+  {const sh=new THREE.Shape();sh.moveTo(0,0.15);sh.quadraticCurveTo(0.022,0.12,0.025,0.03);sh.quadraticCurveTo(0.07,-0.06,0.065,-0.11);sh.quadraticCurveTo(0,-0.135,-0.065,-0.11);sh.quadraticCurveTo(-0.07,-0.06,-0.025,0.03);sh.quadraticCurveTo(-0.022,0.12,0,0.15);
+   const g=new THREE.ExtrudeGeometry(sh,{depth:0.012,bevelEnabled:true,bevelThickness:0.01,bevelSize:0.008,bevelSegments:2,curveSegments:6});g.rotateX(PI/2);B.saddle=g;}
+  B.rail=new THREE.CylinderGeometry(0.004,0.004,0.12,5);B.rail.rotateX(PI/2);
+  // track drops: clamp section + each side curving forward and down into the hooks
+  {const C=[];for(const sx of [-1,1])C.push(new THREE.CatmullRomCurve3([V(0,0.9,0.47),V(sx*0.12,0.9,0.47),V(sx*0.2,0.905,0.5),V(sx*0.215,0.885,0.585),V(sx*0.21,0.82,0.6),V(sx*0.2,0.775,0.56),V(sx*0.2,0.77,0.47)]));
+   B.drops=C.map(c=>new THREE.TubeGeometry(c,22,0.0125,7,false));}
+  {const C=[];for(const sx of [-1,1])C.push(new THREE.CatmullRomCurve3([V(0,0.9,0.47),V(sx*0.14,0.9,0.47),V(sx*0.21,0.9,0.52),V(sx*0.215,0.915,0.62)]));B.horns=C.map(c=>new THREE.TubeGeometry(c,14,0.013,7,false));
+   B.ext=new THREE.CylinderGeometry(0.011,0.011,0.31,8);}
+  B.stem=new THREE.BoxGeometry(0.032,0.035,0.09);
+  // drivetrain
+  B.ring=new THREE.CylinderGeometry(0.128,0.128,0.006,40);B.ring.rotateZ(PI/2);
+  B.teeth=new THREE.TorusGeometry(0.13,0.0045,4,48);B.teeth.rotateY(PI/2);
+  B.spider=new THREE.CylinderGeometry(0.06,0.06,0.012,20);B.spider.rotateZ(PI/2);
+  B.cog=new THREE.CylinderGeometry(0.045,0.045,0.006,18);B.cog.rotateZ(PI/2);
+  B.chain=new THREE.CylinderGeometry(0.0045,0.0045,1,5);
+  // wheels: tubular (black tread + gum-wall sidewall), deep carbon rim, hub
+  B.tread=new THREE.TorusGeometry(0.337,0.0115,6,40);B.tread.rotateY(PI/2);
+  B.gum=new THREE.TorusGeometry(0.323,0.0095,5,40);B.gum.rotateY(PI/2);
+  B.rimDeep=new THREE.CylinderGeometry(0.318,0.318,0.024,40,1,true);B.rimDeep.rotateZ(PI/2);
+  B.rimFace=new THREE.RingGeometry(0.255,0.318,40);B.rimFace.rotateY(PI/2);
+  B.rimShallow=new THREE.RingGeometry(0.285,0.318,40);B.rimShallow.rotateY(PI/2);
+  B.disc=new THREE.CylinderGeometry(0.318,0.318,0.03,40);B.disc.rotateZ(PI/2);
+  B.hub=new THREE.CylinderGeometry(0.03,0.03,0.1,12);B.hub.rotateZ(PI/2);
+  B.flange=new THREE.CylinderGeometry(0.038,0.038,0.006,14);B.flange.rotateZ(PI/2);
+  {const P=[];const n=24;for(let i=0;i<n;i++){const a=i/n*PI*2,side=i%2?1:-1,ha=a+(i%4<2?0.25:-0.25);P.push(side*0.04,Math.sin(ha)*0.035,Math.cos(ha)*0.035, side*0.006,Math.sin(a)*0.29,Math.cos(a)*0.29);}
+   B.spokes=new THREE.BufferGeometry();B.spokes.setAttribute('position',new THREE.Float32BufferAttribute(P,3));}
+  // carbon blades for 3/4/5-spoke wheels: narrow at the hub, flaring into the rim
+  {const sh=new THREE.Shape();sh.moveTo(-0.016,0.03);sh.lineTo(0.016,0.03);sh.quadraticCurveTo(0.02,0.18,0.045,0.27);sh.lineTo(-0.045,0.27);sh.quadraticCurveTo(-0.02,0.18,-0.016,0.03);
+   const g=new THREE.ExtrudeGeometry(sh,{depth:0.012,bevelEnabled:true,bevelThickness:0.006,bevelSize:0.005,bevelSegments:2,curveSegments:5});g.translate(0,0,-0.006);g.rotateY(PI/2);B.blade=g;}
+  B.hubDisc=new THREE.CylinderGeometry(0.06,0.06,0.04,20);B.hubDisc.rotateZ(PI/2);
+  B.ok=true;return B;}
+const MAT_WHEEL={};
+function wheelMats(){if(MAT_WHEEL.ok)return MAT_WHEEL;const W=MAT_WHEEL;
+  W.tread=new THREE.MeshPhongMaterial({color:0x161616,specular:0x222222,shininess:12});W.gum=mat(0xc79a62);
+  W.carbon=new THREE.MeshPhongMaterial({color:0x141518,specular:0x60656e,shininess:90});
+  // woven-carbon look with a white wordmark arc for rims, a disc face with weave checks + logo
+  const weave=(c,g,S,a)=>{for(let y=0;y<S;y+=8)for(let x=0;x<S;x+=8){g.fillStyle=((x+y)/8)%2?'rgba(255,255,255,'+a+')':'rgba(0,0,0,'+a+')';g.fillRect(x,y,8,8);}};
+  {const c=mkCanvas(512,512),g=c.getContext('2d');g.fillStyle='#17181b';g.fillRect(0,0,512,512);weave(c,g,512,0.05);
+   const gr=g.createRadialGradient(256,256,40,256,256,256);gr.addColorStop(0,'rgba(255,255,255,0.10)');gr.addColorStop(0.7,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,0.25)');g.fillStyle=gr;g.fillRect(0,0,512,512);
+   g.save();g.translate(256,256);g.fillStyle='rgba(245,245,245,.92)';g.font='italic 900 44px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';
+   for(const a of [0,PI]){g.save();g.rotate(a);const txt='MOTOL';for(let i=0;i<txt.length;i++){g.save();g.rotate((i-2)*0.17);g.fillText(txt[i],0,-205);g.restore();}g.restore();}
+   g.fillStyle='rgba(255,255,255,.55)';g.font='700 18px system-ui';g.fillText('TRACK · DISC',0,150);g.restore();
+   g.fillStyle='#8d9196';g.beginPath();g.arc(256,256,26,0,7);g.fill();g.fillStyle='#c9c9c9';g.fillRect(256+196,250,14,12);   // valve window
+   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;W.disc=new THREE.MeshPhongMaterial({map:t,specular:0x666a72,shininess:80});}
+  {const c=mkCanvas(512,64),g=c.getContext('2d');g.fillStyle='#141518';g.fillRect(0,0,512,64);g.fillStyle='#f2f2f2';g.font='italic 900 30px system-ui,Arial';g.textBaseline='middle';
+   for(const x of [20,276])g.fillText('MOTOL 80',x,34);const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;W.rimSide=new THREE.MeshPhongMaterial({map:t,specular:0x60656e,shininess:90,side:THREE.DoubleSide});}
+  W.spoke=new THREE.LineBasicMaterial({color:0x2a2b2e});W.hub=bikeMat(0x9ea3a8,60);W.chain=mat(0x3a3a3c);W.silver=bikeMat(0xc4c8cd,100);W.black=bikeMat(0x121212,40);W.saddle=bikeMat(0x141414,30);
+  W.ok=true;return W;}
+// the rim face is a flat ring – give it texture coordinates that run round the rim so the wordmark follows it
+function ringUV(geo,rin,rout){const pa=geo.attributes.position,uv=geo.attributes.uv;for(let i=0;i<pa.count;i++){const y=pa.getY(i),z=pa.getZ(i),r=Math.hypot(y,z);let a=Math.atan2(y,z)/(2*PI)+0.5;uv.setXY(i,a,(r-rin)/(rout-rin));}uv.needsUpdate=true;}
+// merge every part of one role (frame paint, accent, black bits, silver bits…) into a single geometry, cached per layout:
+// a bike is then ~15 draw calls instead of ~60, and all bikes share the same vertex buffers
+const MERGED={};const _I4=new THREE.Matrix4();
+function mergeList(list){let n=0;const gs=list.map(o=>{let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);if(!g.attributes.uv){g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count*2),2));}n+=g.attributes.position.count;return g;});
+  const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let off=0;for(const g of gs){P.set(g.attributes.position.array,off*3);N.set(g.attributes.normal.array,off*3);U.set(g.attributes.uv.array,off*2);off+=g.attributes.position.count;g.dispose();}
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.setAttribute('uv',new THREE.BufferAttribute(U,2));G.computeBoundingSphere();return G;}
+function mergedParts(key,build){if(MERGED[key])return MERGED[key];const tmp=new THREE.Group();build(tmp);tmp.updateMatrixWorld(true);const B={},lines=[];
+  tmp.traverse(o=>{if(o.isLineSegments){lines.push(o.geometry);return;}if(!o.isMesh)return;const r=o.userData.role;(B[r]||(B[r]=[])).push(o);});
+  return MERGED[key]={parts:Object.entries(B).map(([r,l])=>[r,mergeList(l)]),lines};}
+function partMesh(par,role,geo,x){const m=new THREE.Mesh(geo,null);m.userData.role=role;if(x)m.position.x=x;par.add(m);return m;}
+function makeWheel(kind){const B=bikeGeos(),W=wheelMats();
+  const L=mergedParts('wheel:'+kind,tmp=>{partMesh(tmp,'tread',B.tread);for(const sx of [-0.011,0.011])partMesh(tmp,'gum',B.gum,sx);
+    if(kind==='disc')partMesh(tmp,'disc',B.disc);
+    else{partMesh(tmp,'carbon',B.rimDeep);if(!B.rimFaceUV){ringUV(B.rimFace,0.255,0.318);B.rimFaceUV=true;}for(const sx of [-0.0125,0.0125])partMesh(tmp,'rimSide',B.rimFace,sx);
+      if(kind==='wire'){tmp.add(new THREE.LineSegments(B.spokes));partMesh(tmp,'hub',B.hub);for(const sx of [-0.04,0.04])partMesh(tmp,'hub',B.flange,sx);}
+      else{const n=kind|0||3;partMesh(tmp,'carbon',B.hubDisc);for(let i=0;i<n;i++){const bl=partMesh(tmp,'carbon',B.blade);bl.rotation.x=i*2*PI/n;}}}
+    const ax=partMesh(tmp,'hub',B.hub);ax.scale.set(1.25,0.45,0.45);});
+  const w=new THREE.Group();for(const [r,g] of L.parts)w.add(new THREE.Mesh(g,W[r]));for(const g of L.lines)w.add(new THREE.LineSegments(g,W.spoke));return w;}
+function makeBike(o){const B=bikeGeos(),W=wheelMats();
   const g=new THREE.Group();const wheels=[];
-  [[-0.5,o.discR?'disc':'spoke'],[0.5,o.discF?'disc':(o.spokes||3)]].forEach(([zz,kind])=>{const w=new THREE.Group();w.position.set(0,0.34,zz);w.add(new THREE.Mesh(tireG,mat(0x151515)));
-    if(kind==='disc')w.add(new THREE.Mesh(discG,discMat));
-    else{w.add(new THREE.Mesh(rimG,carbon));w.add(new THREE.Mesh(rimInG,carbon));
-      const ns=kind==='spoke'?3:kind;for(let i=0;i<ns;i++){const sp=new THREE.Mesh(bladeG,carbon);sp.rotation.x=i*2*PI/ns;w.add(sp);}
-      // white rim decals like on the photos
-      const dec=new THREE.Mesh(new THREE.TorusGeometry(0.30,0.012,3,24,1.2),mat(0xf0f0f0));dec.rotation.y=PI/2;dec.position.x=0.016;w.add(dec);const dec2=dec.clone();dec2.position.x=-0.016;dec2.rotation.x=PI;w.add(dec2);}
-    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.09,10),mat(0x9a9a9a));hub.rotation.z=PI/2;w.add(hub);g.add(w);wheels.push(w);});
-  const BB=V(0,0.32,-0.04),SEAT=V(0,0.93,-0.24),HT=V(0,0.88,0.4),HB=V(0,0.66,0.45),RA=V(0,0.34,-0.5),FA=V(0,0.34,0.5);
-  const fr=new THREE.MeshPhongMaterial({color:o.frame,specular:0x666666,shininess:55}),ac=new THREE.MeshPhongMaterial({color:o.accent,specular:0x666666,shininess:55});
-  // aero track frame: deep, narrow tubes
-  [[BB,SEAT,fr,0.03,1.9],[SEAT,HT,ac,0.028,1.7],[BB,HB,fr,0.032,2.1],[HB,HT,fr,0.03,2.0],[BB,RA,fr,0.02,1.5],[SEAT,RA,fr,0.018,1.6],[HT,FA,ac,0.024,1.9]].forEach(([a,b,m,r,d])=>{const l=limb(m,r,G_LIMB);place(l,a,b);l.scale.x=r*0.6;l.scale.z=r*d;g.add(l);});
-  // neon graphics stripe along the down tube
-  {const s=limb(ac,0.034,G_LIMB);place(s,V(0,0.4,0.02),V(0,0.6,0.36));s.scale.x=0.021;s.scale.z=0.02;s.position.y+=0.01;g.add(s);}
-  const sad=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.035,0.27),mat(0x111111));sad.position.set(0,0.96,-0.22);g.add(sad);
-  const post=limb(carbon,0.016,G_LIMB);place(post,SEAT,V(0,0.95,-0.24));g.add(post);
-  const stem=limb(mat(0x111111),0.02);place(stem,HT,V(0,0.9,0.47));g.add(stem);
-  const ring=new THREE.Mesh(new THREE.CylinderGeometry(0.105,0.105,0.012,24),new THREE.MeshPhongMaterial({color:0xb8bcc2,specular:0xffffff,shininess:60}));ring.rotation.z=PI/2;ring.position.set(-0.05,0.32,-0.04);g.add(ring);
-  const ck=mat(0x2a2a2a);for(const dy of [0.1,-0.1]){const ch=limb(ck,0.006);place(ch,V(-0.05,0.32+dy,-0.04),V(-0.05,0.34+dy*0.35,-0.5));g.add(ch);}
-  const cog=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.012,14),mat(0x888888));cog.rotation.z=PI/2;cog.position.set(-0.05,0.34,-0.5);g.add(cog);
-  const bk=mat(0x111111);
-  if(o.aero){const bb=limb(bk,0.018);place(bb,V(-0.2,0.9,0.47),V(0.2,0.9,0.47));g.add(bb);
-    for(const sx of [-0.2,0.2]){const h=limb(bk,0.016);place(h,V(sx,0.9,0.47),V(sx,0.92,0.62));g.add(h);}
-    for(const sx of [-0.055,0.055]){const e=limb(bk,0.014);place(e,V(sx,0.95,0.38),V(sx,1.0,0.68));g.add(e);const pad=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.015,0.08),bk);pad.position.set(sx*1.5,0.962,0.35);g.add(pad);}}
-  else{const bb=limb(bk,0.018);place(bb,V(-0.2,0.9,0.47),V(0.2,0.9,0.47));g.add(bb);
-    for(const sx of [-0.2,0.2]){const a=limb(bk,0.016),b=limb(bk,0.016),c=limb(bk,0.016);place(a,V(sx,0.9,0.47),V(sx,0.85,0.57));place(b,V(sx,0.85,0.57),V(sx,0.76,0.55));place(c,V(sx,0.76,0.55),V(sx,0.77,0.47));g.add(a,b,c);}}
+  [[-0.5,o.discR?'disc':'wire'],[0.5,o.discF?'disc':(o.spokes===24?'wire':(o.spokes||3))]].forEach(([zz,kind])=>{const w=makeWheel(kind);w.position.set(0,0.34,zz);g.add(w);wheels.push(w);});
+  const L=mergedParts('bike:'+(o.aero?'aero':'drops'),tmp=>{
+    const M=(geo,role,x)=>partMesh(tmp,role,geo,x);
+    M(B.down,'fr');M(B.head,'fr');M(B.top,'fr');M(B.seat,'fr');M(B.post,'black');M(B.headBand,'ac');
+    for(const sx of [-0.056,0.056]){M(B.sstay,'fr',sx);M(B.cstay,'fr',sx);M(B.fork,'fr',sx*1.08);const d=M(B.drop,'black');d.position.set(sx,0.34,-0.5);const fd=M(B.drop,'black');fd.position.set(sx*1.08,0.34,0.5);}
+    {const c=M(B.crown,'fr');c.position.set(0,0.6,0.458);c.rotation.x=-0.2;}
+    {const sd=M(B.saddle,'saddle');sd.position.set(0,0.965,-0.235);sd.rotation.x=-0.04;for(const sx of [-0.022,0.022]){const r=M(B.rail,'silver');r.position.set(sx,0.952,-0.245);}}
+    {const st=M(B.stem,'black');st.position.set(0,0.895,0.44);st.rotation.x=-0.15;}
+    if(o.aero){for(const h of B.horns)M(h,'black');for(const sx of [-0.055,0.055]){const e=M(B.ext,'black');e.position.set(sx,0.975,0.53);e.rotation.x=PI/2-0.16;const pad=M(B.pad||(B.pad=new THREE.BoxGeometry(0.05,0.018,0.09)),'black');pad.position.set(sx*1.5,0.955,0.37);}}
+    else for(const d of B.drops)M(d,'black');
+    const cx=-0.058;{const r=M(B.ring,'carbon');r.position.set(cx,0.32,-0.04);const t=M(B.teeth,'silver');t.position.set(cx,0.32,-0.04);const sp=M(B.spider,'ac');sp.position.set(cx-0.004,0.32,-0.04);const cg=M(B.cog,'silver');cg.position.set(cx,0.34,-0.5);
+      for(const [y0,y1] of [[0.32+0.131,0.34+0.047],[0.32-0.131,0.34-0.047]]){const c=M(B.chain,'chain');place2(c,V(cx,y0,-0.04),V(cx,y1,-0.5));}}
+    for(const sx of [-1,1]){const dec=M(B.decal||(B.decal=new THREE.PlaneGeometry(0.3,0.06)),'decal');dec.position.set(sx*0.0225,0.47,0.215);dec.rotation.order='YXZ';dec.rotation.set(-0.62,sx>0?PI/2:-PI/2,0);}});
+  const mats={fr:bikeMat(o.frame,95),ac:bikeMat(o.accent,95),decal:bikeDecal(o.accent),black:W.black,silver:W.silver,saddle:W.saddle,carbon:W.carbon,chain:W.chain};
+  for(const [r,geo] of L.parts)g.add(new THREE.Mesh(geo,mats[r]));
   return {g,wheels};}
+function place2(m,a,b){_dv.subVectors(b,a);const L=_dv.length()||0.001;m.position.copy(a).addScaledVector(_dv,0.5);m.scale.set(1,L,1);m.quaternion.setFromUnitVectors(UPV,_dv.multiplyScalar(1/L));}
+const _decals={};function bikeDecal(c){if(_decals[c])return _decals[c];const cv=mkCanvas(512,64),q=cv.getContext('2d');q.clearRect(0,0,512,64);
+  const col=new THREE.Color(c);const lum=col.r*0.3+col.g*0.59+col.b*0.11;q.fillStyle='#'+col.getHexString();q.font='italic 900 60px system-ui,Arial';q.textAlign='center';q.textBaseline='middle';q.fillText('MOTOL',256,34);
+  q.fillStyle=lum>0.5?'rgba(0,0,0,.0)':'rgba(255,255,255,.0)';const t=new THREE.CanvasTexture(cv);t.anisotropy=MAXANI;
+  return _decals[c]=new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});}
 
 // ---------- team kits (club colours + team names; no sponsor logos) ----------
 const TEAMS={
@@ -973,9 +1123,8 @@ function buildInfield(){
   const along=(k,i)=>[STAIR.cx+STAIR.ux*k+STAIR.vx*i,STAIR.cz+STAIR.uz*k+STAIR.vz*i];
   const rollers=[[20.6,-5.0],[20.6,-6.0],[20.6,-7.0],along(-3.7,0),along(-4.7,0),along(-5.7,0),[-22.4,-1.5],[-22.4,0],[-22.4,1.6]];
   rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
-    const fr=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,1.5),mat(0xd62828));fr.position.y=0.05;g.add(fr);
-    for(const dz of [-0.5,0,0.5]){const r=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.44,10),mat(0x2b5fb4));r.rotation.z=PI/2;r.position.set(0,0.11,dz);g.add(r);}
-    const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:false,aero:i%4===1});b.g.position.y=0.13;g.add(b.g);});
+    (i%2?rollersB:rollersA)(g);
+    const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:i%7===3,spokes:[3,5,24,4][i%4],aero:i%4===1});b.g.position.y=ROLL_Y;g.add(b.g);});
   // bike hangers: a long bar on two A-frame ends, the bikes hang by the saddle nose, front wheel up (as in the sketch)
   OBST.cols=cols;OBST.rollers=rollers;OBST.hangs=[];
   const steelM=new THREE.MeshPhongMaterial({color:0xb9bec3,specular:0x666666,shininess:60}),footM=mat(0x2b2b2b);
@@ -987,7 +1136,7 @@ function buildInfield(){
       const cap=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),footM);cap.position.set(0,BH,z);g.add(cap);}
     if(Lb>4.5){const po=limb(steelM,0.025);place(po,V(0,0,0),V(0,BH,0));g.add(po);const ft=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.05,0.07),footM);ft.position.y=0.025;g.add(ft);}
     for(let i=0;i<n;i++){const z=-Lb/2+0.15+SP*(i+0.62);const c=bikeCols[(bi+i)%bikeCols.length];
-      const bk=makeBike({frame:c[0],accent:c[1],discR:(bi+i)%4===0,discF:false,aero:false});const TH=-0.7;bk.g.rotation.x=TH;
+      const bk=makeBike({frame:c[0],accent:c[1],discR:(bi+i)%4===0,discF:(bi+i)%6===2,spokes:[5,3,24,4][(bi+i)%4],aero:false});const TH=-0.7;bk.g.rotation.x=TH;
       const sy=0.975,sz=-0.24,ry=sy*Math.cos(TH)-sz*Math.sin(TH),rz=sy*Math.sin(TH)+sz*Math.cos(TH);           // saddle top after the tilt
       bk.g.position.set((i%2?0.07:-0.07),BH+0.02-ry,z-rz);g.add(bk.g);
       const hook=limb(footM,0.012);place(hook,V(0,BH,z),V(0,BH+0.06,z));g.add(hook);
@@ -1083,16 +1232,48 @@ const player=riders[0];
 // our rider: tri-bars only for the kilo, normal drops in every other race
 player.mAero=player.model;player.mStd=makeRider(Object.assign({},player,{aero:false}));shadowify(player.mStd.g);player.mAero.g.visible=false;player.model=player.mStd;
 function setPlayerKit(){const want=mode==='kilo'?player.mAero:player.mStd;if(player.model===want)return;const old=player.model;want.g.visible=old.g.visible;old.g.visible=false;player.model=want;player.aero=mode==='kilo';}
-// kilometre start gate (holds the rear wheel, opens on the gun)
+// kilometre start gate ("koza"): a heavy steel base on rubber feet, a slanted column and a pneumatic head whose two jaws clamp the back of the rear tyre; opens on the gun
 let GATE=null;
 {const g=new THREE.Group();g.rotation.order='YXZ';const s0=SF-L0/2-0.6-0.62,f=frameAt(s0);const p=new THREE.Vector3();surf(s0,0.5,p);g.position.copy(p);g.rotation.y=Math.atan2(f.fx,f.fz);
- const nv=mat(0x1d3557),st=mat(0xc9ced3),rd=mat(0xd62828);
- const base=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.08,0.9),nv);base.position.set(0,0.04,-0.35);g.add(base);
- const col=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.62,0.3),nv);col.position.set(0,0.35,-0.62);g.add(col);
- const top=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.07,0.36),rd);top.position.set(0,0.69,-0.62);g.add(top);
- const lamp=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.06),new THREE.MeshBasicMaterial({color:0x7cf75a}));lamp.position.set(0,0.52,-0.46);g.add(lamp);
- const arms=[];for(const sx of [-1,1]){const piv=new THREE.Group();piv.position.set(sx*0.09,0.5,-0.42);g.add(piv);const a=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.3,0.05),st);a.position.set(0,-0.12,0.06);piv.add(a);arms.push(piv);}
- g.userData={arms,open:0};g.visible=false;scene.add(g);GATE=g;}
+ const steel=new THREE.MeshPhongMaterial({color:0x2a2e34,specular:0x555555,shininess:40}),alu=new THREE.MeshPhongMaterial({color:0xc7ccd2,specular:0xffffff,shininess:80}),
+   rub=mat(0x111111),yel=mat(0xf2c230),lime=mat(0xc6ff1a),blk=mat(0x0d0d0d);
+ const B=(m,w,h,d,x,y,z,par)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);(par||g).add(b);b.castShadow=true;return b;};
+ // base: two runners along the track + cross member, rubber pads, yellow/black warning edges
+ for(const sx of [-0.26,0.26]){B(steel,0.07,0.05,1.05,sx,0.035,-0.62);for(const zz of [-1.1,-0.14])B(rub,0.1,0.02,0.1,sx,0.01,zz);
+   for(let k=0;k<5;k++)B(k%2?blk:yel,0.072,0.052,0.12,sx,0.036,-1.08+k*0.12);}
+ B(steel,0.6,0.05,0.09,0,0.035,-0.95);B(steel,0.6,0.05,0.07,0,0.035,-0.3);
+ // slanted column (two aluminium tubes) leaning forward to the head
+ const col=new THREE.Group();col.position.set(0,0.06,-0.95);col.rotation.x=0.55;g.add(col);
+ for(const sx of [-0.05,0.05]){const t=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.62,10),alu);t.position.set(sx,0.31,0);t.castShadow=true;col.add(t);}
+ B(steel,0.16,0.05,0.06,0,0.6,0,col);
+ // brace back to the base
+ {const br=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.5,8),alu);br.position.set(0,0.2,-0.62);br.rotation.x=-0.75;g.add(br);}
+ // head: electronics box with the timing logo, status lamps and a pneumatic cylinder
+ const head=new THREE.Group();head.position.set(0,0.5,-0.48);g.add(head);
+ B(steel,0.2,0.16,0.26,0,0,-0.06,head);B(lime,0.202,0.03,0.262,0,0.065,-0.06,head);
+ const lamps=[];[0xff2a2a,0xffb000,0x37ff5a].forEach((c,k)=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.02,14),new THREE.MeshBasicMaterial({color:0x222222}));l.rotation.x=PI/2;l.position.set(-0.05+k*0.05,0.0,-0.195);head.add(l);lamps.push({m:l.material,c});});
+ const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.2,12),alu);cyl.rotation.x=PI/2;cyl.position.set(0,-0.05,0.12);head.add(cyl);
+ const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.1,8),alu);rod.rotation.x=PI/2;rod.position.set(0,-0.05,0.26);head.add(rod);
+ // cable down to the base
+ {const c=new THREE.Mesh(new THREE.TorusGeometry(0.16,0.008,6,16,PI*0.8),rub);c.position.set(0.12,-0.2,-0.2);c.rotation.y=PI/2;head.add(c);}
+ // the jaws: rubber-padded arms either side of the tyre, hinged at the front of the head; they swing outwards on the gun
+ const arms=[];for(const sx of [-1,1]){const piv=new THREE.Group();piv.position.set(sx*0.04,-0.05,0.3);head.add(piv);
+   const a=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.05,0.14),alu);a.position.set(sx*0.0,-0.0,0.05);piv.add(a);
+   const pad=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.09,0.09),rub);pad.position.set(-sx*0.012,-0.02,0.1);piv.add(pad);arms.push(piv);}
+ g.userData={arms,open:0,lamps};g.visible=false;scene.add(g);GATE=g;}
+function gateLamps(n){if(!GATE)return;GATE.userData.lamps.forEach((L,k)=>L.m.color.setHex((n<=0?k===2:n===1?k===1:n<=3&&k===0)?L.c:0x222222));}
+// kilometre: a small countdown board on the apron a few metres ahead of the gate (like the lap board), 3-2-1, then gone with the gate
+const kbCanvas=mkCanvas(128,96),kbCtx=kbCanvas.getContext('2d'),kbTex=new THREE.CanvasTexture(kbCanvas);let KBOARD=null;
+function drawKBoard(n){const q=kbCtx;q.fillStyle='#0b0b0b';q.fillRect(0,0,128,96);q.strokeStyle='#333';q.lineWidth=5;q.strokeRect(3,3,122,90);
+  const go=n<=0;q.shadowColor=go?'#30ff60':'#ff2020';q.shadowBlur=16;q.fillStyle=go?'#40ff70':'#ff3030';
+  if(go){q.beginPath();q.arc(64,50,28,0,PI*2);q.fill();}else{q.font='900 80px system-ui,Arial';q.textAlign='center';q.textBaseline='middle';q.fillText(n>3?'':String(n),64,54);}
+  q.shadowBlur=0;kbTex.needsUpdate=true;}
+{const g=new THREE.Group();const post=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.85,0.06),mat(0x333333));post.position.y=0.42;g.add(post);
+ const foot=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.03,0.3),mat(0x222222));foot.position.y=0.015;g.add(foot);
+ const box=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.48,0.1),mat(0x1a1a1a));box.position.set(0,1.05,-0.06);g.add(box);
+ const bd=new THREE.Mesh(new THREE.PlaneGeometry(0.55,0.41),new THREE.MeshBasicMaterial({map:kbTex}));bd.position.set(0,1.05,0.001);g.add(bd);
+ const s=SF-L0/2+3.2,lf=frameAt(s),lo=BAND*Math.cos(8*deg)+0.45;g.position.set(lf.px-lf.nx*lo,INF_Y,lf.pz-lf.nz*lo);
+ const nx=-lf.fx*0.8+lf.nx*0.6,nz=-lf.fz*0.8+lf.nz*0.6;g.rotation.y=Math.atan2(nx,nz);g.visible=false;scene.add(g);KBOARD=g;drawKBoard(4);}
 const hex=c=>'#'+c.toString(16).padStart(6,'0');
 
 // ---------- state ----------
@@ -1391,11 +1572,13 @@ function botAI(R,dt){const RP=aiPace();
   const cda=R.cda*(1-R.draft),Pneed=(0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT;
   const capP0=keirin?(sprinting?R.ftp*3.2:R.ftp*2.3):sprinting?R.ftp*(inter?2.2:3):R.attackT>0?R.ftp*1.7:front&&(chasing||g.brk)?R.ftp*(0.95+0.6*R.energy/100):lapsLeft>2.5?R.ftp*(0.95+0.4*R.energy/100):R.ftp*1.45,capP=empty?R.ftp*0.68:packLim&&R.energy>15?Math.max(packLim,capP0):capP0;
   const closing=!front&&anyA&&gapA>3.5&&gapA<GROUP_GAP*1.5&&R.energy>12;   // a short dig to get back on a wheel is always worth it
+  if(R.held&&neutral&&raceTime<4&&!wreck)vT=Math.max(vT,Math.min(NEU_V,2+raceTime*2.2));   // standing start: the whole held column rolls off together, nobody waits for the man in front
   const Rv=vEq(R);const tight=ahead&&gap<dGap+1&&clos>0.8&&Math.abs(ahead.w-R.w)<0.5;R.power=clamp(Pneed+(sprinting||R.attackT>0||tight?620:380)*(vT-Rv)*(vT<Rv-0.3?Rv/5:1),wreck||tight?-2000:-900,closing&&!empty?Math.max(capP,R.ftp*1.35):capP);   // no brakes on a track bike: you back off the pedals
   if(raceTime<5)R.power=clamp(R.power,0,R.ftp*1.2);
   // ---- line ----
   let tw=packTw!=null?packTw:front?lineW:(ahead&&gap<10?ahead.w:anyA&&gapA<12?anyA.w:lineW);   // get on a wheel – the draft is everything
   if(packTw!=null&&ahead&&gap<5&&((lapsLeft<2.2&&R.aggr>0.5&&R.energy>40)||vEq(ahead)<(B.vHead||RP)-1.0)&&!(lapsLeft<1.3)){const up=ahead.w+0.75,dn=ahead.w-0.75,fu=up<2.3&&slotFree(R,up),fd=dn>=0.4&&slotFree(R,dn);tw=fd?dn:fu?up:R.w;}   // come past in the pack: below if there's room, else above
+  if(isNeutral()&&R.w<1.6&&ahead&&ahead.w>R.w+0.9)tw=Math.min(tw,Math.max(R.w,0.45));   // neutral lap: the men from the rail come down into the line, the ones let go low stay low
   if(R.pullT>0)tw=lineW+0.8;
   else if(lapsLeft<1.3&&!sprinting&&!keirin)tw=mode==='madison'?Math.min(R.highLane,1.4):R.highLane;   // up the banking for the sprint
   else if(keirin&&!sprinting&&front)tw=0.45;
@@ -1407,6 +1590,7 @@ function botAI(R,dt){const RP=aiPace();
   if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
   if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&gap<3.5;tw=passing?Math.min(tw,ahead.w+0.8):R.pullT>0?1.0:(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}
+  if(R.held&&neutral&&(raceTime<6||R.v<6)&&!wreck)tw=clamp(R.w,0.4,0.75);   // let go low by his holder: rides straight off in his line, no climbing up the banking
   R.targetW=clamp(tw,mode==='madison'?0.25:0.4,mode==='madison'?3.2:TW-1.0);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
   steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0);
@@ -1422,13 +1606,15 @@ function steerBot(R,dt,force){
 function playerControl(dt){
   const R=player;
   const e=keys.sprint?1:effort;R.follow=null;
+  R.noLatchT=Math.max(0,(R.noLatchT||0)-dt);
+  if(R.latched&&e>=0.8){R.latched=false;R.noLatchT=4;}   // you pushed the effort up to sprint while hooked on -> you mean it: leave the wheel and go
   if(R.finished){R.power=80;}
   else{let ah=null,gap=1e9;
     if(mode!=='kilo'&&e>=0.12)for(const o of riders){if(o===R||o.crashed||o.resting||o.out||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0.3&&g<14&&g<gap&&Math.abs(o.w-R.w)<0.75){gap=g;ah=o;}}
     if(mode==='keirin'&&dernyOn()&&e>=0.12){const g=gapTo(R,DERNY);if(g>0.3&&g<14&&g<gap&&Math.abs(DERNY.w-R.w)<0.75){gap=g;ah=DERNY;}}
     if(ah){const cl=R.v-ah.v;if(gap>4.5&&!(cl>0.4&&gap/cl<2.2))ah=null;}   // far away and not closing fast -> not yet
     if(!ah&&R.latched)R.latched=false;
-    if(ah&&!R.latched&&!keys.sprint&&e>=0.8&&gap>2.4&&R.v-ah.v>0.8&&R.catchT>1.0){R.latched=true;setEffort(0.6);if(ST)ST.latches++;if(msgT<=0)showMsg('<small>🔗 Zahákl ses – regeneruješ</small>',1.2);}
+    if(ah&&!R.latched&&!keys.sprint&&!(R.noLatchT>0)&&e>=0.8&&gap>2.4&&R.v-ah.v>0.8&&R.catchT>1.0){R.latched=true;setEffort(0.6);if(ST)ST.latches++;if(msgT<=0)showMsg('<small>🔗 Zahákl ses – regeneruješ</small>',1.2);}
     if(ah&&e>=0.8&&!R.latched)ah=null;
     if(ah){R.follow=ah;const vT=ah.v+(gap-(ah===DERNY?2.2:1.9))*0.5;const cda=R.cda*(1-R.draft);
       const brake=vT<R.v-0.3;const Pt=clamp((0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+(brake?900:260)*(vT-R.v)*(brake?R.v/6:1),-2600,raceTime<6?480:1150);R.fP=(R.fP==null?Pt:R.fP+(Pt-R.fP)*Math.min(1,dt*6));R.power=R.fP;}
@@ -1675,8 +1861,8 @@ function buildCoach(){COACH=makeCoach();COACH.g.position.set(PODX,0,2.9);COACH.g
   const ox=p.x+f.nx*0.9,oz=p.z+f.nz*0.9;
   const box=new THREE.Mesh(new THREE.BoxGeometry(1.8,top+0.5,1.4),mat(0x6e4826));box.position.set(ox,(top-0.5)/2,oz);box.rotation.y=Math.atan2(f.fx,f.fz);scene.add(box);
   RCOACH=makeCoach();RCOACH.g.position.set(ox,top,oz);RCOACH.baseY=top;RCOACH.g.rotation.y=Math.atan2(-f.nx,-f.nz);RCOACH.s=sC;RCOACH.mood='watch';scene.add(RCOACH.g);
-  // wooden walkway behind the barrier just before the boss – the start holders come up here to watch once they're done
-  {const deck=mat(0x7a5230),side=mat(0x5e3d22),s0=sC-3.2,s1=sC-13.6,q=new THREE.Vector3(),topAt=s=>surfY(s,TW)+0.18;
+  // wooden walkway behind the barrier in the OTHER banked turn (opposite the boss) – the start holders come up here to watch once they're done
+  {const deck=mat(0x7a5230),side=mat(0x5e3d22),s0=sC+L0/2+5.2,s1=s0-10.4,q=new THREE.Vector3(),topAt=s=>surfY(s,TW)+0.18;
    for(let s=s1;s<=s0+0.01;s+=0.9){const fq=frameAt(s);surf(s,TW,q);const tp=topAt(s),x=q.x+fq.nx*0.78,z=q.z+fq.nz*0.78;
      const b=new THREE.Mesh(new THREE.BoxGeometry(1.15,tp+0.5,1.0),side);b.position.set(x,(tp-0.5)/2,z);b.rotation.y=Math.atan2(fq.fx,fq.fz);scene.add(b);
      const d=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.05,1.02),deck);d.position.set(x,tp,z);d.rotation.y=b.rotation.y;scene.add(d);}
@@ -1918,10 +2104,10 @@ function makeHolder(s,w){const L=HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LO
   scene.add(r.g);const h={r,s,w,cs:s,cw:w,st:'hold',t:0,ph:0,pos:new THREE.Vector3(),head:0,path:null,wait:Math.random()*0.25,spd:1.25+Math.random()*0.3,idx:HOLDERS.length,vel:0};
   surf(s,w,h.pos);const f=frameAt(s);h.head=Math.atan2(f.fx,f.fz);r.g.position.copy(h.pos);r.g.rotation.y=h.head;poseHuman(r,holdPose(0),1);HOLDERS.push(h);return h;}
 function holdPose(t){return {lean:0.42,hx:-0.3,l0h:-0.28,l0k:0.32,l1h:0.05,l1k:0.12,a0x:-1.05+Math.sin(t*1.3)*0.02,a0z:0.05,e0:-0.35,a1x:-1.0,a1z:0.05,e1:-0.4,y:-0.03};}
-function makeHolders(list){clearHolders();for(const A of (list||MT.map(T=>T.act))){if(A.w>1)continue;makeHolder(A.s-1.05,A.w+0.05);}}
+function makeHolders(list){clearHolders();for(const A of (list||MT.map(T=>T.act))){if(A.w>1)continue;makeHolder(A.s-1.05,A.w+0.05);A.held=true;}}
 function makeKeirinHolders(list){clearHolders();for(const A of list)makeHolder(A.s-1.05,A.w);}
-function clearHolders(){for(const h of HOLDERS)scene.remove(h.r.g);HOLDERS=[];}
-function releaseHolders(){for(const h of HOLDERS)if(h.st==='hold'){h.st='push';h.t=-h.wait;}}
+function clearHolders(){for(const h of HOLDERS)scene.remove(h.r.g);HOLDERS=[];for(const r of riders)r.held=false;}
+function releaseHolders(){for(const h of HOLDERS)if(h.st==='hold'){h.st='push';h.t=-h.wait;}if(mode!=='keirin')for(const r of riders)if(r.held&&r.model.g.visible)r.v=Math.max(r.v,1.3);}   // the holders' shove
 // position on the track / blue band (w >= -BAND) or on the wooden apron further in (w < -BAND)
 function holderGround(s,w,out){if(w>=-BAND)return surf(s,w,out);const f=frameAt(s),o=BAND*Math.cos(8*deg)+(-BAND-w);return out.set(f.px-f.nx*o,INF_Y,f.pz-f.nz*o);}
 function stairPt(x,y,z){STAIR_O.position.set(STAIR.cx,FLOOR_Y,STAIR.cz);STAIR_O.rotation.set(0,STAIR.rot,0);STAIR_O.updateMatrixWorld();return STAIR_O.localToWorld(new THREE.Vector3(x,y,z));}
@@ -1929,7 +2115,7 @@ const _hv=new THREE.Vector3(),_hw=new THREE.Vector3();
 // anything rolling on the boards that a holder still on the track must keep out of the way of
 function trackMovers(){const L=[];for(const o of riders)if(o.model.g.visible&&!(o.crashed&&o.crash.t>1.5))L.push(o);if(DERNY&&DERNY.stage&&DERNY.stage!=='off')L.push(DERNY);return L;}
 // lane (s,w) is threatened: something on that line is coming up from behind or is right there
-function laneHit(s,w,L){for(const o of L){let d=(o.s-s)%L0;if(d>L0/2)d-=L0;if(d<-L0/2)d+=L0;const look=1.2+Math.max(o.v,0)*0.9;if(d>-look&&d<1.0&&Math.abs(o.w-w)<0.62&&(o.v>0.3||d>-1.2))return true;}return false;}
+function laneHit(s,w,L,maxW){for(const o of L){if(maxW!=null&&o.w>maxW)continue;let d=(o.s-s)%L0;if(d>L0/2)d-=L0;if(d<-L0/2)d+=L0;const look=1.2+Math.max(o.v,0)*0.9;if(d>-look&&d<1.0&&Math.abs(o.w-w)<0.62&&(o.v>0.3||d>-1.2))return true;}return false;}
 // the start holders after the push: step straight off the track, never into a rider's line, then walk round everything to the stairwell, then go and watch from the barrier
 function updateHolders(dt){const movers=HOLDERS.some(h=>h.st==='push'||h.st==='down')?trackMovers():null;
   for(let i=HOLDERS.length-1;i>=0;i--){const h=HOLDERS[i],r=h.r;h.t+=dt;r.t+=dt;let T,k=1-Math.exp(-dt*8),moved=0;
@@ -1937,10 +2123,10 @@ function updateHolders(dt){const movers=HOLDERS.some(h=>h.st==='push'||h.st==='d
   else if(h.st==='push'){const t=Math.max(0,h.t);const e=sm(0,0.32,t);   // shove: step in, arms straight, then straighten up
     h.cs=h.s+0.7*e;h.cw=h.w;holderGround(h.cs,h.cw,h.pos);T={lean:0.55*(1-sm(0.5,1.1,t))+0.05,hx:-0.3,l0h:-0.5*e*(1-sm(0.5,1.1,t)),l0k:0.4*e*(1-sm(0.5,1.1,t)),l1h:0.35*e*(1-sm(0.5,1.1,t)),l1k:0.1,a0x:-1.45*(1-sm(0.45,1.1,t)),e0:-0.05,a1x:-1.45*(1-sm(0.45,1.1,t)),e1:-0.05};k=1-Math.exp(-dt*14);
     const behind=t>0.4&&laneHit(h.cs,h.cw,movers);   // the next rider is rolling up behind -> get out of his way now
-    if(t>0.6||behind){h.st='down';h.cs=h.s+0.7*e;h.cw=h.w;}}
+    if(t>0.38||behind){h.st='down';h.cs=h.s+0.7*e;h.cw=h.w;}}
   else if(h.st==='down'){   // sidestep down the banking onto the apron – waits if the line below is busy, hops aside if his own line is
-    const goal=-BAND-0.75,here=laneHit(h.cs,h.cw,movers),below=laneHit(h.cs-0.1,h.cw-0.45,movers);
-    let vw=0;if(!below)vw=-(here?2.4:1.6);else if(here){const above=laneHit(h.cs,h.cw+0.5,movers);if(!above&&h.cw<TW-0.6)vw=2.0;}
+    const goal=-BAND-0.75,here=laneHit(h.cs,h.cw,movers),below=laneHit(h.cs-0.1,h.cw-0.45,movers,h.cw-0.2);   // only someone actually lower down blocks the way off; the rider in my own line is why I'm leaving
+    let vw=0;if(!below)vw=-(here?2.6:2.1);else if(here){const above=laneHit(h.cs,h.cw+0.5,movers);if(!above&&h.cw<TW-0.6)vw=2.0;}
     if(vw<0&&!here)for(const o of HOLDERS){if(o===h||(o.st!=='down'&&o.st!=='floor'))continue;holderGround(h.cs-0.2,h.cw-0.4,_hw);if(_hw.distanceTo(o.pos)<0.62&&o.idx!==h.idx){vw=0;break;}}   // somebody already walking down there: let him go first
     h.vel+=(vw-h.vel)*Math.min(1,dt*10);h.cw=Math.max(goal,h.cw+h.vel*dt);if(!here&&!below)h.cs-=0.5*dt;   // a little diagonal, back towards the infield path
     const prev=_hv.copy(h.pos);holderGround(h.cs,h.cw,h.pos);moved=prev.distanceTo(h.pos);
@@ -1951,6 +2137,7 @@ function updateHolders(dt){const movers=HOLDERS.some(h=>h.st==='push'||h.st==='d
     // keep your distance: queue behind whoever is walking just in front of you (lower index has right of way if two meet)
     if(L>1e-3)for(const o of HOLDERS){if(o===h||(o.st!=='floor'&&o.st!=='stairs'))continue;const ox=o.pos.x-h.pos.x,oz=o.pos.z-h.pos.z,od=Math.hypot(ox,oz),oy=Math.abs(o.pos.y-h.pos.y);
       if(od<0.75&&oy<0.6&&(ox*dx+oz*dz)/(od*L+1e-6)>0.25&&!(o.blockBy===h&&o.idx>h.idx)){sp*=clamp((od-0.45)/0.3,0,1);h.blockBy=o;break;}else if(h.blockBy===o)h.blockBy=null;}
+    if(REF&&REF.st==='walk'&&!REF.yielding&&L>1e-3){const ox=REF.pos.x-h.pos.x,oz=REF.pos.z-h.pos.z,od=Math.hypot(ox,oz);if(od<0.9&&Math.abs(REF.pos.y-h.pos.y)<0.6&&(ox*dx+oz*dz)/(od*L+1e-6)>0.2)sp*=clamp((od-0.5)/0.4,0,1);}
     sp*=dt;if(L>1e-3){const m=Math.min(sp,L);h.pos.x+=dx/L*m;h.pos.z+=dz/L*m;moved=m;h.head=Math.atan2(dx,dz);}
     if(h.st==='floor'){const gy=groundAt(h.pos.x,h.pos.z)+(onCarpet(h.pos.x,h.pos.z)?0.22:0);h.pos.y+=(gy-h.pos.y)*Math.min(1,dt*7);}
     else if(list.length===3){const a=h.stairs0,b=tg;const tot=Math.hypot(b.x-a.x,b.z-a.z)||1;h.pos.y=a.y+(b.y-a.y)*clamp(1-L/tot,0,1);}
@@ -1963,7 +2150,7 @@ function updateHolders(dt){const movers=HOLDERS.some(h=>h.st==='push'||h.st==='d
   if(h.st!=='hold'&&h.st!=='push'&&h.st!=='watch'){h.ph+=moved*4.4;T=walkPose({},h.ph,1);T.hx=0.08;}
   if(h.st!=='watch'){let da=h.head-r.g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));r.g.rotation.y+=da*Math.min(1,dt*(h.st==='hold'?20:7));}
   r.g.position.copy(h.pos);poseHuman(r,T,k);}}
-// up on the walkway behind the barrier in the 2nd turn, just before the old boss: leaning on the rail and following the race
+// up on the walkway behind the barrier in the banked turn opposite the old boss: leaning on the rail and following the race
 var WATCH_BASE;
 function watchSpot(h){if(!WATCH_BASE)return null;const used=new Set(HOLDERS.filter(o=>o.st==='watch').map(o=>o.slot));let k=0;while(used.has(k))k++;h.slot=k;
   const s=WATCH_BASE.s0-k*1.05-(k%2?0.12:0),f=frameAt(s),p=new THREE.Vector3();surf(s,TW,p);const o=0.62+(k%3===1?0.12:0);
@@ -1976,6 +2163,48 @@ function watchPose(h,dt){const r=h.r,t=r.t;judgeTarget(_hw);h.look.lerp(_hw,1-Ma
   const g=gapTo(player,{s:WATCH_BASE?WATCH_BASE.s0-h.slot*1.05:0});h.cheerT-=dt;if(phase==='race'&&!player.crashed&&g>-2&&g<3&&h.cheerT<=-4)h.cheerT=1.6;
   if(h.cheerT>0){T.a0x=T.a1x=-2.8+Math.sin(t*12)*0.2;T.a0z=T.a1z=0.35;T.e0=T.e1=-0.3;T.mo=0.8;T.lean=0;T.y=Math.abs(Math.sin(t*8))*0.04;}
   return T;}
+// ---------- the starter: a commissaire on the apron counts the bunch down (3-2-1, whistle, flag down), then walks round the back of the judges' booth to the empty 4th chair ----------
+let REF=null;const _rb=new THREE.Vector3();
+function makeRef(){const r=makeHuman({skin:0xe2b896,top:0x1d2c4d,collar:0xffffff,tie:0xb3202a,hair:0x6a6a66,hairStyle:'short',pants:0x1d2c4d,mustache:true,lanyard:0xc6ff1a});
+  // starter's flag in his right hand
+  const fl=new THREE.Group();const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.5,6),mat(0x222222));stick.position.y=0.18;fl.add(stick);
+  const cv=mkCanvas(32,32),q=cv.getContext('2d');for(let i=0;i<4;i++)for(let j=0;j<4;j++){q.fillStyle=(i+j)%2?'#ffffff':'#d62828';q.fillRect(i*8,j*8,8,8);}
+  const cl=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.22),new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),side:THREE.DoubleSide}));cl.rotation.y=PI/2;cl.position.set(0,0.32,0.15);fl.add(cl);
+  fl.rotation.x=-1.4;r.arms[0].hand.add(fl);
+  REF={r,flag:fl,st:'sit',pos:new THREE.Vector3(),head:0,ph:0,path:null,n:4,t:0,bub:0};r.t=0;}
+function refChairPt(){JUDGES.updateMatrixWorld();return JUDGES.localToWorld(new THREE.Vector3(0.55,0.45,1.8));}
+function refSit(){if(!JUDGES)return;if(!REF)makeRef();const r=REF.r;REF.st='sit';REF.path=null;REF.flag.visible=false;
+  JUDGES.add(r.g);r.g.position.set(0.55,0.45,1.8);r.g.rotation.set(0,-PI/2,0);
+  if(!JUDGE_RIGS.includes(r))Object.assign(r,{i:3,mode:'watch',modeT:3,delay:0,look:new THREE.Vector3(0,1,0)}),JUDGE_RIGS.push(r);}
+function refStand(){if(!JUDGES)return;if(!REF)makeRef();const r=REF.r,i=JUDGE_RIGS.indexOf(r);if(i>=0)JUDGE_RIGS.splice(i,1);
+  scene.add(r.g);const s=SF+2.4,f=frameAt(s);holderGround(s,-BAND-0.6,REF.pos);r.g.position.copy(REF.pos);
+  REF.head=Math.atan2(-f.fx+f.nx*0.6,-f.fz+f.nz*0.6);r.g.rotation.set(0,REF.head,0);Object.assign(REF,{st:'stand',n:4,t:0,path:null,bub:0});REF.flag.visible=true;}
+function refCount(n){if(!REF||REF.st!=='stand')return;REF.n=n;REF.bub=n>0?0.85:1.2;REF.t=0;if(n<=0){REF.st='wait';tone(3300,0.35,0.09,'sine');}}
+function refPath(){const L=(x,z,plat)=>{const v=JUDGES.localToWorld(new THREE.Vector3(x,0,z));v.y=plat?FLOOR_Y+0.45:FLOOR_Y;v.plat=plat;return v;};JUDGES.updateMatrixWorld();
+  const a=L(1.88,4.35,false);const p=findPath(REF.pos,a,true);p.push(L(1.88,1.8,false),L(1.15,1.8,true),L(0.62,1.8,true));return p;}
+function updateRef(dt){if(!REF)return;const R=REF,r=R.r;r.t+=dt;R.t+=dt;
+  // speech bubble with the count over his head
+  const bb=$('refBub');if(R.bub>0&&(phase==='countdown'||phase==='race')){R.bub-=dt;r.head.getWorldPosition(_rb);const dist=_rb.distanceTo(camera.position);_rb.y+=0.38;_rb.project(camera);
+    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'JEĎTE! 🏁';bb.style.left=((_rb.x+1)/2*innerWidth)+'px';bb.style.top=((1-_rb.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
+  if(R.st==='sit')return;
+  let T={},k=1-Math.exp(-dt*8),moved=0;
+  if(R.st==='stand'){   // flag up for the count, a little shake on every number
+    const up=R.n<=3;T={a0x:up?-2.85+Math.sin(R.t*14)*0.12*Math.max(0,1-R.t*2):-0.2,a0z:0.12,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25,hx:-0.08,lean:-0.03};}
+  else if(R.st==='wait'){   // flag swept down, then off he goes
+    T={a0x:-1.1+Math.min(1,R.t*2)*0.9,a0z:0.1,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25};
+    if(R.t>1.6){R.st='walk';R.path=refPath();R.flag.rotation.x=-2.9;}}
+  else if(R.st==='walk'){const tg=R.path[0],dx=tg.x-R.pos.x,dz=tg.z-R.pos.z,L=Math.hypot(dx,dz);let sp=1.3;
+    // yield to the holders walking off the track / to the stairwell – never walk through anyone
+    R.yielding=false;if(L>1e-3)for(const o of HOLDERS){if(o.st!=='down'&&o.st!=='floor'&&o.st!=='stairs')continue;const ox=o.pos.x-R.pos.x,oz=o.pos.z-R.pos.z,od=Math.hypot(ox,oz);
+      if(od<0.95&&Math.abs(o.pos.y-R.pos.y)<0.6&&(ox*dx+oz*dz)/(od*L+1e-6)>0.1){sp*=clamp((od-0.55)/0.4,0,1);R.yielding=true;}}
+    for(const o of riders){if(!o.model.g.visible||o.crashed)continue;o.model.g.getWorldPosition(_rb);const od=Math.hypot(_rb.x-R.pos.x,_rb.z-R.pos.z);if(od<1.1&&((_rb.x-R.pos.x)*dx+(_rb.z-R.pos.z)*dz)>0){sp=0;R.yielding=true;}}
+    const m=Math.min(sp*dt,L);if(L>1e-3){R.pos.x+=dx/L*m;R.pos.z+=dz/L*m;moved=m;R.head=Math.atan2(dx,dz);}
+    const gy=tg.plat?FLOOR_Y+0.45:groundAt(R.pos.x,R.pos.z)+(onCarpet(R.pos.x,R.pos.z)?0.22:0);R.pos.y+=(gy-R.pos.y)*Math.min(1,dt*(tg.plat?9:7));
+    if(L<0.12){R.path.shift();if(!R.path.length){R.st='turn';R.t=0;}}}
+  else if(R.st==='turn'){const yw=JUDGES.rotation.y-PI/2;let da=yw-R.head;da=Math.atan2(Math.sin(da),Math.cos(da));R.head+=da*Math.min(1,dt*6);if(Math.abs(da)<0.05||R.t>1.2){refSit();return;}}
+  if(R.st==='walk'||R.st==='turn'){R.ph+=moved*4.4;T=walkPose({},R.ph,1);T.hx=0.06;T.a0x=-0.25;T.e0=-0.5;}
+  let da=R.head-r.g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));r.g.rotation.y+=da*Math.min(1,dt*7);
+  r.g.position.copy(R.pos);poseHuman(r,T,k);}
 const NEU_V=9.3;
 function startMadisonRace(){MT.neutral=false;goT=raceTime;startGun();showMsg('🔫<small>Výstřel – letmý start, madison běží!</small>',2.0);for(const T of MT){T.stintS=Math.min(T.stintS,T.act.s-L0);T.passed=false;T.armed=!!T.rest&&gapTo(T.act,T.rest)>2;T.nearT=0;}}
 function madStandings(){if(!MT)return[];const ok=t=>!t.act.crashed;return MT.slice().sort((a,b)=>(ok(b)-ok(a))||(b.pts-a.pts)||((b.sprints[MAD_LAPS/MAD_EVERY-1]||0)-(a.sprints[MAD_LAPS/MAD_EVERY-1]||0))||(b.act.s-a.act.s));}
@@ -2236,6 +2465,14 @@ function updateRescue(dt){if(!RESC)return;const R=RESC;R.t+=dt;const c=R.crew;
   if(R.st==='down'&&R.t>0.7){R.stretcher.position.y+=(0.3-R.stretcher.position.y)*Math.min(1,dt*3);}
   else{R.stretcher.position.y=0.82+(yF+yR)/2;R.stretcher.rotation.x=Math.atan2(yR-yF,3.0);}}
 function clearRescue(){if(RESC){scene.remove(RESC.crew);RESC=null;}}
+// skip the rescue: jump straight to the end pose (stretcher put down by the podium)
+function skipRescue(){if(!player||!player.crashed||resultsShown)return;if(!RESC)startRescue();const R=RESC,c=R.crew;
+  c.position.copy(R.end);const pod=new THREE.Vector3(PODX,0,0);JUDGES.localToWorld(pod);c.rotation.y=Math.atan2(pod.x-c.position.x,pod.z-c.position.z);
+  R.fig.visible=true;player.model.g.visible=false;R.path=null;
+  R.meds[0].g.position.set(1.15,R.meds[0].g.position.y,1.1);R.meds[1].g.position.set(-1.15,R.meds[1].g.position.y,-0.3);
+  R.stretcher.position.y=0.3;R.stretcher.rotation.x=0;R.st='done';R.t=0;$('msg').innerHTML='';msgT=0;}
+$('skipResc').addEventListener('click',e=>{e.preventDefault();skipRescue();});
+addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='Enter'||e.code==='Escape')&&!e.repeat&&player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done')){e.preventDefault();e.stopImmediatePropagation();skipRescue();}},true);
 const _rl=new THREE.Vector3(),_rc=new THREE.Vector3();
 function rescueCam(dt){const c=RESC.crew.position;if(RESC.st==='run'){const pp=new THREE.Vector3();player.model.g.getWorldPosition(pp);_rl.copy(c).add(pp).multiplyScalar(0.5);}else _rl.copy(c);_rl.y+=0.9;
   const fy=RESC.crew.rotation.y,fx=Math.sin(fy),fz=Math.cos(fy);_rc.set(_rl.x+fz*6-fx*2.5,_rl.y+3.2,_rl.z-fx*6-fz*2.5);
@@ -2592,7 +2829,7 @@ function beginRace(m){clearCeremony();resetStats();clearCans();raceBonus=0;yellT
   $('menu').style.display='none';$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';drawLapBoard(Math.ceil(LAPS));
   radioReset();phase='intro';introT=0;buildIntroPath();const mt=MODE_TXT[mode];$('introMode').textContent=mt[0];$('introSub').innerHTML=mt[1]+(mode==='keirin'?'<br><b style="color:#ffd166">Los: startuješ z pozice '+player.draw+' ze 6</b>':'')+'<br><span style="color:#fff;opacity:.85;font-size:13px">'+CTL_TXT+'</span>';
   const ib=$('intro');ib.style.display='block';const bar=ib.querySelector('.ibar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
-  if(GATE){GATE.visible=mode==='kilo';GATE.userData.open=0;GATE.userData.arms.forEach(a=>a.rotation.z=0);}$('count').style.display='none';}
+  if(GATE){GATE.visible=mode==='kilo';GATE.userData.open=0;GATE.userData.arms.forEach(a=>a.rotation.y=0);gateLamps(4);}KBOARD.visible=mode==='kilo';drawKBoard(4);if(mode==='kilo'||mode==='keirin')refSit();else refStand();$('count').style.display='none';}
 // ---------- start intro: camera fly-in, then animated countdown ----------
 const INTRO_DUR=4.6;let introT=0,introPath=null,introLook=null;
 function buildIntroPath(){const R=player;placeModels(0);
@@ -2848,7 +3085,7 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
     if(nl-effS(ld)<L0&&PR.whistle!==nl&&nl<FIN-1){PR.whistle=nl;bell();if(phase==='race'&&!player.finished)showMsg('🔔<small>Sprint o body za 1 kolo · 5-3-2-1</small>',1.8);}}}
 // ---------- menu backdrop: the bunch rolls round in a paceline, camera cuts between shots ----------
 const _mt=new THREE.Vector3(),_ml=new THREE.Vector3();let menuShot=-1;
-function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;
+function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
   const vis=riders.filter(r=>r.model.g.visible&&!r.partner);
   vis.forEach((R,i)=>{if(!R.menuInit||idleT<dt*1.5){R.s=SF+20-i*2.15;R.w=0.55;R.crashed=false;R.crash=null;R.menuInit=true;}R.v=11.8;R.s+=R.v*dt;R.dw=0;R.crank+=R.v/7.6*2*PI*dt;});
   riders.forEach(R=>{if(R.partner)R.model.g.visible=false;});
@@ -2861,8 +3098,8 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;
   const cut=shot!==menuShot;menuShot=shot;const k=cut?1:1-Math.exp(-dt*4);
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
 // ---------- loop ----------
-resetRiders();clearHolders();
-let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
+resetRiders();clearHolders();refSit();
+let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
 let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
@@ -2870,8 +3107,8 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
   if(phase==='intro'){updateIntro(dt);placeModels(dt);updateBoss(dt);renderer.render(scene,camera);return;}
   if(phase==='countdown'&&mode==='keirin'){if(!paused)keirinPre(dt*TS);}
-  else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;beep(n<=0);showCount(n);if(n<=0){if(mode!=='kilo'){tone(2900,0.6,0.12,'sine');tone(3100,0.6,0.08,'sine');releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
-  if(GATE&&GATE.visible){const o=GATE.userData.open;if(o>0){GATE.userData.open=Math.min(1,o+dt*2.5);const k=GATE.userData.open;GATE.userData.arms.forEach((a,i)=>a.rotation.z=(i?1:-1)*k*1.3);if(phase==='race'&&raceTime>2.5)GATE.visible=false;}}
+  else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;beep(n<=0);if(mode==='kilo'){drawKBoard(n);gateLamps(n);}else refCount(n);if(n<=0){if(mode!=='kilo'){tone(2900,0.6,0.12,'sine');tone(3100,0.6,0.08,'sine');releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
+  if(GATE&&GATE.visible){const o=GATE.userData.open;if(o>0){GATE.userData.open=Math.min(1,o+dt*2.5);const k=GATE.userData.open;GATE.userData.arms.forEach((a,i)=>a.rotation.y=(i?1:-1)*k*1.1);if(phase==='race'&&raceTime>2.5){GATE.visible=false;KBOARD.visible=false;}}}
   if(paused){renderer.render(scene,camera);return;}
   if(keys.effUp)setEffort(effort+0.65*dt);if(keys.effDn)setEffort(effort-0.65*dt);
   if(phase==='race'||phase==='done'){
@@ -2894,7 +3131,7 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
     if(phase==='done'&&!resultsShown&&(mode==='elim'||mode==='keirin')&&player.out&&!player.crashed){finishWait+=dt;if(finishWait>3.5){resultsShown=true;player.model.g.visible=false;fastForward();startCeremony();}}
     if(phase==='done'&&!resultsShown){finishWait+=dt;if(finishWait>3.5&&(!raceOpen()||finishWait>15)){resultsShown=true;startCeremony();}}
   }
-  updateBoss(dt);updateRescue(dt);updateSlingUI(dt);placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
+  updateBoss(dt);updateRef(dt);updateRescue(dt);updateSlingUI(dt);{const sk=$('skipResc'),on=!!(player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done'));if(sk.style.display!==(on?'block':'none'))sk.style.display=on?'block':'none';}placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
 requestAnimationFrame(frame);if(window.__ld)window.__ld(.85);
 })();
 </script>
