@@ -125,7 +125,7 @@ tr.me td{color:#ffd166;font-weight:800}
 #intro .ibar{position:absolute;left:0;bottom:22%;padding:12px 26px 12px 18px;background:linear-gradient(90deg,#0d1b33 70%,rgba(13,27,51,0));border-left:8px solid #c6ff1a;animation:slideIn .6s .3s cubic-bezier(.2,1.2,.4,1) both;min-width:55%}
 #introMode{font-size:clamp(30px,8vw,56px);font-weight:900;letter-spacing:.04em;line-height:1}
 #introSub{font-size:15px;font-weight:700;color:#c6ff1a;margin-top:4px}
-#introSkip{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;opacity:.7;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+#introSkip{position:absolute;left:12px;bottom:16px;flex:none;min-width:0;height:58px;padding:0 18px;font-size:15px;background:rgba(15,25,40,.82);border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:2}
 @keyframes slideIn{from{transform:translateX(-105%)}to{transform:none}}
 #count{position:fixed;left:0;right:0;top:30%;text-align:center;font-size:clamp(90px,26vw,170px);font-weight:900;pointer-events:none;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.6),0 0 2px #000;display:none;z-index:15}
 #count.pop{animation:pop .9s cubic-bezier(.2,1.6,.4,1) both}
@@ -143,6 +143,7 @@ tr.me td{color:#ffd166;font-weight:800}
   #msg{font-size:56px}#msg small{font-size:22px}#draft{font-size:16px;top:20px}
   #eff{height:min(52vh,380px);width:72px}#hbar{width:220px;height:28px}
   #ctl{padding:14px 20px 54px}
+  #introSkip{left:20px;bottom:54px}
   .mgrid{grid-template-columns:repeat(4,1fr)}.mgrid.m2{grid-template-columns:repeat(2,1fr);max-width:50%;margin-right:auto}.mcard{max-width:880px}.mode{padding:30px 10px 26px}
 }
 #keyHelp kbd{display:inline-block;background:#fff;color:#111;border-radius:4px;padding:0 5px;margin:0 2px;font:800 11px system-ui;box-shadow:0 2px 0 #888}
@@ -261,7 +262,7 @@ tr.me td{color:#ffd166;font-weight:800}
   </div>
 </div>
 <div id="wipe"><i></i><i></i><i></i></div>
-<div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><div id="introSkip">ťukni pro přeskočení</div></div>
+<div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
 
 <div id="ceremony" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:12px 14px 18px;pointer-events:none;text-align:center">
@@ -2494,7 +2495,10 @@ function refStand(){if(!JUDGES)return;if(!REF)makeRef();const r=REF.r,i=JUDGE_RI
   REF.head=Math.atan2(-f.fx+f.nx*0.6,-f.fz+f.nz*0.6);r.g.rotation.set(0,REF.head,0);Object.assign(REF,{st:'stand',n:4,t:0,path:null,bub:0});refWhistle(false);REF.flag.visible=true;}
 function refCount(n){if(!REF||REF.st!=='stand')return;REF.n=n;REF.bub=n>0?0.85:1.2;REF.t=0;if(n<=0){REF.st='wait';refWhistle(true);whistle(0.8);}}
 function refPath(){const L=(x,z,plat)=>{const v=JUDGES.localToWorld(new THREE.Vector3(x,0,z));v.y=plat?FLOOR_Y+0.45:FLOOR_Y;v.plat=plat;return v;};JUDGES.updateMatrixWorld();
-  const a=L(1.88,4.35,false);const p=findPath(REF.pos,a,true);p.push(L(1.88,1.8,false),L(1.15,1.8,true),L(0.62,1.8,true));return p;}
+  // he starts on the apron in front of the desk (inside the booth's no-go zone of the nav grid), so the way round is fixed:
+  // along the front of the desk to past its end, round the corner, up the back of the platform and onto the 4th chair
+  const lp=JUDGES.worldToLocal(REF.pos.clone()),fx=Math.min(lp.x,-1.15);
+  return [L(fx,4.35,false),L(1.88,4.35,false),L(1.88,1.8,false),L(1.15,1.8,true),L(0.62,1.8,true)];}
 function updateRef(dt){if(!REF)return;const R=REF,r=R.r;r.t+=dt;R.t+=dt;
   // comic speech bubble with the count, its tail pointing at his mouth (bubble leans towards the screen centre)
   const bb=$('refBub');if(R.bub>0&&(phase==='countdown'||phase==='race')){R.bub-=dt;_rb.set(0,0.035,0.11);r.head.localToWorld(_rb);const dist=_rb.distanceTo(camera.position);_rb.project(camera);
@@ -3157,7 +3161,10 @@ function updateIntro(dt){introT+=dt;const u=clamp(introT/INTRO_DUR,0,1),e=u<0.5?
   for(const R of riders)if(R.model.g.visible){R.crank+=dt*0.4*Math.sin(introT*2+R.s);}
   if(introT>=INTRO_DUR){endIntro();}}
 function endIntro(){if(phase!=='intro')return;$('intro').style.display='none';raceCamTarget(player,0);camPos.copy(_t);camLook.copy(_l);camUp.copy(_u);camInit=true;phase='countdown';countT=3.999;lastBeep=4;$('ctl').style.display='flex';$('hud').style.display='block';}
-$('intro').addEventListener('pointerdown',e=>{e.preventDefault();if(phase==='intro')introT=Math.max(introT,INTRO_DUR-0.5);});
+function skipIntro(){if(phase==='intro')introT=Math.max(introT,INTRO_DUR-0.5);}
+$('intro').addEventListener('pointerdown',e=>{e.preventDefault();skipIntro();});
+// same skip button as for the ambulance (bottom left) + Space / Enter / Esc on the keyboard
+addEventListener('keydown',e=>{if(phase==='intro'&&(e.code==='Space'||e.code==='Enter'||e.code==='Escape')&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();skipIntro();}},true);
 function showCount(n){const c=$('count');c.style.display='block';c.textContent=n>0?n:'JEĎ!';c.className='';void c.offsetWidth;c.className=n>0?'pop':'goo';}
 function startGun(){const f=$('flash');f.classList.remove('on');void f.offsetWidth;f.classList.add('on');shake=0.5;
   if(!actx||muted)return;try{const len=0.35,b=actx.createBuffer(1,actx.sampleRate*len,actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,4);
