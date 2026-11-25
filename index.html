@@ -1586,7 +1586,12 @@ function playKybl(){if(!actx)return;if(!kyblBufs.length){loadKybl();return;}if(k
   const i=ready[Math.floor(Math.random()*ready.length)];kyblLast=i;
   try{const src=actx.createBufferSource(),g=actx.createGain();g.gain.value=1;src.buffer=kyblBufs[i];src.connect(g).connect(actx.destination);src.start();kyblSrc=src;src.onended=()=>{if(kyblSrc===src){kyblSrc=null;kyblCD=performance.now()+600;}};}catch(e){}}
 function loadHasal(){if(!actx||hasalBuf)return;try{const bin=atob(HASAL_B64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);const pr=actx.decodeAudioData(u.buffer,b=>{hasalBuf=b;},()=>{});if(pr&&pr.then)pr.then(b=>{hasalBuf=b;}).catch(()=>{});hasalBuf=hasalBuf||0;}catch(e){}}
-function playHasal(){if(!actx)return;if(!hasalBuf){loadHasal();return;}try{if(hasalSrc)try{hasalSrc.stop();}catch(_){}const src=actx.createBufferSource(),g=actx.createGain();g.gain.value=1;src.buffer=hasalBuf;src.connect(g).connect(actx.destination);src.start();hasalSrc=src;src.onended=()=>{if(hasalSrc===src)hasalSrc=null;};}catch(e){}}
+let hasalG=null,hasalP=null,hasalR=null;const _hsv=new THREE.Vector3(),_hcr=new THREE.Vector3();
+// loudness by distance from where you are (the camera): right next to him = full blast, across the velodrome = faint; panned left/right
+function hasalMix(now){if(!hasalG||!hasalR||!hasalR.model)return;hasalR.model.g.getWorldPosition(_hsv);const d=_hsv.distanceTo(camera.position);
+  const v=Math.max(0.05,1/(1+Math.pow(d/7,1.25)));if(now)hasalG.gain.value=v;else hasalG.gain.setTargetAtTime(v,actx.currentTime,0.05);
+  if(hasalP){_hcr.set(1,0,0).applyQuaternion(camera.quaternion);_hsv.sub(camera.position);const L=_hsv.length()||1;const pn=clamp(_hsv.dot(_hcr)/L,-1,1)*0.8;if(now)hasalP.pan.value=pn;else hasalP.pan.setTargetAtTime(pn,actx.currentTime,0.05);}}
+function playHasal(R){if(!actx)return;if(!hasalBuf){loadHasal();return;}try{if(hasalSrc)try{hasalSrc.stop();}catch(_){}const src=actx.createBufferSource(),g=actx.createGain();src.buffer=hasalBuf;let out=g;if(actx.createStereoPanner){hasalP=actx.createStereoPanner();g.connect(hasalP);out=hasalP;}else hasalP=null;src.connect(g);out.connect(actx.destination);hasalG=g;hasalR=R;hasalMix(true);src.start();hasalSrc=src;src.onended=()=>{if(hasalSrc===src){hasalSrc=null;hasalG=null;hasalR=null;}};}catch(e){}}
 function tone(f,dur,vol,type,delay){if(!actx)return;try{const t=actx.currentTime+(delay||0);const o=actx.createOscillator(),g=actx.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+dur);}catch(e){}}
 function bell(){for(let i=0;i<4;i++){tone(1568,0.9,0.18,'sine',i*0.28);tone(3136*1.01,0.5,0.06,'sine',i*0.28);}}
 function beep(hi){tone(hi?1320:660,hi?0.5:0.18,0.15,'square');}
@@ -1953,7 +1958,7 @@ const CAUSE={slip:'Málo rychlosti v klopení – podjela ti kola',rear:'Najel j
 function crashRider(R,cause){if(R.crashed||R.finished||!R.model.g.visible)return;
   const slip=cause==='slip';
   R.crashed=true;R.crash={cause,slip,t:0,v:R.v*(slip?0.97:0.92),vw:slip?-1.6:(R.dw||0)*0.4-0.5,yaw:0,spin:slip?-(0.9+Math.random()*0.5):(Math.random()<.5?-1:1)*(1.5+Math.random()*1.5),lean0:R.lean||0};
-  if(R.hasal)playHasal();   // Hasal: only his own swearing, no other crash sound
+  if(R.hasal){if(!FFWD&&(phase==='race'||phase==='done'))playHasal(R);}   // Hasal: only his own swearing, only a crash you actually see happen (not while the rest of the race is simulated for the results)
   else if(slip){tone(1500,0.5,0.06,'sawtooth');tone(900,0.4,0.05,'sawtooth',0.12);tone(70,0.5,0.32,'square',0.3);}   // tyre squeal, then the thump on the boards
   else tone(85+Math.random()*30,0.45,0.3,'sawtooth');
   if(R===player){crashT=0;showMsg('PÁD! 🚑<small>'+(CAUSE[cause]||'')+' – závod pro tebe skončil</small>',3.2);}
@@ -1972,7 +1977,7 @@ function simStep(dt,withPlayer){
   applyShove(dt);resolveContacts(dt);if(mode==='madison')madisonUpdate(dt);if(mode==='elim')elimUpdate(dt);if(mode==='points')pointsUpdate(dt);if(mode==='keirin')keirinUpdate(dt);if(NEU&&NEU.on&&phase==='race'){const ld=active().filter(r=>!r.crashed).reduce((a,b)=>a.s>b.s?a:b);if(ld.s>=START_S)startBunchRace();}if(withPlayer)trackStats(dt);
   for(const R of active())if(R.crashed)crashUpdate(R,dt);}
 function raceOpen(){if(mode==='elim'&&EL)return EL.all.some(r=>!r.player&&!r.out&&!r.finished&&!r.crashed);return mode==='madison'&&MT?MT.some(t=>!t.me&&!t.act.finished&&!t.act.crashed):riders.some(r=>!r.player&&!r.partner&&r.model.g.visible&&!r.finished&&!r.crashed&&!r.dsq);}
-function fastForward(){const dt=1/30;let n=0;while(n<30*900&&raceOpen()){simStep(dt,false);n++;}}
+let FFWD=false;function fastForward(){const dt=1/30;let n=0;FFWD=true;try{while(n<30*900&&raceOpen()){simStep(dt,false);n++;}}finally{FFWD=false;}}
 const _pos=new THREE.Vector3();
 function placeModels(dt){
   for(const R of riders){if(!R.model.g.visible)continue;
@@ -3383,7 +3388,7 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
 resetRiders();clearHolders();refSit();
 let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
 let ldF=0;
-function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;
+function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;if(hasalSrc)hasalMix();
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
