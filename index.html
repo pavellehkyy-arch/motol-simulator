@@ -1770,7 +1770,7 @@ const hbar=$('hbar');
 {const pct=w=>(w+BAND)/(BAND+TW)*100;const add=(l,col)=>{const d=document.createElement('div');d.className='ln';d.style.left=l+'%';d.style.background=col;hbar.insertBefore(d,hbar.firstChild);};
  const band=document.createElement('div');band.style.cssText='position:absolute;top:0;bottom:0;left:0;width:'+pct(0)+'%;background:#2b5fb4';hbar.insertBefore(band,hbar.firstChild);
  add(pct(0.2),'#151515');add(pct(0.9),'#d62828');add(pct(1.9),'#1e44a8');}
-const canSteer=()=>(phase==='race'||phase==='countdown')&&!player.crashed&&!player.finished;
+const canSteer=()=>!!player&&!player.crashed&&((phase==='race'||phase==='countdown')&&!player.finished||phase==='done'&&!resultsShown);   // after the finish you can still ride up to the barrier for the high five
 let effort=0.55;
 function effortPower(e){if(e<0.12)return 60;if(e<0.8)return 150+(e-0.12)/0.68*250;return 700+(e-0.8)/0.2*450;}
 function setEffort(e){effort=clamp(e,0,1);}
@@ -1801,7 +1801,7 @@ if(HAS_TOUCH){
       if(t.identifier===tEff)effFromTouch(t);
       else if(lookId==='t'+t.identifier)lookSet(t.clientX);
       else if(tDrag&&t.identifier===tDrag.id&&canSteer())player.targetWp=clamp(tDrag.w0+(t.clientX-tDrag.x)/(innerWidth*0.85)*TW,-(BAND-0.08),TW-0.4);}
-    if(phase==='race'||phase==='countdown')e.preventDefault();},{passive:false});
+    if(phase==='race'||phase==='countdown'||phase==='done')e.preventDefault();},{passive:false});
   const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===tEff)tEff=null;if(lookId==='t'+t.identifier){lookId=null;lookSet(null);}if(tDrag&&t.identifier===tDrag.id){tDrag=null;drag=null;}
       document.querySelectorAll('.btn').forEach(b=>{if(b._tid===t.identifier){b.classList.remove('on');press(b.dataset.k,false);b._tid=null;}});}};
   document.addEventListener('touchend',tEnd,{passive:false});document.addEventListener('touchcancel',tEnd,{passive:false});
