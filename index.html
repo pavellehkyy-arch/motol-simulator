@@ -1284,12 +1284,12 @@ function makeHuman(o){o=o||{};const g=new THREE.Group(),body=new THREE.Group();g
     arms.push({shp,el,hand,sx});}
   const rig={g,body,torso,head,legs,arms,brows,mouth,skin,skinCol:new THREE.Color(o.skin||0xdcae8a),cur:{},t:Math.random()*10};
   poseHuman(rig,{},1);return rig;}
-const HUMAN_POSE={y:0,lean:0,twist:0,side:0,hx:0,hy:0,hz:0,l0h:0,l0k:0,l1h:0,l1k:0,a0x:0.05,a0z:0.08,e0:-0.12,a1x:0.05,a1z:0.08,e1:-0.12,mo:0,ba:0,red:0};
+const HUMAN_POSE={y:0,lean:0,twist:0,side:0,hx:0,hy:0,hz:0,l0h:0,l0k:0,l1h:0,l1k:0,a0x:0.05,a0y:0,a0z:0.08,e0:-0.12,a1x:0.05,a1z:0.08,e1:-0.12,mo:0,ba:0,red:0};
 // blend the rig towards the target pose T (missing keys -> neutral standing pose); k = blend factor 0..1
 function poseHuman(r,T,k){const c=r.cur;for(const key in HUMAN_POSE){const tv=T[key]!==undefined?T[key]:HUMAN_POSE[key];c[key]=c[key]===undefined?tv:c[key]+(tv-c[key])*k;}
   r.body.position.y=c.y;r.torso.rotation.set(c.lean,c.twist,c.side);r.head.rotation.set(c.hx,c.hy,c.hz);
   r.legs[0].hip.rotation.x=c.l0h;r.legs[0].knee.rotation.x=c.l0k;r.legs[1].hip.rotation.x=c.l1h;r.legs[1].knee.rotation.x=c.l1k;
-  const A=r.arms;A[0].shp.rotation.set(c.a0x,0,-c.a0z);A[0].el.rotation.x=c.e0;A[1].shp.rotation.set(c.a1x,0,c.a1z);A[1].el.rotation.x=c.e1;
+  const A=r.arms;A[0].shp.rotation.set(c.a0x,c.a0y,-c.a0z);A[0].el.rotation.x=c.e0;A[1].shp.rotation.set(c.a1x,0,c.a1z);A[1].el.rotation.x=c.e1;
   r.mouth.scale.y=0.012+c.mo*0.04;r.mouth.scale.x=0.045-c.mo*0.012;
   r.brows[0].rotation.z=-c.ba*0.5;r.brows[1].rotation.z=c.ba*0.5;r.brows[0].position.y=r.brows[1].position.y=0.148-c.ba*0.008;
   r.skin.color.copy(r.skinCol).lerp(_redFace,c.red*0.55);}
@@ -1593,6 +1593,16 @@ function hasalMix(now){if(!hasalG||!hasalR||!hasalR.model)return;hasalR.model.g.
   if(hasalP){_hcr.set(1,0,0).applyQuaternion(camera.quaternion);_hsv.sub(camera.position);const L=_hsv.length()||1;const pn=clamp(_hsv.dot(_hcr)/L,-1,1)*0.8;if(now)hasalP.pan.value=pn;else hasalP.pan.setTargetAtTime(pn,actx.currentTime,0.05);}}
 function playHasal(R){if(!actx)return;if(!hasalBuf){loadHasal();return;}try{if(hasalSrc)try{hasalSrc.stop();}catch(_){}const src=actx.createBufferSource(),g=actx.createGain();src.buffer=hasalBuf;let out=g;if(actx.createStereoPanner){hasalP=actx.createStereoPanner();g.connect(hasalP);out=hasalP;}else hasalP=null;src.connect(g);out.connect(actx.destination);hasalG=g;hasalR=R;hasalMix(true);src.start();hasalSrc=src;src.onended=()=>{if(hasalSrc===src){hasalSrc=null;hasalG=null;hasalR=null;}};}catch(e){}}
 function tone(f,dur,vol,type,delay){if(!actx)return;try{const t=actx.currentTime+(delay||0);const o=actx.createOscillator(),g=actx.createGain();o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+dur);}catch(e){}}
+function whistle(dur){if(!actx)return;try{const t=actx.currentTime,d=dur||0.75;
+  const o=actx.createOscillator(),lfo=actx.createOscillator(),lg=actx.createGain(),am=actx.createGain(),alfo=actx.createGain(),g=actx.createGain();
+  o.type='sine';o.frequency.setValueAtTime(2850,t);o.frequency.linearRampToValueAtTime(3050,t+0.06);o.frequency.linearRampToValueAtTime(2980,t+d);
+  lfo.type='sine';lfo.frequency.value=34;lg.gain.value=170;lfo.connect(lg);lg.connect(o.frequency);alfo.gain.value=0.35;lfo.connect(alfo);am.gain.value=0.65;alfo.connect(am.gain);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.16,t+0.025);g.gain.setValueAtTime(0.16,t+d-0.12);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(am);am.connect(g);g.connect(actx.destination);
+  const nb=actx.createBuffer(1,Math.ceil(actx.sampleRate*d),actx.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  const ns=actx.createBufferSource(),bp=actx.createBiquadFilter(),ng=actx.createGain();ns.buffer=nb;bp.type='bandpass';bp.frequency.value=3000;bp.Q.value=4;
+  ng.gain.setValueAtTime(0.0001,t);ng.gain.exponentialRampToValueAtTime(0.05,t+0.03);ng.gain.setValueAtTime(0.05,t+d-0.12);ng.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  ns.connect(bp);bp.connect(ng);ng.connect(actx.destination);o.start(t);lfo.start(t);ns.start(t);o.stop(t+d+0.02);lfo.stop(t+d+0.02);ns.stop(t+d+0.02);}catch(e){}}
 function bell(){for(let i=0;i<4;i++){tone(1568,0.9,0.18,'sine',i*0.28);tone(3136*1.01,0.5,0.06,'sine',i*0.28);}}
 function beep(hi){tone(hi?1320:660,hi?0.5:0.18,0.15,'square');}
 
@@ -2454,36 +2464,43 @@ function watchPose(h,dt){const r=h.r,t=r.t;judgeTarget(_hw);h.look.lerp(_hw,1-Ma
   const g=gapTo(player,{s:WATCH_BASE?WATCH_BASE.s0-h.slot*1.05:0});h.cheerT-=dt;if(phase==='race'&&!player.crashed&&g>-2&&g<3&&h.cheerT<=-4)h.cheerT=1.6;
   if(h.cheerT>0){T.a0x=T.a1x=-2.8+Math.sin(t*12)*0.2;T.a0z=T.a1z=0.35;T.e0=T.e1=-0.3;T.mo=0.8;T.lean=0;T.y=Math.abs(Math.sin(t*8))*0.04;}
   return T;}
-// ---------- the starter: a commissaire on the apron counts the bunch down (3-2-1, whistle, flag down), then walks round the back of the judges' booth to the empty 4th chair ----------
+// ---------- the starter: a commissaire on the apron counts the bunch down (3-2-1, whistle to his mouth, a blast on it), then walks round the back of the judges' booth to the empty 4th chair ----------
 let REF=null;const _rb=new THREE.Vector3();
 function makeRef(){const r=makeHuman({skin:0xe2b896,top:0x1d2c4d,collar:0xffffff,tie:0xb3202a,hair:0x6a6a66,hairStyle:'short',pants:0x1d2c4d,mustache:true,lanyard:0xc6ff1a});
-  // starter's flag in his right hand
-  const fl=new THREE.Group();const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.5,6),mat(0x222222));stick.position.y=0.18;fl.add(stick);
-  const cv=mkCanvas(32,32),q=cv.getContext('2d');for(let i=0;i<4;i++)for(let j=0;j<4;j++){q.fillStyle=(i+j)%2?'#ffffff':'#d62828';q.fillRect(i*8,j*8,8,8);}
-  const cl=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.22),new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cv),side:THREE.DoubleSide}));cl.rotation.y=PI/2;cl.position.set(0,0.32,0.15);fl.add(cl);
-  fl.rotation.x=-1.4;r.arms[0].hand.add(fl);
-  REF={r,flag:fl,st:'sit',pos:new THREE.Vector3(),head:0,ph:0,path:null,n:4,t:0,bub:0};r.t=0;}
+  // referee's metal whistle in his right hand (moved into his mouth for the start)
+  const fl=new THREE.Group(),wm=new THREE.MeshPhongMaterial({color:0xc9ccd2,specular:0xffffff,shininess:90});
+  const bdy=new THREE.Mesh(new THREE.CylinderGeometry(0.017,0.017,0.026,14),wm);bdy.rotation.z=PI/2;bdy.position.z=-0.012;fl.add(bdy);
+  const mp=new THREE.Mesh(G_BOX,wm);mp.scale.set(0.02,0.011,0.04);mp.position.set(0,0.008,0.016);fl.add(mp);
+  const rg=new THREE.Mesh(new THREE.TorusGeometry(0.008,0.002,4,10),mat(0x222222));rg.position.set(0,0,-0.033);fl.add(rg);
+  fl.position.set(0,-0.03,0.035);fl.rotation.set(-0.4,0,0);r.arms[0].hand.add(fl);
+  REF={r,flag:fl,inMouth:false,st:'sit',pos:new THREE.Vector3(),head:0,ph:0,path:null,n:4,t:0,bub:0};r.t=0;}
+function refWhistle(m){if(!REF||REF.inMouth===m)return;REF.inMouth=m;const w=REF.flag,r=REF.r;
+  if(m){r.head.add(w);w.position.set(0.004,0.036,0.142);w.rotation.set(0,0,0);}else{r.arms[0].hand.add(w);w.position.set(0,-0.03,0.035);w.rotation.set(-0.4,0,0);}}
 function refChairPt(){JUDGES.updateMatrixWorld();return JUDGES.localToWorld(new THREE.Vector3(0.55,0.45,1.8));}
-function refSit(){if(!JUDGES)return;if(!REF)makeRef();const r=REF.r;REF.st='sit';REF.path=null;REF.flag.visible=false;
+function refSit(){if(!JUDGES)return;if(!REF)makeRef();const r=REF.r;REF.st='sit';REF.path=null;refWhistle(false);REF.flag.visible=false;
   JUDGES.add(r.g);r.g.position.set(0.55,0.45,1.8);r.g.rotation.set(0,-PI/2,0);
   if(!JUDGE_RIGS.includes(r))Object.assign(r,{i:3,mode:'watch',modeT:3,delay:0,look:new THREE.Vector3(0,1,0)}),JUDGE_RIGS.push(r);}
 function refStand(){if(!JUDGES)return;if(!REF)makeRef();const r=REF.r,i=JUDGE_RIGS.indexOf(r);if(i>=0)JUDGE_RIGS.splice(i,1);
   scene.add(r.g);const s=SF+2.4,f=frameAt(s);holderGround(s,-BAND-0.6,REF.pos);r.g.position.copy(REF.pos);
-  REF.head=Math.atan2(-f.fx+f.nx*0.6,-f.fz+f.nz*0.6);r.g.rotation.set(0,REF.head,0);Object.assign(REF,{st:'stand',n:4,t:0,path:null,bub:0});REF.flag.visible=true;}
-function refCount(n){if(!REF||REF.st!=='stand')return;REF.n=n;REF.bub=n>0?0.85:1.2;REF.t=0;if(n<=0){REF.st='wait';tone(3300,0.35,0.09,'sine');}}
+  REF.head=Math.atan2(-f.fx+f.nx*0.6,-f.fz+f.nz*0.6);r.g.rotation.set(0,REF.head,0);Object.assign(REF,{st:'stand',n:4,t:0,path:null,bub:0});refWhistle(false);REF.flag.visible=true;}
+function refCount(n){if(!REF||REF.st!=='stand')return;REF.n=n;REF.bub=n>0?0.85:1.2;REF.t=0;if(n<=0){REF.st='wait';refWhistle(true);whistle(0.8);}}
 function refPath(){const L=(x,z,plat)=>{const v=JUDGES.localToWorld(new THREE.Vector3(x,0,z));v.y=plat?FLOOR_Y+0.45:FLOOR_Y;v.plat=plat;return v;};JUDGES.updateMatrixWorld();
   const a=L(1.88,4.35,false);const p=findPath(REF.pos,a,true);p.push(L(1.88,1.8,false),L(1.15,1.8,true),L(0.62,1.8,true));return p;}
 function updateRef(dt){if(!REF)return;const R=REF,r=R.r;r.t+=dt;R.t+=dt;
   // comic speech bubble with the count, its tail pointing at his mouth (bubble leans towards the screen centre)
   const bb=$('refBub');if(R.bub>0&&(phase==='countdown'||phase==='race')){R.bub-=dt;_rb.set(0,0.035,0.11);r.head.localToWorld(_rb);const dist=_rb.distanceTo(camera.position);_rb.project(camera);
-    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'JEĎTE! 🏁';bb.classList.toggle('fl',_rb.x>0.25);bb.style.left=((_rb.x+1)/2*innerWidth)+'px';bb.style.top=((1-_rb.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
+    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'PÍÍÍÍSK!';bb.classList.toggle('fl',_rb.x>0.25);bb.style.left=((_rb.x+1)/2*innerWidth)+'px';bb.style.top=((1-_rb.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
   if(R.st==='sit')return;
   let T={},k=1-Math.exp(-dt*8),moved=0;
-  if(R.st==='stand'){   // flag up for the count, a little shake on every number
-    const up=R.n<=3;T={a0x:up?-2.85+Math.sin(R.t*14)*0.12*Math.max(0,1-R.t*2):-0.2,a0z:0.12,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25,hx:-0.08,lean:-0.03,mo:up&&R.t<0.45?1:0};}
+  if(R.st==='stand'){   // whistle held at his chest while he counts; on "1" it goes up to his mouth
+    const lift=R.n===1&&R.t>0.45;if(lift&&R.t>0.75)refWhistle(true);
+    T=lift?{a0x:-1.31,a0y:1.01,a0z:0.21,e0:-2.04,a1x:-0.1,a1z:0.1,e1:-0.25,hx:-0.04,lean:-0.03,mo:R.t>0.75?0.25:0}
+          :{a0x:-0.55,a0y:0.5,a0z:0.1,e0:-1.5,a1x:-0.1,a1z:0.1,e1:-0.25,hx:-0.08,lean:-0.03,mo:R.n<=3&&R.t<0.45?1:0};}
   else if(R.st==='wait'){   // flag swept down, then off he goes
-    T={a0x:-1.1+Math.min(1,R.t*2)*0.9,a0z:0.1,e0:-0.1,a1x:-0.1,a1z:0.1,e1:-0.25,mo:R.t<0.7?1.25:0,hx:R.t<0.7?-0.15:0};
-    if(R.t>1.6){R.st='walk';R.path=refPath();R.flag.rotation.x=-2.9;}}
+    const blow=R.t<0.85;if(!blow)refWhistle(false);   // a long blast with the head tipped back, then the whistle comes down
+    T=blow?{a0x:-1.31,a0y:1.01,a0z:0.21,e0:-2.04,a1x:-0.1,a1z:0.1,e1:-0.25,mo:0.25,hx:-0.14,lean:-0.05,red:0.25}
+          :{a0x:-0.2,a0y:0,a0z:0.1,e0:-0.5,a1x:-0.1,a1z:0.1,e1:-0.25,mo:0,hx:0};
+    if(R.t>1.6){R.st='walk';R.path=refPath();}}
   else if(R.st==='walk'){const tg=R.path[0],dx=tg.x-R.pos.x,dz=tg.z-R.pos.z,L=Math.hypot(dx,dz);let sp=1.3;
     // yield to the holders walking off the track / to the stairwell – never walk through anyone
     R.yielding=false;if(L>1e-3)for(const o of HOLDERS){if(o.st!=='down'&&o.st!=='floor'&&o.st!=='stairs')continue;const ox=o.pos.x-R.pos.x,oz=o.pos.z-R.pos.z,od=Math.hypot(ox,oz);
@@ -3394,7 +3411,7 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
   if(phase==='intro'){updateIntro(dt);placeModels(dt);updateBoss(dt);renderer.render(scene,camera);return;}
   if(phase==='countdown'&&mode==='keirin'){if(!paused)keirinPre(dt*TS);}
-  else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;beep(n<=0);if(mode==='kilo'){drawKBoard(n);gateLamps(n);}else refCount(n);if(n<=0){if(mode!=='kilo'){tone(2900,0.6,0.12,'sine');tone(3100,0.6,0.08,'sine');releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
+  else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;if(mode==='kilo'||n>0)beep(n<=0);if(mode==='kilo'){drawKBoard(n);gateLamps(n);}else refCount(n);if(n<=0){if(mode!=='kilo'){releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
   if(GATE&&GATE.visible){const o=GATE.userData.open;if(o>0){GATE.userData.open=Math.min(1,o+dt*2.5);const k=GATE.userData.open;GATE.userData.arms.forEach((a,i)=>a.rotation.y=(i?1:-1)*k*1.1);if(phase==='race'&&raceTime>2.5){GATE.visible=false;KBOARD.visible=false;}}}
   if(paused){renderer.render(scene,camera);return;}
   if(keys.effUp)setEffort(effort+0.65*dt);if(keys.effDn)setEffort(effort-0.65*dt);
