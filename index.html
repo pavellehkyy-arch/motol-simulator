@@ -1488,7 +1488,7 @@ function buildInfield(){
     for(const dz of [-bl/2+0.2,bl/2-0.2])box(0.05,0.45,0.05,xb+open*0.3,y0+0.225,zc+dz,legM);
     box(0.05,0.35,bl,xb+open*0.08,y0+0.75,zc,benchM);}
   // [x, [z boundaries], open side (+1 towards +x)]
-  const BZ=[-5.1,-1.7,1.7,5.1];const cols=[[17.05,BZ,-1],[11.65,BZ,-1],[-13.55,BZ,1],[-19.0,BZ,1]];
+  const BZ=[-5.1,-1.7,1.7,5.1];const cols=[[17.05,BZ,-1],[11.65,BZ,1],[-13.55,BZ,-1],[-19.0,BZ,1]];   // inner columns turned round: each pair of columns faces each other across the aisle, benches of the inner ones towards the podium
   for(const [x,zs,open] of cols)for(let i=0;i<3;i++)booth(x,zs[i],zs[i+1],open);
   // 15: round podium
   // covered in black needle-felt carpet (top and the skirt round the edge), like the real one
@@ -1521,7 +1521,7 @@ function buildInfield(){
       const piv=new THREE.Group();piv.rotation.order='YXZ';piv.rotation.set(TH,0,0);piv.position.set(x,BH+0.024,0);g.add(piv);
       bk.g.position.set(0,-0.935,0.115);piv.add(bk.g);                                    // the point just under the saddle nose sits on the bar
       for(const lz of [-0.7,0,0.7]){const w=new THREE.Vector3(x,0,lz);g.updateMatrixWorld();g.localToWorld(w);OBST.hangs.push([w.x,w.z]);}}}
-  hanger(9.8,-7.85,7,3);hanger(-19.2,7.35,5,1);hanger(11.2,10.0,5,5);
+  hanger(12.2,-7.85,7,3);hanger(-19.2,7.35,5,1);hanger(11.2,10.0,5,5);
   // 6: small table on the back straight side – the shop will be here later
   {const tw=mat(0xf4f4f2),tl=mat(0x8a8d90),TX=-2.3,TZ=-10.4,TL=2.4,TD=0.8,TH=0.76;
    box(TL,0.04,TD,TX,y0+TH,TZ,tw);box(TL-0.04,0.06,0.04,TX,y0+TH-0.05,TZ-TD/2+0.03,tl);box(TL-0.04,0.06,0.04,TX,y0+TH-0.05,TZ+TD/2-0.03,tl);
@@ -1531,7 +1531,10 @@ function buildInfield(){
   // fan heaters on tall stands in every corner of the infield (louvred box + a speaker on top, ladder-like feet)
   const segE=[LSTR/2,LSTR/2+2*LT+LA,LSTR*1.5+2*LT+LA,LSTR*1.5+4*LT+2*LA];
   const greyM=new THREE.MeshPhongMaterial({color:0x9aa0a5,specular:0x555555,shininess:40}),blackM=mat(0x1b1b1b);
-  segE.forEach((sc,i)=>{const sp=sc+(i%2?-2.2:2.2),f=frameAt(sp),o=APRON_O2+BEVEL_W+0.9;const x=f.px-f.nx*o,z=f.pz-f.nz*o;
+  // positions from the sketch: each one ~4 m further into the infield than the old spot by the apron (same facing as before)
+  const FANP=[[-8.9,-6.6],[7.8,-7.2],[8.6,7.0],[-9.0,6.5]];
+  segE.forEach((sc,i)=>{const sp=sc+(i%2?-2.2:2.2),f=frameAt(sp),o=APRON_O2+BEVEL_W+0.9;const x0=f.px-f.nx*o,z0=f.pz-f.nz*o;
+    let fp=FANP[0];for(const q of FANP)if(Math.hypot(q[0]-x0,q[1]-z0)<Math.hypot(fp[0]-x0,fp[1]-z0))fp=q;const x=fp[0],z=fp[1];
     const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=Math.atan2(f.fx,f.fz)+(i%2?PI*0.75:-PI*0.75);scene.add(g);
     for(const k of [-0.45,-0.15,0.15,0.45]){const r=new THREE.Mesh(new THREE.BoxGeometry(k===-0.45||k===0.45?0.95:0.75,0.04,0.05),blackM);r.position.set(0,0.03,k);g.add(r);}
     for(const sx of [-0.3,0.3]){const r=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,1.0),blackM);r.position.set(sx,0.06,0);g.add(r);}
