@@ -2277,8 +2277,20 @@ function makeCoach(){
   const sh=new THREE.Mesh(new THREE.SphereGeometry(0.21,14,8),mat(0x161616));sh.position.y=1.54;sh.scale.set(1.15,0.45,0.85);g.add(sh);
   const neck=limb(skin,0.055,G_LIMB);place(neck,V(0,1.55,0),V(0,1.66,0));g.add(neck);
   const head=new THREE.Group();head.position.y=1.78;g.add(head);
-  const hd=new THREE.Mesh(new THREE.SphereGeometry(0.12,16,12),skin);hd.scale.set(0.88,1.12,0.95);head.add(hd);
-  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.125,16,10,0,2*PI,0,PI*0.42),mat(0x2a2522));hair.position.y=0.025;hair.rotation.x=-0.25;head.add(hair);
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(0.12,24,18),skin);hd.scale.set(0.88,1.12,0.95);head.add(hd);
+  // More human facial structure: cheeks, eye whites/irises, eyelids, a rounded nose and a proper beard.
+  const cheekMat=new THREE.MeshLambertMaterial({color:0xc9916c});
+  for(const sx of [-1,1]){
+    const cheek=new THREE.Mesh(new THREE.SphereGeometry(0.043,12,8),skin);cheek.position.set(sx*0.061,-0.025,0.078);cheek.scale.set(1,0.72,0.45);head.add(cheek);
+    const white=new THREE.Mesh(new THREE.SphereGeometry(0.022,12,8),new THREE.MeshLambertMaterial({color:0xfff5e8}));white.position.set(sx*0.043,0.022,0.102);white.scale.set(1,0.78,0.5);head.add(white);
+    const iris=new THREE.Mesh(new THREE.SphereGeometry(0.011,10,8),new THREE.MeshLambertMaterial({color:0x5b3825}));iris.position.set(sx*0.043,0.021,0.113);head.add(iris);
+    const pupil=new THREE.Mesh(new THREE.SphereGeometry(0.0055,8,6),new THREE.MeshBasicMaterial({color:0x17120e}));pupil.position.set(sx*0.043,0.021,0.122);head.add(pupil);
+  }
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.126,24,16,0,2*PI,0,PI*0.52),mat(0x332b27));hair.position.set(0,0.032,-0.004);hair.rotation.x=-0.2;head.add(hair);
+  const sideHair=new THREE.Mesh(new THREE.BoxGeometry(0.025,0.075,0.07),mat(0x332b27));for(const sx of [-1,1]){const h=sideHair.clone();h.position.set(sx*0.098,-0.005,-0.005);head.add(h);}
+  const beard=new THREE.Mesh(new THREE.SphereGeometry(0.105,20,12,0,2*PI,0,PI*0.43),mat(0x55433a));beard.position.set(0,-0.055,0.025);beard.rotation.x=PI;beard.scale.set(1,0.62,0.72);head.add(beard);
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(0.022,12,10),skin);nose.position.set(0,-0.008,0.119);nose.scale.set(0.75,1.35,0.75);head.add(nose);
+  const nostrils=new THREE.Mesh(new THREE.SphereGeometry(0.006,8,6),mat(0x80543f));for(const sx of [-1,1]){const n=nostrils.clone();n.position.set(sx*0.009,-0.026,0.13);head.add(n);}
   for(const sx of [-1,1]){const side=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.07,0.06),mat(0x8a8580));side.position.set(sx*0.1,-0.01,-0.01);head.add(side);
     const eye=new THREE.Mesh(new THREE.SphereGeometry(0.014,8,6),mat(0x1a1a1a));eye.position.set(sx*0.042,0.02,0.108);head.add(eye);
     const brow=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.011,0.01),mat(0x2a2522));brow.position.set(sx*0.042,0.052,0.11);head.add(brow);head.userData['brow'+sx]=brow;
