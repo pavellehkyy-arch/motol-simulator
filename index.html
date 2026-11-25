@@ -245,7 +245,7 @@ tr.me td{color:#ffd166;font-weight:800}
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
     <div class="sub">Velodrom Praha-Motol · v0.8</div>
-    <div class="vk"><span>🎖️</span><span id="vkTotal">0</span></div>
+    <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="mgroup"><div class="mhead">⚡ SPRINTERSKÉ DISCIPLÍNY</div>
     <div class="modes mgrid m2">
@@ -2248,7 +2248,7 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
     col.set([0xd62828,0xffd166,0x2b5fb4,0xffffff,0x4dde88][i%5]);im.setColorAt(i,col);}
   JUDGES.updateMatrixWorld();confetti={mesh:im,parts};scene.add(im);
   let me=player.finished&&!player.crashed?list.indexOf(player)+1:0;
-  $('cerVK').innerHTML='🎖️ +'+E.n+' vojenských kreditů <span style="opacity:.75;font-weight:600">('+E.why.join(', ')+')</span> · celkem '+tot.toLocaleString('cs-CZ');
+  $('cerVK').innerHTML='💰 +'+E.n+' penízků <span style="opacity:.75;font-weight:600">('+E.why.join(', ')+')</span> · celkem '+tot.toLocaleString('cs-CZ');
   if(mode==='madison'){const r=madStandings().findIndex(t=>t.me)+1;me=player.crashed?0:r;}
   if(mode==='elim')me=player.crashed?0:elimStandings().indexOf(player)+1;
   if(mode==='points')me=player.crashed?0:ptsStandings().indexOf(player)+1;
@@ -2379,7 +2379,7 @@ function updateCans(dt){updateDrops(dt);for(let i=cans.length-1;i>=0;i--){const 
     orient(c.foam,0.012);c.foam.scale.setScalar(Math.min(1.4,0.3+c.t*4));c.foam.material.opacity=0.85*Math.max(0,1-c.t/7);
     if(phase==='race')for(const R of riders){if(R.crashed||R.finished||!R.model.g.visible)continue;const g=gapTo(R,c),dw=Math.abs(R.w-c.w);
       if(Math.abs(g)<0.8&&dw<0.45&&R.v>3&&!R.resting&&(R===player||((c.luck=c.luck||new Map()).has(R)?c.luck.get(R):(c.luck.set(R,Math.random()<0.3),c.luck.get(R))))){crashRider(R,'beer');if(R!==player&&!player.crashed)showMsg('<small>🍺 '+R.name+' to dostal pivem!</small>',1.6);}
-      else if(R===player&&!c.dodged&&g<-0.8&&g>-3&&dw<1.8){c.dodged=true;if(c.tgt===player){raceBonus+=5;showMsg('<small>🍺 Uhnul jsi pivu! +5 🎖️</small>',1.2);}}}
+      else if(R===player&&!c.dodged&&g<-0.8&&g>-3&&dw<1.8){c.dodged=true;if(c.tgt===player){raceBonus+=5;showMsg('<small>🍺 Uhnul jsi pivu! +5 💰</small>',1.2);}}}
     if(c.t>7||c.w<=-BAND-0.3){removeCan(c);cans.splice(i,1);}}}
 function removeCan(c){scene.remove(c.mesh);c.foam&&scene.remove(c.foam);scene.remove(c.warn);scene.remove(c.shadow);}
 function clearCans(){for(const c of cans)removeCan(c);cans=[];for(const d of drops)scene.remove(d.m);drops=[];}
