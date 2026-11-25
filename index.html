@@ -978,7 +978,7 @@ function orient(m,a,b,hint,sx,sz){_qoy.subVectors(b,a);const L=_qoy.length()||1e
 const RDG={};
 function riderGeos(){const RG=RDG;if(RG.ok)return RG;
   // torso from the hip joints (t=0) to the base of the neck (t=1); below 0 = glutes on the saddle. front = belly/chest
-  const TOR=[[-0.2,0.04,0.03,0.04],[-0.15,0.1,0.06,0.085],[-0.07,0.145,0.08,0.105],[0,0.163,0.085,0.112],[0.15,0.152,0.092,0.104],[0.35,0.14,0.088,0.1],[0.55,0.156,0.104,0.106],[0.72,0.178,0.116,0.11],[0.85,0.19,0.104,0.1],[0.94,0.165,0.08,0.08],[1.0,0.1,0.058,0.062],[1.05,0.055,0.04,0.045],[1.08,0,0,0]];
+  const TOR=[[-0.2,0.04,0.03,0.04],[-0.15,0.1,0.06,0.085],[-0.07,0.145,0.08,0.105],[0,0.163,0.085,0.112],[0.15,0.152,0.092,0.104],[0.35,0.14,0.088,0.1],[0.55,0.156,0.104,0.106],[0.72,0.178,0.116,0.11],[0.85,0.188,0.104,0.1],[0.93,0.17,0.086,0.086],[0.99,0.125,0.064,0.068],[1.04,0.07,0.045,0.048],[1.08,0,0,0]];
   RG.torS=loftGeo('torS',TOR,{p:2.3,t1:0.2,seg:LOWEND?14:24});
   RG.torJ=loftGeo('torJ',TOR,{p:2.3,t0:0.2,seg:LOWEND?14:24,v:t=>clamp((t-0.2)/0.8,0,1)});
   // thigh: hip -> knee, big quads on the front, vastus bulge just above the knee
@@ -988,7 +988,7 @@ function riderGeos(){const RG=RDG;if(RG.ok)return RG;
   const SN=[[-0.1,0,0,0],[-0.08,0.035,0.035,0.035],[-0.04,0.048,0.05,0.045],[0.03,0.047,0.044,0.052],[0.15,0.047,0.038,0.066],[0.3,0.049,0.036,0.072],[0.45,0.043,0.033,0.058],[0.65,0.033,0.029,0.038],[0.85,0.028,0.026,0.029],[1,0.03,0.03,0.031],[1.06,0.026,0.026,0.026],[1.09,0,0,0]];
   RG.shn=loftGeo('shn',SN,{t1:0.74});RG.sock=loftGeo('sock',SN,{t0:0.72});
   // arms
-  const UA=[[-0.14,0,0,0],[-0.1,0.04,0.04,0.04],[-0.04,0.058,0.058,0.058],[0.08,0.053,0.05,0.056],[0.35,0.049,0.053,0.047],[0.65,0.042,0.043,0.041],[0.92,0.035,0.033,0.035],[1.05,0.033,0.03,0.033],[1.12,0,0,0]];
+  const UA=[[-0.12,0,0,0],[-0.09,0.034,0.034,0.034],[-0.03,0.05,0.05,0.05],[0.08,0.052,0.05,0.054],[0.35,0.049,0.053,0.047],[0.65,0.042,0.043,0.041],[0.92,0.035,0.033,0.035],[1.05,0.033,0.03,0.033],[1.12,0,0,0]];
   RG.uaS=loftGeo('uaS',UA,{t1:0.55,seg:LOWEND?10:14});RG.uaK=loftGeo('uaK',UA,{t0:0.55,seg:LOWEND?10:14});RG.uaL=loftGeo('uaL',UA,{seg:LOWEND?10:14});
   const FA=[[-0.1,0,0,0],[-0.07,0.03,0.03,0.03],[-0.02,0.037,0.036,0.04],[0.2,0.041,0.038,0.042],[0.5,0.032,0.026,0.029],[0.72,0.025,0.019,0.021],[0.8,0.024,0.018,0.02],[0.86,0,0,0]];
   RG.fa=loftGeo('fa',FA,{seg:LOWEND?10:14});
@@ -1017,6 +1017,8 @@ function riderGeos(){const RG=RDG;if(RG.ok)return RG;
   RG.hair=new THREE.SphereGeometry(1,12,8,0,2*PI,PI*0.42,PI*0.3);
   {const C=new THREE.CatmullRomCurve3([V(-0.08,0.0,-0.02),V(-0.072,-0.06,0.015),V(-0.04,-0.112,0.05),V(0,-0.122,0.058),V(0.04,-0.112,0.05),V(0.072,-0.06,0.015),V(0.08,0.0,-0.02)]);RG.strap=new THREE.TubeGeometry(C,16,0.004,4,false);}
   RG.delt=new THREE.SphereGeometry(1,12,10);
+  // shoulder cap: starts inside the torso next to the neck and slopes down over the head of the upper arm (metres along the arm, front = top of the shoulder)
+  RG.cap=loftGeo('cap',[[-0.07,0,0,0],[-0.04,0.02,0.018,0.018],[-0.005,0.034,0.032,0.03],[0.04,0.046,0.045,0.042],[0.085,0.05,0.049,0.046],[0.13,0.047,0.045,0.044],[0.17,0.04,0.038,0.039],[0.2,0.026,0.024,0.026],[0.215,0,0,0]],{seg:LOWEND?10:16});
   // cycling shoe (local: origin at the pedal axle, +z toe, +y up), carbon sole + upper
   const SHOE=[[-0.205,0,0,0,-0.05],[-0.198,0.022,0.024,0.034,-0.05],[-0.17,0.036,0.027,0.052,-0.054],[-0.12,0.041,0.025,0.048,-0.05],[-0.05,0.046,0.022,0.04,-0.044],[0.02,0.05,0.021,0.03,-0.036],[0.07,0.045,0.019,0.02,-0.03],[0.1,0.032,0.017,0.012,-0.026],[0.118,0,0,0,-0.025]];
   RG.shoe=loftGeo('shoe',SHOE,{p:3,rx:PI/2,seg:LOWEND?16:24,sub:LOWEND?3:5,v:t=>(t+0.205)/0.323});
@@ -1076,7 +1078,7 @@ const VISORS=[[0x8a929c,0xffffff],[0x2c3038,0xf2f6ff],[0x141a24,0x8fb4ff],[0x2a1
 function makeRider(o){const B=riderGeos();
   const g=new THREE.Group();g.rotation.order='YXZ';
   const sh=new THREE.Mesh(new THREE.CircleGeometry(0.55,16),shadowMat);sh.rotation.x=-PI/2;sh.scale.set(0.8,1.8,1);sh.position.y=0.02;g.add(sh);
-  const bike=makeBike(o);g.add(bike.g);
+  const bike=o.noBike?{g:new THREE.Group(),wheels:[]}:makeBike(o);g.add(bike.g);
   const body=new THREE.Group(),arms=new THREE.Group();g.add(body,arms);
   const KM2=kitMats(o.team,o.num),LONG=TEAMS[o.team].long!==false,mS=skinMat(o.skin||0xe2b48c),mSh=KM2.shorts,mJ=KM2.torso,mSl=KM2.sleeve,mGl=lycraMat(o.glove||0x161616);
   const seed=((o.num||3)*7919)%97/97;const bw=0.98+seed*0.1,bl=1.04+((seed*13)%1)*0.12;   // build: shoulders / legs
@@ -1097,7 +1099,7 @@ function makeRider(o){const B=riderGeos();
     const br=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.007,0.007),fM);br.position.set(0,Y+0.008,F);head.add(br);}
   else{const vc=VISORS[(o.num||0)%VISORS.length];const vis=new THREE.Mesh(B.visor,new THREE.MeshPhongMaterial({color:vc[0],specular:vc[1],shininess:140,side:THREE.DoubleSide,transparent:true,opacity:0.94,reflectivity:1}));head.add(vis);}
   // arms: upper arm in body (hidden in first person), forearm + glove stay visible on the bars
-  const rig=[];for(const s of [-1,1]){const delt=mk(B.delt,mSl);const ua=LONG?[mk(B.uaL,mSl)]:[mk(B.uaS,mSl),mk(B.uaK,mS)];
+  const rig=[];for(const s of [-1,1]){const delt=mk(B.cap,mSl);const ua=LONG?[mk(B.uaL,mSl)]:[mk(B.uaS,mSl),mk(B.uaK,mS)];
     const fa=new THREE.Mesh(B.fa,LONG?KM2.fore:skinMuscle(o.skin||0xe2b48c,'fore'));arms.add(fa);const glove=new THREE.Mesh(B.fist,mGl);arms.add(glove);
     rig.push({s,ua,fa,glove,delt,a:V(s*0.17,1.23,0.27),e:V(s*0.2,1.0,0.38),h:V(s*0.205,0.79,0.548),L1:0.29,L2:0.31,on:false});}
   const shoeM=shoeMat(o.shoe||0xffffff),soleM=new THREE.MeshPhongMaterial({map:carbonSoleTex(),specular:0x777777,shininess:90}),crM=bikeMat(0x2a2a2c,90),pedM=bikeMat(0x18181a,40),boaM=new THREE.MeshPhongMaterial({color:0xc9ccd0,specular:0xffffff,shininess:110}),capM=new THREE.MeshPhongMaterial({color:o.shoe||0xffffff,specular:0xaaaaaa,shininess:80});
@@ -1160,6 +1162,8 @@ function armPlace(A,a,e,h){_qt1.subVectors(e,a);_qt2.crossVectors(_qt1,_qXA).mul
   _qt1.subVectors(h,e);_qt2.set(0,1,0.2);orient(A.fa,e,h,_qt2,1.1,1.1);
   _qt1.normalize();_qt2.copy(h).add(_qt1);orient(A.glove,h,_qt2,_qXA.set(1,0,0).multiplyScalar(A.s),1,1);_qXA.set(1,0,0);}
 const ARMPOLE=V();
+// shoulder cap from beside the neck down over the deltoid towards the elbow (sa = shoulder joint, F = chest direction)
+function capPlace(A,M,sa,F){_qel2.copy(sa).addScaledVector(F,0.004);_qel2.x-=A.s*0.06*M.bw;orient(A.delt,_qel2,A.e,_qt2.copy(F).negate(),M.bw,1);A.delt.scale.y=1;}
 function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
   const P0=M.aero?PZ.aero:PZ.drops;
   _qhp.set(...P0.hip);_qNn.set(...P0.N);let pitch=P0.pitch;
@@ -1181,11 +1185,11 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
   if(M.aero){_qgr.set(...P0.grip);mix3(_qgr,PZ.horns,st);}else{_qgr.set(...PZ.drops.grip);mix3(_qgr,PZ.tops.grip,su);}
   for(const A of M.rig){const s=A.s;
     _qsa.copy(_qNn).addScaledVector(_qdr,-0.065).addScaledVector(_qF,0.05);_qsa.x+=s*0.168*M.bw;
-    A.delt.position.copy(_qsa).addScaledVector(_qF,-0.01);A.delt.position.x+=s*0.012;A.delt.scale.set(0.064*M.bw,0.06,0.066);A.delt.quaternion.setFromUnitVectors(UPV,_qt1.copy(_qdr).negate());
-    A.a.copy(_qsa);A.h.set(s*_qgr.x,_qgr.y,_qgr.z);rollP(A.h);
-    ARMPOLE.set(s*0.75,-0.35,-0.55);rIK(A.a,A.h,A.L1,A.L2,ARMPOLE,A.e);
+        A.a.copy(_qsa);A.h.set(s*_qgr.x,_qgr.y,_qgr.z);rollP(A.h);
+    ARMPOLE.set(s*0.28,-0.42,-0.86);rIK(A.a,A.h,A.L1,A.L2,ARMPOLE,A.e);
     if(M.aero&&st<1){_qel.set(s*P0.elbow[0],P0.elbow[1],P0.elbow[2]);rollP(_qel);A.e.lerp(_qel,1-st);}   // forearms resting on the pads
-    if(!A.on)armPlace(A,A.a,A.e,A.h);}
+    if(!A.on)armPlace(A,A.a,A.e,A.h);
+    capPlace(A,M,_qsa,_qF);}
   // legs: ball of the foot over the pedal axle, ankling through the stroke, knee tracking forward
   _qbb.set(0,0.32,-0.04);
   for(let i=0;i<2;i++){const L=M.legs[i],a=crank+i*PI,sx=L.sx,ca=Math.cos(a),sn=Math.sin(a);
@@ -2026,21 +2030,34 @@ function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
 
 function bestKilo(){try{return parseFloat(localStorage.getItem('motol_kilo_pb'))||0;}catch(e){return 0;}}
 function standings(){const key=r=>r.crashed?2e9+(r.player?1:0):r.dsq?1.9e9:(r.finished?r.time:1e9-r.s);return active().slice().sort((a,b)=>key(a)-key(b));}
-function makeStanding(R,rank){const g=new THREE.Group();const KM2=kitMats(R.team,R.num),mS=mat(R.skin||0xe2b48c),mSh=mat(0x16161a);
-  for(const sx of [-0.1,0.1]){const th=limb(mSh,0.075,G_THIGH);place(th,V(sx,0.95,0),V(sx,0.5,0));g.add(th);const sh=limb(mS,0.055,G_CALF);place(sh,V(sx,0.5,0),V(sx,0.08,0));g.add(sh);
-    const so=limb(mat(0xf4f4f4),0.04,G_LIMB);place(so,V(sx,0.06,0),V(sx,0.18,0));g.add(so);const shoe=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.07,0.26),mat(0xffffff));shoe.position.set(sx,0.035,0.05);g.add(shoe);}
-  const hips=new THREE.Mesh(new THREE.SphereGeometry(0.14,12,8),mSh);hips.position.y=0.95;hips.scale.set(1.3,0.8,1);g.add(hips);
-  const torso=new THREE.Mesh(G_TORSO,KM2.torso);torso.scale.set(0.17,0.55,0.13);torso.position.y=1.24;g.add(torso);
-  const ch=new THREE.Mesh(new THREE.SphereGeometry(0.17,12,8),new THREE.MeshLambertMaterial({color:new THREE.Color(TEAMS[R.team].base)}));ch.position.y=1.5;ch.scale.set(1.15,0.55,0.8);g.add(ch);
-  const neck=limb(mS,0.05,G_LIMB);place(neck,V(0,1.52,0),V(0,1.63,0));g.add(neck);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.11,14,10),mS);head.position.y=1.73;head.scale.set(0.9,1.08,1);g.add(head);
-  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.115,14,8,0,2*PI,0,PI/2),mat([0x3b2a1c,0x1b1b1b,0x6b4426,0xb08a4a][Math.floor(Math.random()*4)]));hair.position.y=1.75;hair.rotation.x=-0.2;g.add(hair);
-  const up=rank===1;
-  for(const sx of [-1,1]){const sh=V(sx*0.2,1.5,0),el=up?V(sx*0.36,1.85,0.02):V(sx*0.25,1.2,0.02),ha=up?V(sx*0.45,2.2,0.05):V(sx*0.27,0.95,0.06);
-    const ua=limb(KM2.sleeve,0.05,G_UARM);place(ua,sh,el);g.add(ua);const fa=limb(mS,0.04,G_FORE);place(fa,el,ha);g.add(fa);}
-  if(rank>=1&&rank<=3){const medal=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.012,16),new THREE.MeshPhongMaterial({color:[0xd4a017,0xc0c4c8,0xb06a2c][rank-1],specular:0xffffff,shininess:80}));medal.rotation.x=PI/2;medal.position.set(0,1.22,0.14);g.add(medal);
-  const rib=limb(mat(0xd62828),0.012);place(rib,V(-0.08,1.5,0.12),V(0,1.24,0.14));g.add(rib);const rib2=limb(mat(0x2b5fb4),0.012);place(rib2,V(0.08,1.5,0.12),V(0,1.24,0.14));g.add(rib2);}
-  return g;}
+// podium / stretcher figure: the very same rider model as in the race (kit, helmet, visor, shoes), just standing without the bike
+// +z = face, feet at y=0; rank 1 = both arms up, 0/2/3 = arms down
+const _sF=V(0,0,1),_sHp=V(),_sN=V(),_sD=V(),_sA=V(),_sP=V();
+function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,noBike:true}));const g=M.g;scene.remove(g);
+  g.children[0].visible=false;for(const L of M.legs){L.cr.visible=false;L.ped.visible=false;}
+  const up=rank===1,sway=(((R.num||3)*37)%10)/10-0.5;
+  _sHp.set(0,0.965,0);_sN.set(0,1.515,0.025);_sD.subVectors(_sN,_sHp).normalize();
+  for(const m of M.torso)orient(m,_sHp,_sN,_sF,M.bw,1);
+  // neck & head (chin slightly up on the top step)
+  _sA.set(0,0.99,up?0.02:0.09).normalize();_qak.copy(_sN).addScaledVector(_sA,0.14);
+  orient(M.neck,_sP.copy(_sN).addScaledVector(_sD,-0.02),_qak,_qt2.set(0,-_sA.z,_sA.y),1,1);
+  M.head.position.copy(_qak);M.head.rotation.set(up?-0.18:0.04,sway*0.3,0);
+  // arms
+  for(const A of M.rig){const s=A.s;
+    _qsa.copy(_sN).addScaledVector(_sD,-0.065).addScaledVector(_sF,0.01);_qsa.x+=s*0.168*M.bw;A.a.copy(_qsa);
+    if(up){A.h.set(s*0.36,_sN.y+0.5,0.1);ARMPOLE.set(s*1,-0.2,-0.25);}else{A.h.set(s*0.235,_sN.y-0.6,0.06);ARMPOLE.set(s*0.25,0,-1);}
+    rIK(A.a,A.h,A.L1,A.L2,ARMPOLE,A.e);armPlace(A,A.a,A.e,A.h);capPlace(A,M,_qsa,_sF);}
+  // legs: straight, feet a little apart, shoes flat on the step
+  for(const L of M.legs){const sx=L.sx;
+    _qhj.copy(_sHp).addScaledVector(_sF,0.015);_qhj.x+=sx*0.092*M.bw;_qak.set(sx*0.11,0.112,-0.005);
+    _qt1.set(0,0,1);rIK(_qhj,_qak,0.44,0.425,_qt1,_qkn);
+    _qt1.subVectors(_qkn,_qhj);_qt2.crossVectors(_qt1,_qXA);orient(L.thS,_qhj,_qkn,_qt2,M.bl,M.bl);orient(L.thK,_qhj,_qkn,_qt2,M.bl,M.bl);
+    _qt1.subVectors(_qak,_qkn);_qt2.crossVectors(_qt1,_qXA);orient(L.shn,_qkn,_qak,_qt2,M.bl,M.bl);L.kc.position.copy(_qkn).addScaledVector(_qt2.normalize(),0.008);L.kc.scale.setScalar(0.047*M.bl);orient(L.sock,_qkn,_qak,_qt2,M.bl*1.07,M.bl*1.07);
+    L.shoe.quaternion.identity();L.shoe.rotation.y=sx*0.12;L.shoe.position.set(sx*0.115,_qak.y-0.074,_qak.z+0.12);}
+  if(rank>=1&&rank<=3){const my=_sN.y-0.3;const medal=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.012,16),new THREE.MeshPhongMaterial({color:[0xd4a017,0xc0c4c8,0xb06a2c][rank-1],specular:0xffffff,shininess:80}));medal.rotation.x=PI/2;medal.position.set(0,my,0.135);g.add(medal);
+    for(const [sx,c] of [[-1,0xd62828],[1,0x2b5fb4]]){const P0=V(sx*0.07,_sN.y+0.01,0.07),P1=V(sx*0.05,_sN.y-0.12,0.128),P2=V(sx*0.012,my+0.04,0.142);   // ribbon round the neck, lying on the chest
+      for(const [u,v] of [[P0,P1],[P1,P2]]){const r=limb(mat(c),0.011);place(r,u,v);g.add(r);}}}
+  g.rotation.set(0,0,0);return g;}
 let cerObjs=[],confetti=null,cerT=0;const _cp=new THREE.Vector3(),_cl=new THREE.Vector3();
 function clearCeremony(){if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
 function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
