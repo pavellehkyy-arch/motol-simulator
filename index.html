@@ -430,7 +430,7 @@ const INF_Y=surfY(0,-BAND);
 const APRON_O1=BAND*Math.cos(8*deg)-0.02,APRON_O2=APRON_O1+1.1,BEVEL_W=0.32,FLOOR_Y=INF_Y-0.2;
 let _infEdge=null;function groundAt(x,z){if(!_infEdge)_infEdge=infieldPoly(APRON_O2+BEVEL_W-BAND*Math.cos(8*deg));return inPoly(x,z,_infEdge)?FLOOR_Y:INF_Y;}
 // underpass stairwell in the infield of the 1st turn (just after the start)
-const STAIR=(()=>{const sS=LSTR/2+LT+LA/2;const f=frameAt(sS);const o=7.7;const cx=f.px-f.nx*o,cz=f.pz-f.nz*o;
+const STAIR=(()=>{const sS=LSTR/2+LT+LA/2;const f=frameAt(sS);const cx=20.2,cz=2.5;   // sketch: right of the right booth column, towards the judges' side
   const ux=f.fx,uz=f.fz,vx=-f.nx,vz=-f.nz,HWd=2.55,HL=1.15;
   const corners=[[-HWd,-HL],[HWd,-HL],[HWd,HL],[-HWd,HL]].map(([a,b])=>[cx+ux*a+vx*b,cz+uz*a+vz*b]);
   return {cx,cz,ux,uz,vx,vz,corners,rot:Math.atan2(ux,uz)+PI};})();
@@ -1363,7 +1363,7 @@ function buildInfield(){
     for(const dz of [-bl/2+0.2,bl/2-0.2])box(0.05,0.45,0.05,xb+open*0.3,y0+0.225,zc+dz,legM);
     box(0.05,0.35,bl,xb+open*0.08,y0+0.75,zc,benchM);}
   // [x, [z boundaries], open side (+1 towards +x)]
-  const cols=[[18.5,[-4.2,-1.5,1.65,3.9],-1],[10.9,[-4.3,-1.73,1.6,4.0],-1],[-12.4,[-5.3,-3.1,0.56,3.65],1],[-19.4,[-3.7,-1.43,0.76,3.4],1]];
+  const BZ=[-5.1,-1.7,1.7,5.1];const cols=[[17.05,BZ,-1],[11.65,BZ,-1],[-13.55,BZ,1],[-19.0,BZ,1]];
   for(const [x,zs,open] of cols)for(let i=0;i<3;i++)booth(x,zs[i],zs[i+1],open);
   // 15: round podium
   // covered in black needle-felt carpet (top and the skirt round the edge), like the real one
@@ -1376,14 +1376,13 @@ function buildInfield(){
   const rim=new THREE.Mesh(new THREE.TorusGeometry(1,0.02,6,96),mat(0x0c0c0d));rim.rotation.x=PI/2;rim.scale.set(6.0,2.6,1);rim.position.set(1.5,y0+0.222,1.2);scene.add(rim);
   // bikes standing on rollers (*)
   const bikeCols=[[0x111111,0xc6ff1a],[0xffffff,0x2b5fb4],[0xd62828,0x111111],[0x1d3557,0xffffff],[0x333333,0xffd166],[0xeeeeee,0xe63946],[0x7a1f2b,0xf2c230],[0x151515,0xd62828],[0xf2c230,0x1a1d24]];
-  const along=(k,i)=>[STAIR.cx+STAIR.ux*k+STAIR.vx*i,STAIR.cz+STAIR.uz*k+STAIR.vz*i];
-  const rollers=[[20.6,-5.0],[20.6,-6.0],[20.6,-7.0],along(-3.7,0),along(-4.7,0),along(-5.7,0),[-22.4,-1.5],[-22.4,0],[-22.4,1.6]];
-  rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=PI/2;scene.add(g);
+  const rollers=[[-25.1,-1.7],[-23.8,3.55],[-21.9,3.5],[9.15,-3.5],[9.0,0.15],[19.25,-4.0],[19.2,-1.7],[20.95,-4.25],[20.9,-1.85],[23.1,0.3],[23.0,4.2]];
+  rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=i%3===1?PI:0;scene.add(g);   // bike along the green line of the sketch
     (i%2?rollersB:rollersA)(g);
     const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:i%7===3,spokes:[3,5,24,4][i%4],aero:i%4===1});b.g.position.y=ROLL_Y;g.add(b.g);});
   // bike racks (as on the photo): a black bar at saddle height on posts, parallel to the home straight;
   // each bike hangs by the saddle nose hooked over the bar, perpendicular to it, front wheel just above the floor
-  OBST.cols=cols;OBST.rollers=rollers;OBST.hangs=[];
+  OBST.cols=cols;OBST.rollers=[];for(const [x,z] of rollers)for(const dz of [-0.55,0.55])OBST.rollers.push([x,z+dz]);OBST.hangs=[];
   const rackM=new THREE.MeshPhongMaterial({color:0x17181a,specular:0x444444,shininess:50}),footM=mat(0x2b2b2b);
   function hanger(xc,zc,n,bi){const SP=0.62,BH=1.12,Lb=n*SP+0.5,g=new THREE.Group();g.position.set(xc,y0,zc);scene.add(g);   // bar along world x = along the straights
     const bx=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||rackM);b.position.set(x,y,z);g.add(b);return b;};
@@ -1397,7 +1396,12 @@ function buildInfield(){
       const piv=new THREE.Group();piv.rotation.order='YXZ';piv.rotation.set(TH,0,0);piv.position.set(x,BH+0.024,0);g.add(piv);
       bk.g.position.set(0,-0.935,0.115);piv.add(bk.g);                                    // the point just under the saddle nose sits on the bar
       for(const lz of [-0.7,0,0.7]){const w=new THREE.Vector3(x,0,lz);g.updateMatrixWorld();g.localToWorld(w);OBST.hangs.push([w.x,w.z]);}}}
-  hanger(11.6,-6.8,7,3);hanger(12.6,5.6,6,1);
+  hanger(9.8,-7.85,7,3);hanger(-19.2,7.35,5,1);hanger(11.2,10.0,5,5);
+  // 6: small table on the back straight side – the shop will be here later
+  {const tw=mat(0xf4f4f2),tl=mat(0x8a8d90),TX=-2.3,TZ=-10.4,TL=2.4,TD=0.8,TH=0.76;
+   box(TL,0.04,TD,TX,y0+TH,TZ,tw);box(TL-0.04,0.06,0.04,TX,y0+TH-0.05,TZ-TD/2+0.03,tl);box(TL-0.04,0.06,0.04,TX,y0+TH-0.05,TZ+TD/2-0.03,tl);
+   for(const sx of [-1,1])for(const sz of [-1,1])box(0.035,TH-0.02,0.035,TX+sx*(TL/2-0.12),y0+(TH-0.02)/2,TZ+sz*(TD/2-0.08),tl);
+   for(const dx of [-1.3,0,1.3])OBST.rollers.push([TX+dx,TZ]);}
 
   // fan heaters on tall stands in every corner of the infield (louvred box + a speaker on top, ladder-like feet)
   const segE=[LSTR/2,LSTR/2+2*LT+LA,LSTR*1.5+2*LT+LA,LSTR*1.5+4*LT+2*LA];
@@ -1422,7 +1426,7 @@ function buildInfield(){
       for(let z=0.2;z<len-0.2;z+=0.55){const d=limb(m,0.012);place(d,V(sx,0,z),V(sx,0.22,z+0.27));g.add(d);const d2=limb(m,0.012);place(d2,V(sx,0.22,z+0.27),V(sx,0,z+0.55));g.add(d2);}}
     for(let z=0.25;z<len;z+=0.3){const r=limb(m,0.014);place(r,V(-wd/2,0,z),V(wd/2,0,z));g.add(r);}return g;}
   {const red=new THREE.MeshPhongMaterial({color:0xc4201c,specular:0x444444,shininess:40}),alu=new THREE.MeshPhongMaterial({color:0xc9cdd1,specular:0x888888,shininess:70});
-   const CX=-21.0,CZ=-7.2;const g=new THREE.Group();g.position.set(CX,y0,CZ);g.rotation.y=Math.atan2(-CX,-CZ)+0.25;scene.add(g);   // ladder points into the infield, away from the track
+   const CX=-22.6,CZ=-1.9,CR=PI;const g=new THREE.Group();g.position.set(CX,y0,CZ);g.rotation.y=CR;scene.add(g);   // sketch 5: left of the left booths, boom towards the back straight   // ladder points into the infield, away from the track
    const W=0.95,L=2.2;for(const sx of [-W/2,W/2]){const r=limb(red,0.035);place(r,V(sx,0.22,-L/2),V(sx,0.22,L/2));g.add(r);}
    for(const sz of [-L/2,L/2]){const r=limb(red,0.035);place(r,V(-W/2,0.22,sz),V(W/2,0.22,sz));g.add(r);}
    for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.06,12),mat(0x1b1b1b));wh.rotation.z=PI/2;wh.position.set(sx*W/2,0.1,sz*L/2);g.add(wh);
@@ -1434,7 +1438,7 @@ function buildInfield(){
    const cr=limb(red,0.03);place(cr,V(-W/2,TOP,0.1),V(W/2,TOP,0.1));g.add(cr);
    const winch=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.4,12),mat(0x333333));winch.rotation.z=PI/2;winch.position.set(0,0.7,-0.3);g.add(winch);
    const lad=latticeLadder(7.5,0.5,alu);lad.position.set(0,0.06,-2.4);lad.rotation.x=-Math.atan2(TOP+0.02-0.06,2.5);g.add(lad);
-   {const d=Math.atan2(-CX,-CZ)+0.25;for(const k of [-2.2,0,2,4])OBST.rollers.push([CX+Math.sin(d)*k,CZ+Math.cos(d)*k]);}}
+   {const d=CR;for(const k of [-2.2,0,2,4])OBST.rollers.push([CX+Math.sin(d)*k,CZ+Math.cos(d)*k]);}}
   // the black lattice boom behind the track (outside, back left on the photo) leaning up towards the roof
   {const dk=new THREE.MeshLambertMaterial({color:0x202326});const g=new THREE.Group();g.position.set(-31,-0.5,14.6);g.rotation.y=Math.atan2(1,-0.55);scene.add(g);
    const base=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.3,1.8),dk);base.position.y=0.15;g.add(base);
