@@ -1380,7 +1380,7 @@ function makeHuman(o){o=o||{};const g=new THREE.Group(),body=new THREE.Group();g
   if(o.belly)sp(top,0.17,0,0.12,0.04,1.05,1,0.9,torso);
   if(o.chestTex){const p=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.4),new THREE.MeshLambertMaterial({map:o.chestTex,transparent:true}));p.position.set(0,0.3,0.123);torso.add(p);}
   if(o.collar)bx(mat(o.collar),0.14,0.1,0.02,0,0.5,0.1,torso);            // shirt collar showing in the jacket's V
-  if(o.tie){bx(mat(o.tie),0.035,0.26,0.012,0,0.4,0.122,torso).rotation.x=-0.06;}
+  if(o.tie){bx(mat(o.tie),0.035,0.26,0.012,0,0.4,0.122,torso).rotation.x=-0.06;if(o.tieStripes){const tm=mat(o.tieStripes);for(let j=0;j<5;j++){const st=bx(tm,0.034,0.014,0.014,0,0.31+j*0.045,0.132,torso);st.rotation.z=-0.45;}}}
   if(o.zip)bx(mat(o.zip),0.012,0.5,0.01,0,0.28,0.123,torso);
   if(o.lanyard){const ly=mat(o.lanyard);for(const s of [-1,1]){const l=bx(ly,0.018,0.26,0.008,s*0.055,0.42,0.124,torso);l.rotation.z=s*0.3;}bx(mat(0xffffff),0.07,0.09,0.01,0,0.27,0.13,torso);}
   lb(skin,0.052,G_LIMB,V(0,0.54,0),V(0,0.66,0),torso);
@@ -2549,7 +2549,7 @@ let HOLDERS=[];const STAIR_O=new THREE.Object3D();
 const HOLDER_LOOKS=[{top:0x1d3557,pants:0x1d3557,stripe:0xffffff},{top:0x111418,pants:0x111418,stripe:0xc6ff1a},{top:0x8a1c1c,pants:0x1c1c22,stripe:0xffffff},{top:0x2b5fb4,pants:0x1d2a44,stripe:0xffffff},{top:0x3a3f46,pants:0x23262b,stripe:0xe63946}];
 const HAIRS=[[0x3b2a1e,'short'],[0x1a1410,'short'],[0x7a5a3a,'long'],[0x2a2522,'cap'],[0x8a8a88,'bald'],[0xb08a4a,'short']];
 const SKINS=[0xdcae8a,0xe2b896,0xc99a74,0xa8775a,0xeac4a4];
-function makeHolder(s,w){const idx=HOLDERS.length,featured=idx===0;const L=featured?{top:0x101b30,pants:0x101b30,collar:0xf4f2ee,tie:0x182238,shoes:0x111111}:HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LOOKS.length)],H=featured?[0x49372b,'short']:HAIRS[Math.floor(Math.random()*HAIRS.length)];
+function makeHolder(s,w){const idx=HOLDERS.length,featured=idx===0;const L=featured?{top:0x101b30,pants:0x101b30,collar:0xf4f2ee,tie:0x182238,tieStripes:0xe6e8ed,shoes:0x111111}:HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LOOKS.length)],H=featured?[0x49372b,'short']:HAIRS[Math.floor(Math.random()*HAIRS.length)];
   const r=makeHuman(Object.assign({hair:H[0],hairStyle:H[1],capCol:[0x1d3557,0xe63946,0x111111][Math.floor(Math.random()*3)],skin:featured?0xe2b896:SKINS[Math.floor(Math.random()*SKINS.length)],zip:0xdddddd,shoes:0xf0f0f0,shoeSole:0x222222,mustache:featured?false:Math.random()<0.2,glasses:featured},L));
   scene.add(r.g);const h={r,s,w,cs:s,cw:w,st:'hold',t:0,ph:0,pos:new THREE.Vector3(),head:0,path:null,wait:Math.random()*0.25,spd:1.25+Math.random()*0.3,idx:HOLDERS.length,vel:0};
   surf(s,w,h.pos);const f=frameAt(s);h.head=Math.atan2(f.fx,f.fz);r.g.position.copy(h.pos);r.g.rotation.y=h.head;poseHuman(r,holdPose(0),1);HOLDERS.push(h);return h;}
