@@ -1608,7 +1608,7 @@ const ROSTER=[
   {name:'Vingegaard',team:'dukla',jersey:0x222222,num:14,hair:0xb08a4a},
   {name:'Ganna',team:'sparta',jersey:0x7a1f2b,num:21},
   {name:'Milan',team:'sparta',jersey:0x7a1f2b,num:23},
-  {name:'Kýbl',team:'favorit',jersey:0xd62828,num:31,specs:true,kybl:true},
+  {name:'Hurikán Samko',team:'favorit',jersey:0xd62828,num:31,specs:true,kybl:true},
   {name:'Van der Poel',team:'favorit',jersey:0xd62828,discR:true,num:33},
   {name:'Parťák',team:'wc',jersey:0xffffff,partner:true,discR:true,num:2},
   {name:'Lukáš Hasal',team:'germany',jersey:0xffffff,num:41,hair:0x3b2a1c,elbowy:true,clumsy:true,solo:true,hasal:true},   // loktuje se jak divý, ale padá ještě víc
@@ -2527,7 +2527,7 @@ function elimLabel(R,i){return R.finished?(i===0?'🏆 vítěz':'finále'):R.out
 // ---------- MADISON: teams of two, hand-sling exchanges, sprints every 10 laps (5-3-2-1, last double), +20 per lap gained ----------
 function nextSprintLine(s){const N=mode==='points'?PT_LAPS:MAD_LAPS,E=mode==='points'?PT_EVERY:MAD_EVERY;for(let k=1;k*E<=N;k++){const L=START_S+k*E*L0;if(L>s+0.5)return L;}return FIN;}
 function setupMadison(){const by=n=>riders.find(r=>r.name===n),P=PARTNER();
-  const pairs=[['wc',player,P],['pardus',by('Vojck'),by('Sašík')],['dukla',by('Evenepoel'),by('Vingegaard')],['sparta',by('Ganna'),by('Milan')],['favorit',by('Kýbl'),by('Van der Poel')]];
+  const pairs=[['wc',player,P],['pardus',by('Vojck'),by('Sašík')],['dukla',by('Evenepoel'),by('Vingegaard')],['sparta',by('Ganna'),by('Milan')],['favorit',by('Hurikán Samko'),by('Van der Poel')]];
   // UCI 3.2.163: first group (one rider per team) half along the outside balustrade, half in the sprinters' lane with holders;
   // second group at the balustrade on the opposite straight, motionless during the neutralised lap; flying start (pistol) after one lap
   MT=pairs.map(([key,a,b],i)=>{const top=i%2===0;Object.assign(a,{s:SF-1.2-(i>>1)*2.6,w:top?TW-0.6:0.45,v:0,resting:false});Object.assign(b,{s:SF+L0/2-4+i*2.6,w:TW-0.35,v:0,resting:true,targetW:TW-0.35});
