@@ -996,7 +996,7 @@ function orient(m,a,b,hint,sx,sz){_qoy.subVectors(b,a);const L=_qoy.length()||1e
 const RDG={};
 function riderGeos(){const RG=RDG;if(RG.ok)return RG;
   // torso from the hip joints (t=0) to the base of the neck (t=1); below 0 = glutes on the saddle. front = belly/chest
-  const TOR=[[-0.2,0.04,0.03,0.04],[-0.15,0.1,0.06,0.085],[-0.07,0.145,0.08,0.105],[0,0.163,0.085,0.112],[0.15,0.152,0.092,0.104],[0.35,0.14,0.088,0.1],[0.55,0.156,0.104,0.106],[0.72,0.178,0.116,0.11],[0.85,0.188,0.104,0.1],[0.93,0.17,0.086,0.086],[0.99,0.125,0.064,0.068],[1.04,0.07,0.045,0.048],[1.08,0,0,0]];
+  const TOR=[[-0.2,0.04,0.03,0.04],[-0.15,0.1,0.06,0.085],[-0.07,0.145,0.08,0.105],[0,0.163,0.085,0.112],[0.15,0.152,0.092,0.104],[0.35,0.14,0.088,0.1],[0.55,0.163,0.108,0.108],[0.72,0.19,0.12,0.112],[0.85,0.2,0.108,0.102],[0.93,0.178,0.088,0.088],[0.99,0.125,0.064,0.068],[1.04,0.07,0.045,0.048],[1.08,0,0,0]];
   RG.torS=loftGeo('torS',TOR,{p:2.3,t1:0.2,seg:LOWEND?14:24});
   RG.torJ=loftGeo('torJ',TOR,{p:2.3,t0:0.2,seg:LOWEND?14:24,v:t=>clamp((t-0.2)/0.8,0,1)});
   // thigh: hip -> knee, big quads on the front, vastus bulge just above the knee
@@ -1211,6 +1211,12 @@ function makeRider(o){const B=riderGeos();
   let ears=null;if(o.wolf){ears=addWolfHead(head);neck.material=wolfFurMats().neck;}
   else{head.add(new THREE.Mesh(B.head,mS));
   const hair=new THREE.Mesh(B.hair,mat(o.hair||0x3b2a1c));hair.scale.set(0.074,0.082,0.083);hair.position.set(0,0.0,-0.014);hair.rotation.x=0.75;head.add(hair);}
+  // subtle facial features beneath the visor for a more human-looking rider
+  if(!o.wolf&&!o.specs){const white=new THREE.MeshBasicMaterial({color:0xf4eee4}),iris=new THREE.MeshBasicMaterial({color:0x526b73}),pupil=new THREE.MeshBasicMaterial({color:0x17191b}),brow=mat(o.hair||0x3b2a1c);
+    for(const sx of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(0.009,10,7),white);eye.scale.set(1.15,0.72,0.65);eye.position.set(sx*0.034,0.012,0.088);head.add(eye);
+      const ir=new THREE.Mesh(new THREE.SphereGeometry(0.0048,8,6),iris);ir.position.set(sx*0.034,0.012,0.095);head.add(ir);
+      const pu=new THREE.Mesh(new THREE.SphereGeometry(0.0025,8,6),pupil);pu.position.set(sx*0.034,0.012,0.098);head.add(pu);
+      const br=new THREE.Mesh(new THREE.SphereGeometry(1,8,6),brow);br.scale.set(0.019,0.004,0.004);br.position.set(sx*0.034,0.027,0.086);br.rotation.z=-sx*0.08;head.add(br);}}
   // aero helmet (photos): glossy shell with a tail, mirrored wrap visor, wordmark on the side, stripes over the tail
   const hel=new THREE.Mesh(o.aero?B.helmTT:B.helmTr,aeroHelmetMat(o.helmet,TEAMS[o.team].accent,o.aero));head.add(hel);
   const rimH=new THREE.Mesh(o.aero?B.helmTTrim:B.helmTrRim,o.wolf?wolfFurMats().neck:lycraMat(0x141414));head.add(rimH);
