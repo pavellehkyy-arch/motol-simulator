@@ -1553,7 +1553,7 @@ const PT_LAPS=40,PT_EVERY=10;let PR=null;   // points race: 40 laps (6,15 km), s
 const K_LAPS=9.5;let KR=null;   // keirin: 1462 m from the pursuit line (UCI ≈1500 m), derny leaves 769 m (5 laps) before the finish
 const effS=o=>o.s-(o.lapOff||0);   // position on the race, laps gained/lost taken out   // elimination: tracks ≤250 m -> sprint every 2 laps (UCI)
 let mode='scratch',LAPS=13,START_S=SF,FIN=SF+13*L0;
-let phase='menu',raceTime=0,countT=0,msgT=0,resultsShown=false,finishWait=0,bellRung=false,lastBoard=-1,splits=[];
+let phase='menu',raceTime=0,countT=0,msgT=0,resultsShown=false,finishWait=0,doneS=0,bellRung=false,lastBoard=-1,splits=[];
 function active(){return mode==='kilo'?[player]:riders.filter(r=>r.model.g.visible);}
 const PARTNER=()=>riders.find(r=>r.partner);
 // team strength: Tufo strongest & ride at the front, Favorit weakest
@@ -1613,6 +1613,12 @@ function whistle(dur){if(!actx)return;try{const t=actx.currentTime,d=dur||0.75;
   const ns=actx.createBufferSource(),bp=actx.createBiquadFilter(),ng=actx.createGain();ns.buffer=nb;bp.type='bandpass';bp.frequency.value=3000;bp.Q.value=4;
   ng.gain.setValueAtTime(0.0001,t);ng.gain.exponentialRampToValueAtTime(0.05,t+0.03);ng.gain.setValueAtTime(0.05,t+d-0.12);ng.gain.exponentialRampToValueAtTime(0.0001,t+d);
   ns.connect(bp);bp.connect(ng);ng.connect(actx.destination);o.start(t);lfo.start(t);ns.start(t);o.stop(t+d+0.02);lfo.stop(t+d+0.02);ns.stop(t+d+0.02);}catch(e){}}
+function slap(){if(!actx)return;try{const t=actx.currentTime,n=Math.ceil(actx.sampleRate*0.14),b=actx.createBuffer(1,n,actx.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<n;i++){const x=i/actx.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-x/0.016)+(x<0.004?(Math.random()*2-1)*1.2:0);}
+  const src=actx.createBufferSource(),bp=actx.createBiquadFilter(),g=actx.createGain();src.buffer=b;bp.type='bandpass';bp.frequency.value=1900;bp.Q.value=0.7;g.gain.value=0.9;
+  src.connect(bp);bp.connect(g);g.connect(actx.destination);src.start(t);
+  const o=actx.createOscillator(),og=actx.createGain();o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(90,t+0.06);og.gain.setValueAtTime(0.22,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+  o.connect(og);og.connect(actx.destination);o.start(t);o.stop(t+0.09);}catch(e){}}
 function bell(){for(let i=0;i<4;i++){tone(1568,0.9,0.18,'sine',i*0.28);tone(3136*1.01,0.5,0.06,'sine',i*0.28);}}
 function beep(hi){tone(hi?1320:660,hi?0.5:0.18,0.15,'square');}
 
@@ -1997,7 +2003,7 @@ function simStep(dt,withPlayer){
   applyShove(dt);resolveContacts(dt);if(mode==='madison')madisonUpdate(dt);if(mode==='elim')elimUpdate(dt);if(mode==='points')pointsUpdate(dt);if(mode==='keirin')keirinUpdate(dt);if(NEU&&NEU.on&&phase==='race'){const ld=active().filter(r=>!r.crashed).reduce((a,b)=>a.s>b.s?a:b);if(ld.s>=START_S)startBunchRace();}if(withPlayer)trackStats(dt);
   for(const R of active())if(R.crashed)crashUpdate(R,dt);}
 function raceOpen(){if(mode==='elim'&&EL)return EL.all.some(r=>!r.player&&!r.out&&!r.finished&&!r.crashed);return mode==='madison'&&MT?MT.some(t=>!t.me&&!t.act.finished&&!t.act.crashed):riders.some(r=>!r.player&&!r.partner&&r.model.g.visible&&!r.finished&&!r.crashed&&!r.dsq);}
-let FFWD=false;function fastForward(){const dt=1/30;let n=0;FFWD=true;try{while(n<30*900&&raceOpen()){simStep(dt,false);n++;}}finally{FFWD=false;}}
+let FFWD=false,hfCam=0;function fastForward(){const dt=1/30;let n=0;FFWD=true;try{while(n<30*900&&raceOpen()){simStep(dt,false);n++;}}finally{FFWD=false;}}
 const _pos=new THREE.Vector3();
 function placeModels(dt){
   for(const R of riders){if(!R.model.g.visible)continue;
@@ -2043,6 +2049,12 @@ function updateCamera(dt){
   const hT=Math.abs(headTurn),sd=Math.sign(headTurn);if(hT>0.003){const e=hT*hT*(3-2*hT),th=hT*2.95;R.model.g.updateMatrixWorld();
     _e.set(-0.14*e*sd,1.5,0.3);R.model.g.localToWorld(_e);_g.set(-0.14*e*sd-sd*Math.sin(th)*8,0.9,0.3+Math.cos(th)*8);R.model.g.localToWorld(_g);
     _t.lerp(_e,e);_l.lerp(_g,e);_u.lerp(V(0,1,0).applyQuaternion(R.model.g.quaternion),e);if(hT>0.05)kk=30;}
+  // high-five cam: swings to the inside and looks ahead along the barrier, so you see your hand and theirs meet over the barrier
+  {const on=WATCH_BASE&&hiFiveOn()&&HOLDERS.some(h=>h.st==='watch'&&(()=>{const g=gapTo(R,{s:hfSlotS(h)});return g>-2.5&&g<9;})());
+   hfCam+=((on?1:0)-hfCam)*Math.min(1,dt*(on?2.2:1.6));
+   if(hfCam>0.002){const e=hfCam*hfCam*(3-2*hfCam),f=frameAt(R.s),p=R.model.g.position;   // n = horizontal towards the barrier
+     _e.set(p.x-f.nx*2.7-f.fx*1.2,p.y+1.25,p.z-f.nz*2.7-f.fz*1.2);_g.set(p.x+f.nx*0.9+f.fx*2.6,p.y+1.6,p.z+f.nz*0.9+f.fz*2.6);
+     _t.lerp(_e,e);_l.lerp(_g,e);_u.lerp(V(0,1,0),e);kk=Math.max(kk,12);}}
   if(R.crashed&&crashT<0.7){const sh=(0.7-crashT)*0.25;_t.x+=(Math.random()-.5)*sh;_t.y+=(Math.random()-.5)*sh;}
   const a=camInit?1-Math.exp(-dt*kk):1;camInit=true;
   camPos.lerp(_t,a);camLook.lerp(_l,a);camUp.lerp(_u,a).normalize();
@@ -2473,7 +2485,39 @@ function watchPose(h,dt){const r=h.r,t=r.t;judgeTarget(_hw);h.look.lerp(_hw,1-Ma
   // cheer when our man flies past right below
   const g=gapTo(player,{s:WATCH_BASE?WATCH_BASE.s0-h.slot*1.05:0});h.cheerT-=dt;if(phase==='race'&&!player.crashed&&g>-2&&g<3&&h.cheerT<=-4)h.cheerT=1.6;
   if(h.cheerT>0){T.a0x=T.a1x=-2.8+Math.sin(t*12)*0.2;T.a0z=T.a1z=0.35;T.e0=T.e1=-0.3;T.mo=0.8;T.lean=0;T.y=Math.abs(Math.sin(t*8))*0.04;}
+  hiFiveHolder(h,T,dt);
   return T;}
+// ---------- high five after the finish: ride right up to the barrier in the holders' turn and they slap your hand one by one ----------
+function hfSlotS(h){return WATCH_BASE.s0-h.slot*1.05-(h.slot%2?0.12:0);}
+function hiFiveOn(){return phase==='done'&&!resultsShown&&player&&!player.crashed&&player.model.g.visible&&!player.resting&&player.w>TW-1.05;}
+function hiFiveBusy(){return HOLDERS.some(h=>h.st==='watch'&&h.hfK>0.05&&!h.hfDone);}
+const _hfa=new THREE.Vector3(),_hfb=new THREE.Vector3();
+function hiFiveHolder(h,T,dt){if(h.hfK===undefined){h.hfK=0;h.hfDone=false;h.hfHit=0;}
+  const g=gapTo(player,{s:hfSlotS(h)});const want=!h.hfDone&&hiFiveOn()&&g>-0.6&&g<6.5;
+  h.hfK+=((want?1:0)-h.hfK)*Math.min(1,dt*(want?7:4));if(h.hfHit>0)h.hfHit-=dt;
+  if(h.hfK<0.01&&h.hfHit<=0)return;
+  // the arm on the side the rider comes from (he comes along -f)
+  if(h.hfArm===undefined){const f=frameAt(hfSlotS(h));_hfa.set(h.pos.x-f.fx,h.pos.y,h.pos.z-f.fz);h.r.g.worldToLocal(_hfa);h.hfArm=_hfa.x<0?0:1;}
+  const a=h.hfArm,k=h.hfK,m=(x,y)=>x+(y-x)*k;
+  const rx=h.hfHit>0?-1.9:-1.32,rz=0.55,re=h.hfHit>0?-0.55:-0.12;   // reaching down over the rail, open hand; snaps up a bit on the slap
+  T['a'+a+'x']=m(T['a'+a+'x'],rx);T['a'+a+'z']=m(T['a'+a+'z'],rz);T['e'+a]=m(T['e'+a],re);
+  T.lean=m(T.lean,0.5);T.twist=m(T.twist,a?-0.35:0.35);T.mo=m(T.mo||0,0.6);T.ba=m(T.ba||0,-0.3);
+  // contact: the moment the two hands are closest
+  if(!h.hfDone&&k>0.5&&h.pSide!==undefined){player.model.rig[h.pSide].glove.getWorldPosition(_hfa);h.r.arms[a].hand.getWorldPosition(_hfb);const d=_hfa.distanceTo(_hfb);
+    h.hfMin=Math.min(h.hfMin===undefined?9:h.hfMin,d);
+    // slap when the hands are closest (or, at low frame rates, once you're past him if they came close)
+    if((h.hfPrev!==undefined&&d>h.hfPrev+0.002&&h.hfPrev<0.45)||(g<-0.25&&h.hfMin<0.9)){h.hfDone=true;h.hfHit=0.22;h.cheerT=1.5;slap();slingPuff(player,player);}h.hfPrev=d;}
+  if(!h.hfDone&&g<-0.6&&h.hfK<0.2)h.hfDone=true;}
+// player's side: the hand goes up to meet the holder's hand (pose fed into slingPose)
+function hiFivePose(pose,dt){if(!WATCH_BASE||!player||!player.model.g.visible)return;let best=null,bk=0;
+  for(const h of HOLDERS){if(h.st!=='watch'||h.hfK===undefined)continue;const g=gapTo(player,{s:hfSlotS(h)});
+    const k=(h.hfDone?(h.hfHit>0?1:0):h.hfK*clamp((4.5-g)/2.5,0,1));if(k>bk){bk=k;best=h;}}
+  const P=player;if(P.hfK===undefined){P.hfK=0;P.hfT=new THREE.Vector3();P.hfS=0;}
+  if(best&&bk>0.01){best.r.arms[best.hfArm||0].hand.getWorldPosition(_hfa);_hfb.copy(_hfa);P.model.g.worldToLocal(_hfb);
+    const side=_hfb.x<0?0:1;P.hfS=side;for(const o of HOLDERS)o.pSide=side;
+    P.hfT.lerp(_hfb,P.hfK<0.05?1:Math.min(1,dt*14));}
+  P.hfK+=((best?bk:0)-P.hfK)*Math.min(1,dt*(bk>P.hfK?9:3.5));
+  if(P.hfK>0.01)pose.set(P,[P.hfS,P.hfT.clone(),P.hfK]);}
 // ---------- the starter: a commissaire on the apron counts the bunch down (3-2-1, whistle to his mouth, a blast on it), then walks round the back of the judges' booth to the empty 4th chair ----------
 let REF=null;const _rb=new THREE.Vector3();
 function makeRef(){const r=makeHuman({skin:0xe2b896,top:0x1d2c4d,collar:0xffffff,tie:0xb3202a,hair:0x6a6a66,hairStyle:'short',pants:0x1d2c4d,mustache:true,lanyard:0xc6ff1a});
@@ -2584,6 +2628,7 @@ function slingPose(dt){
       else{const ps=P.slAnim&&P.slAnim.side!==undefined?P.slAnim.side:sideTo(P,R);catchHand(P,ps,1,_st);const link=_st.clone();R.model.g.worldToLocal(link);
         const fwd=new THREE.Vector3(R.model.rig[side].s*0.2,1.18,0.95);   // follow-through: arm shot forward and up
         const tl=link.lerp(fwd,sm(0.18,0.42,t));pose.set(R,[side,tl,1-sm(0.62,1.1,t)]);}}}
+  if(!pose.has(player))hiFivePose(pose,dt);
   for(const R of riders){const p=pose.get(R);for(let i=0;i<2;i++){if(p&&p[0]===i&&p[2]>0.001)setArm(R,i,p[1],p[2]);else resetArm(R,i);}}}
 let slingT=0,slingLine=null;
 // the thrown rider gains speed over ~0.6 s, the thrower gives it away over ~1.2 s and is a slow, solid obstacle meanwhile
@@ -3142,7 +3187,7 @@ let wipeBusy=false;
 function wipe(fn){if(wipeBusy)return;wipeBusy=true;const w=$('wipe');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');tone(180,0.35,0.05,'sawtooth');tone(360,0.3,0.04,'triangle',0.1);
   setTimeout(()=>{fn();},430);setTimeout(()=>{w.classList.remove('go');wipeBusy=false;},950);}
 function startRace(m){wipe(()=>beginRace(m));}
-function beginRace(m){$('skipResc').style.display='none';$('viewRow').style.display='flex';clearCeremony();resetStats();clearCans();raceBonus=0;yellT=6;throwT=14;$('boss').style.opacity=0;if(m)mode=m;initAudio();resetRiders();setEffort(mode==='kilo'?0.9:mode==='keirin'?0.8:0.55);raceTime=0;countT=3.999;resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
+function beginRace(m){if(player)player.hfK=undefined;$('skipResc').style.display='none';$('viewRow').style.display='flex';clearCeremony();resetStats();clearCans();raceBonus=0;yellT=6;throwT=14;$('boss').style.opacity=0;if(m)mode=m;initAudio();resetRiders();setEffort(mode==='kilo'?0.9:mode==='keirin'?0.8:0.55);raceTime=0;countT=3.999;resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
   $('menu').style.display='none';$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';drawLapBoard(Math.ceil(LAPS));
   radioReset();phase='intro';introT=0;buildIntroPath();const mt=MODE_TXT[mode];$('introMode').textContent=mt[0];$('introSub').innerHTML=mt[1]+(mode==='keirin'?'<br><b style="color:#ffd166">Los: startuješ z pozice '+player.draw+' ze 6</b>':'')+'<br><span style="color:#fff;opacity:.85;font-size:13px">'+CTL_TXT+'</span>';
   const ib=$('intro');ib.style.display='block';const bar=ib.querySelector('.ibar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
@@ -3442,14 +3487,16 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
     if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').innerHTML='';}
     coachTick(dt*TS);
     if((mode==='elim'||mode==='keirin')&&player.out&&!player.crashed&&phase==='race')phase='done';
-    if((mode==='madison'&&MT?MT.find(t=>t.me).act.finished:player.finished)&&!player.crashed&&phase==='race'){phase='done';
+    if((mode==='madison'&&MT?MT.find(t=>t.me).act.finished:player.finished)&&!player.crashed&&phase==='race'){phase='done';doneS=player.s;
       if(mode==='madison'){const r=madStandings().findIndex(t=>t.me)+1;showMsg(r===1?'VÍTĚZSTVÍ! 🏆':r+'. MÍSTO',3.5);}
       else if(mode==='elim'){const r=elimStandings().indexOf(player)+1;showMsg(r===1?'VÍTĚZSTVÍ! 🏆':r+'. MÍSTO',3.5);}
       else if(mode==='points'){const r=ptsStandings().indexOf(player)+1;showMsg((r===1?'VÍTĚZSTVÍ! 🏆':r+'. MÍSTO')+'<small>'+player.pts+' bodů</small>',3.5);}
       else if(mode==='scratch'||mode==='keirin'){let pos=1;for(const o of riders)if(o!==player&&o.model.g.visible&&o.finished&&o.time<player.time)pos++;showMsg(pos===1?'VÍTĚZSTVÍ! 🏆':pos+'. MÍSTO',3.5);}
       else showMsg(fmt(player.time)+'<small>'+(1000/player.time*3.6).toFixed(1)+' km/h</small>',3.5);}
     if(phase==='done'&&!resultsShown&&(mode==='elim'||mode==='keirin')&&player.out&&!player.crashed){finishWait+=dt;if(finishWait>3.5){resultsShown=true;player.model.g.visible=false;fastForward();startCeremony();}}
-    if(phase==='done'&&!resultsShown){finishWait+=dt;if(finishWait>3.5&&(!raceOpen()||finishWait>15)){resultsShown=true;startCeremony();}}
+    if(phase==='done'&&!resultsShown){finishWait+=dt;   // cool-down cut short: the podium comes as soon as you're onto the opposite straight (the others are simulated to the line)
+      const oppS=LSTR/2+2*LT+LA+3,togo=((oppS-doneS)%L0+L0)%L0;
+      if(finishWait>3&&((player.s-doneS>=togo&&!hiFiveBusy())||finishWait>22)){resultsShown=true;if(raceOpen())fastForward();startCeremony();}}
   }
   updateBoss(dt);updateRef(dt);updateRescue(dt);updateSlingUI(dt);{const sk=$('skipResc'),on=!!(player&&player.crashed&&!resultsShown&&(phase==='race'||phase==='done'));if(sk.style.display!==(on?'block':'none')){sk.style.display=on?'block':'none';$('viewRow').style.display=on?'none':'flex';}}placeModels(dt);dernySound();updateCamera(dt);updateHUD(dt);if(phase!=='menu')updateBar();if(window.__cam)window.__cam(camera);renderer.render(scene,camera);}
 requestAnimationFrame(frame);if(window.__ld)window.__ld(.85);
