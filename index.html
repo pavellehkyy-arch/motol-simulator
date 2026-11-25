@@ -37,8 +37,10 @@
 #refBub.fl{transform:translate(calc(-100% + 16px),calc(-100% - 20px))}
 #refBub.fl::before{left:auto;right:6px;border-width:22px 0 0 18px;border-color:#111 transparent transparent transparent}
 #refBub.fl::after{left:auto;right:10px;border-width:14px 0 0 11px;border-color:#fffdf2 transparent transparent transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:#dfe3e2;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
-canvas#c{display:block;width:100vw;height:100vh}
+html,body{margin:0;height:100%;height:var(--appH,100%);overflow:hidden;background:#0a1423;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+canvas#c{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
+/* home-screen app: cover the whole screen incl. status bar and home-indicator strips (JS sets --appW/--appH to the real screen size) */
+canvas#c,#hud,.screen,#wipe,#intro,#flash,#ld{width:var(--appW,100vw);height:var(--appH,100vh);right:auto;bottom:auto}
 #hud{position:fixed;inset:0;pointer-events:none;display:none}
 .panel{background:rgba(10,20,35,.62);border-radius:10px;padding:6px 9px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 #tl{position:absolute;top:8px;left:8px;min-width:100px}
@@ -301,8 +303,15 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xdcd8cf);
 scene.fog=new THREE.Fog(0xdcd8cf,70,190);
 const camera=new THREE.PerspectiveCamera(65,1,0.05,600);
-function resize(){const w=innerWidth,h=innerHeight;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75,Math.sqrt(3.6e6/(w*h))));renderer.setSize(w,h,false);camera.aspect=w/h;camera.userData.baseFov=w<h?78:62;camera.fov=camera.userData.baseFov;camera.updateProjectionMatrix();}
-addEventListener('resize',resize);resize();
+// real drawable size: in a home-screen app (iOS standalone / Android fullscreen) innerHeight/100vh can be shorter than the screen,
+// which left white strips at the top and bottom – use the physical screen size in the current orientation instead
+let APPW=innerWidth,APPH=innerHeight;
+function appSize(){let w=innerWidth,h=innerHeight;let sa=!!navigator.standalone;try{sa=sa||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;}catch(e){}
+  if(sa&&screen.width&&screen.height){const a=Math.max(screen.width,screen.height),b=Math.min(screen.width,screen.height),land=w>h,sw=land?a:b,sh=land?b:a;
+    if(sw>w&&sw-w<sw*0.12)w=sw;if(sh>h&&sh-h<sh*0.15)h=sh;}
+  APPW=w;APPH=h;const de=document.documentElement.style;de.setProperty('--appW',w+'px');de.setProperty('--appH',h+'px');return [w,h];}
+function resize(){const [w,h]=appSize();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75,Math.sqrt(3.6e6/(w*h))));renderer.setSize(w,h,false);camera.aspect=w/h;camera.userData.baseFov=w<h?78:62;camera.fov=camera.userData.baseFov;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,300));resize();
 scene.add(new THREE.HemisphereLight(0xfffaf0,0x8a7a62,0.64));
 scene.add(new THREE.AmbientLight(0xffffff,0.12));
 const key=new THREE.DirectionalLight(0xffffff,0.16);key.position.set(20,60,10);scene.add(key);
@@ -2251,7 +2260,7 @@ function updateBoss(dt){if(!RCOACH)return;RCOACH.g.updateMatrixWorld();
   // speech bubble anchored above his head – only visible when he is in view
   const bb=$('boss');if(bossMsgT>0){bossMsgT-=dt;const hp=new THREE.Vector3();RCOACH.head.getWorldPosition(hp);const dist=hp.distanceTo(camera.position);hp.y+=0.35;hp.project(camera);
     const on=hp.z<1&&Math.abs(hp.x)<1.05&&Math.abs(hp.y)<1.05&&dist<70&&RCOACH.g.visible;
-    if(on){bb.style.left=((hp.x+1)/2*innerWidth)+'px';bb.style.top=((1-hp.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(17-dist*0.12,10,16)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
+    if(on){bb.style.left=((hp.x+1)/2*APPW)+'px';bb.style.top=((1-hp.y)/2*APPH)+'px';bb.style.fontSize=clamp(17-dist*0.12,10,16)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
   if(phase!=='race')return;
   const gb=gapTo(player,{s:RCOACH.s});const near=gb>6&&gb<55;   // boss is ahead of us, in view
   if(!near)RAD.pass=false;
@@ -2489,7 +2498,7 @@ function refPath(){const L=(x,z,plat)=>{const v=JUDGES.localToWorld(new THREE.Ve
 function updateRef(dt){if(!REF)return;const R=REF,r=R.r;r.t+=dt;R.t+=dt;
   // comic speech bubble with the count, its tail pointing at his mouth (bubble leans towards the screen centre)
   const bb=$('refBub');if(R.bub>0&&(phase==='countdown'||phase==='race')){R.bub-=dt;_rb.set(0,0.035,0.11);r.head.localToWorld(_rb);const dist=_rb.distanceTo(camera.position);_rb.project(camera);
-    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'PÍÍÍÍSK!';bb.classList.toggle('fl',_rb.x>0.25);bb.style.left=((_rb.x+1)/2*innerWidth)+'px';bb.style.top=((1-_rb.y)/2*innerHeight)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
+    const on=_rb.z<1&&Math.abs(_rb.x)<1.05&&Math.abs(_rb.y)<1.05&&dist<80;if(on){bb.textContent=R.n>0?R.n:'PÍÍÍÍSK!';bb.classList.toggle('fl',_rb.x>0.25);bb.style.left=((_rb.x+1)/2*APPW)+'px';bb.style.top=((1-_rb.y)/2*APPH)+'px';bb.style.fontSize=clamp(30-dist*0.4,13,28)+'px';}bb.style.opacity=on?1:0;}else bb.style.opacity=0;
   if(R.st==='sit')return;
   let T={},k=1-Math.exp(-dt*8),moved=0;
   if(R.st==='stand'){   // whistle held at his chest while he counts; on "1" it goes up to his mouth
@@ -2609,7 +2618,7 @@ function updateSlingUI(dt){const show=mode==='madison'&&MT&&phase==='race';const
   if(!show){pb.style.display='none';sl.style.display='none';if(slingLine)slingLine.visible=false;return;}
   const T=MT.find(t=>t.me),P=PARTNER(),resting=T.rest===player;
   if(P&&!P.crashed){const hp=new THREE.Vector3();P.model.g.getWorldPosition(hp);const dist=hp.distanceTo(camera.position);hp.y+=2.0;hp.project(camera);
-    if(hp.z<1&&Math.abs(hp.x)<1.05&&Math.abs(hp.y)<1.05&&dist<60){pb.style.display='block';pb.style.left=((hp.x+1)/2*innerWidth)+'px';pb.style.top=((1-hp.y)/2*innerHeight)+'px';}else pb.style.display='none';}else pb.style.display='none';
+    if(hp.z<1&&Math.abs(hp.x)<1.05&&Math.abs(hp.y)<1.05&&dist<60){pb.style.display='block';pb.style.left=((hp.x+1)/2*APPW)+'px';pb.style.top=((1-hp.y)/2*APPH)+'px';}else pb.style.display='none';}else pb.style.display='none';
   const d=T.rest&&T.act?gapTo(T.act,T.rest):99,near=P&&!P.crashed&&T.rest&&!player.crashed&&(T.want||slingEligible(T))&&d>-3.5&&d<(resting?14:9)&&Math.abs(T.rest.w-T.act.w)<(resting?3.2:2.5),ok=slingEligible(T);
   $('slingBtn').textContent=resting?'✋ CHYŤ RUKU (E)':'🤝 PŘEDAT (E)';
   sl.style.display=near?'block':'none';slingT+=dt;slingCD-=dt;const needle=Math.sin(slingT*SLING_SPD);$('slingNeedle').style.transform='rotate('+(needle*88)+'deg)';
