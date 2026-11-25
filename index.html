@@ -1050,11 +1050,11 @@ const MUSC={};function muscleTex(kind){if(MUSC[kind])return MUSC[kind];const W=2
   const Y=v=>H-v*H;const blob=(u,v,rx,ry,a,dark)=>{for(const uu of [u,u-1,u+1]){const gr=g.createRadialGradient(uu*W,Y(v),0,uu*W,Y(v),Math.max(rx,ry)*W);gr.addColorStop(0,dark?'rgba(60,30,15,'+a+')':'rgba(255,255,255,'+a+')');gr.addColorStop(1,'rgba(0,0,0,0)');
     g.save();g.translate(uu*W,Y(v));g.scale(rx/Math.max(rx,ry),ry/Math.max(rx,ry));g.translate(-uu*W,-Y(v));g.fillStyle=gr;g.fillRect(0,0,W,H);g.restore();}};
   const groove=(u,v0,v1,w,a)=>{const gr=g.createLinearGradient((u-w)*W,0,(u+w)*W,0);gr.addColorStop(0,'rgba(90,45,25,0)');gr.addColorStop(0.5,'rgba(90,45,25,'+a+')');gr.addColorStop(1,'rgba(90,45,25,0)');g.fillStyle=gr;g.fillRect((u-w)*W,Y(v1),2*w*W,Y(v0)-Y(v1));};
-  if(kind==='thigh'){   // v: 0 hip -> 1 knee (only the part below the shorts shows)
-    groove(0.13,0.6,0.97,0.04,0.35);groove(0.87,0.6,0.97,0.04,0.35);           // quad separations
-    blob(0.2,0.86,0.09,0.09,0.35,true);blob(0.8,0.86,0.09,0.09,0.35,true);       // shadow under the teardrops
-    blob(0.24,0.8,0.08,0.06,0.5);blob(0.76,0.8,0.08,0.06,0.5);                     // vastus medialis / lateralis highlights
-    blob(0,0.99,0.06,0.04,0.45,true);blob(0,1.02,0.05,0.03,0.4);}                  // above the kneecap
+  if(kind==='thigh'||kind==='thighW'){const q=kind==='thighW'?1.75:1;   // v: 0 hip -> 1 knee (only the part below the shorts shows)
+    groove(0.13,0.6,0.97,0.04,0.35*q);groove(0.87,0.6,0.97,0.04,0.35*q);           // quad separations
+    blob(0.2,0.86,0.09,0.09,0.35*q,true);blob(0.8,0.86,0.09,0.09,0.35*q,true);       // shadow under the teardrops
+    blob(0.24,0.8,0.08,0.06,0.5*q);blob(0.76,0.8,0.08,0.06,0.5*q);                     // vastus medialis / lateralis highlights
+    blob(0,0.99,0.06,0.04,0.45*q,true);blob(0,1.02,0.05,0.03,0.4*q);}                  // above the kneecap
   if(kind==='shin'){    // v: 0 knee -> 1 ankle; u .5 = calf
     blob(0,0.04,0.07,0.06,0.5);blob(0.0,0.12,0.06,0.05,0.35,true);                 // kneecap + tendon
     groove(0.5,0.12,0.5,0.025,0.4);                                                 // between the two calf heads
@@ -1090,6 +1090,110 @@ const AHM={};function aeroHelmetMat(col,acc,tt){const k=col+'_'+acc+'_'+(tt?1:0)
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;
   return AHM[k]=new THREE.MeshPhongMaterial({map:t,specular:0xbfc4cc,shininess:120});}
 const VISORS=[[0x8a929c,0xffffff],[0x2c3038,0xf2f6ff],[0x141a24,0x8fb4ff],[0x2a1606,0xffb347],[0x1b0f2e,0xc58bff],[0x3a3e44,0xffffff]];
+// ---------- wolf head (Vojck): grey wolf skull + muzzle that sits inside the aero helmet, ears poking out through two slots, fur shells ----------
+// head-local metres like the human head: centre ≈ ear level, +z = face, +y up
+const WOLF={};
+function wolfFurTex(){if(WOLF.fur)return WOLF.fur;const W=256,c=mkCanvas(W,W),g=c.getContext('2d');g.fillStyle='#c9c9c9';g.fillRect(0,0,W,W);
+  for(let i=0;i<(LOWEND?1800:3200);i++){const x=Math.random()*W,y=Math.random()*W,l=5+Math.random()*10,a=(Math.random()-0.5)*0.6,v=120+Math.random()*135|0;
+    g.strokeStyle='rgba('+v+','+v+','+v+','+(0.35+Math.random()*0.5).toFixed(2)+')';g.lineWidth=0.7+Math.random()*1.3;
+    for(const ox of [-W,0,W])for(const oy of [-W,0,W]){if((ox||oy)&&x+ox>-12&&x+ox<W+12&&y+oy>-12&&y+oy<W+12||!ox&&!oy){g.beginPath();g.moveTo(x+ox,y+oy);g.lineTo(x+ox+Math.sin(a)*l,y+oy+Math.cos(a)*l);g.stroke();}}}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(5,14);t.anisotropy=MAXANI;return WOLF.fur=t;}
+// alpha dots for the fur shells (each shell keeps fewer of them = hair tips)
+function wolfHairTex(){if(WOLF.hair)return WOLF.hair;const W=256,c=mkCanvas(W,W),g=c.getContext('2d');g.clearRect(0,0,W,W);
+  for(let i=0;i<(LOWEND?2600:4200);i++){const x=Math.random()*W,y=Math.random()*W,a=0.25+Math.random()*0.75,l=2+Math.random()*4;
+    g.strokeStyle='rgba(255,255,255,'+a.toFixed(2)+')';g.lineWidth=1.3+Math.random()*0.9;g.beginPath();g.moveTo(x,y);g.lineTo(x+(Math.random()-0.5)*2,y+l);g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(7,20);t.anisotropy=MAXANI;return WOLF.hair=t;}
+// amber eye: sphere with its pole looking forward; canvas rows from the top = pupil -> iris -> dark rim
+function wolfEyeMat(){if(WOLF.eye)return WOLF.eye;const W=64,H=128,c=mkCanvas(W,H),g=c.getContext('2d');
+  g.fillStyle='#120c06';g.fillRect(0,0,W,H);
+  const gr=g.createLinearGradient(0,0,0,H*0.3);gr.addColorStop(0,'#e9c25a');gr.addColorStop(0.45,'#d79a2c');gr.addColorStop(0.85,'#9a5a14');gr.addColorStop(1,'#3a2208');g.fillStyle=gr;g.fillRect(0,0,W,H*0.3);
+  g.strokeStyle='rgba(255,226,140,.45)';g.lineWidth=1;for(let x=0;x<W;x+=3){g.beginPath();g.moveTo(x,H*0.09);g.lineTo(x+(Math.random()-0.5)*3,H*0.27);g.stroke();}
+  g.strokeStyle='rgba(90,45,8,.5)';for(let x=1;x<W;x+=5){g.beginPath();g.moveTo(x,H*0.1);g.lineTo(x,H*0.22);g.stroke();}
+  g.fillStyle='#050403';g.fillRect(0,0,W,H*0.085);   // round pupil
+  const t=new THREE.CanvasTexture(c);return WOLF.eye=new THREE.MeshPhongMaterial({map:t,specular:0xffffff,shininess:140});}
+function wolfColor(x,y,z,nz,out){const ax=Math.abs(x),sx=x<0?-1:1;
+  const C=(h)=>WOLF.pal[h];
+  const h=Math.sin(x*913.1+y*577.7+z*311.3)*43758.5453,n=(h-Math.floor(h))-0.5;           // per-vertex grizzle
+  const h2=Math.sin(x*61.3+y*97.1+z*43.7)*24634.6345,n2=(h2-Math.floor(h2));
+  const o=out.copy(C('agouti')).lerp(n2>0.5?C('light'):C('dark'),Math.abs(n2-0.5)*1.1);
+  const ym=-0.068+(z-0.06)*0.03;                                                          // mouth line along the muzzle
+  // ears (above the helmet): pale inner hair, outside darkening to near-black tips
+  if(y>0.112&&ax>0.04){const k=clamp((y-0.14)/0.045,0,1);if(nz>0.3&&k<0.85)o.copy(C('inner')).lerp(C('dark'),0.15+0.4*k);else o.lerp(C('dark'),0.1+0.75*k*k);return o;}
+  // eye: black lid rim, tawny around
+  const ex=x-sx*0.043,ey=y,ez=z-0.088,ed=Math.hypot(ex,ey*1.35,ez);
+  if(ed<0.018){o.copy(C('black'));return o;}
+  if(ed<0.027)o.lerp(C('tawny'),0.6);
+  // pale "eyebrow" spot above each eye and pale cheeks under them
+  if(Math.hypot(x-sx*0.034,y-0.027,z-0.094)<0.012)o.lerp(C('cream'),0.85);
+  if(z>-0.01&&z<0.095&&y<-0.012&&y>-0.1&&ax>0.035)o.lerp(C('cream'),clamp((z+0.01)/0.05,0,1)*0.85);
+  if(z>0.085){   // muzzle
+    const top=0.0-(z-0.085)*0.15;
+    if(Math.abs(y-ym)<0.0034&&ax>0.005&&z>0.055){o.copy(C('black'));return o;}              // lip line
+    if(y<ym)o.copy(C('cream')).lerp(C('light'),0.15+n*0.2);                                 // lower jaw
+    else{const up=clamp((y-ym)/Math.max(0.01,top-ym),0,1);o.copy(C('cream')).lerp(C('light'),up*0.7);
+      if(ax<0.02&&y>top-0.012)o.copy(C('tawny')).lerp(C('dark'),0.45+n*0.3);               // darker bridge of the nose
+      if(z>0.18&&y>ym+0.006)o.lerp(C('dark'),clamp((z-0.18)/0.016,0,1)*0.6);}
+  }else if(z>0.03&&y<ym+0.002&&y>-0.13)o.lerp(C('cream'),0.9);                             // throat / chin
+  // ruff on the cheeks: cream roots, grizzled grey tips further out
+  if(ax>0.078&&y<-0.015){const k=clamp((ax-0.085)/0.05,0,1);o.copy(C('cream')).lerp(n>0?C('light'):C('agouti'),0.3+k*0.6);}
+  if(y<-0.13)o.lerp(C('cream'),0.6);
+  return o.multiplyScalar(0.94+n*0.14);}
+function wolfGeos(){if(WOLF.geo)return WOLF;
+  WOLF.pal={cream:new THREE.Color(0xe7dfd2),light:new THREE.Color(0xb3aa9e),agouti:new THREE.Color(0x857a6d),tawny:new THREE.Color(0xa28361),dark:new THREE.Color(0x433b34),black:new THREE.Color(0x141210),inner:new THREE.Color(0xd8c9b6)};
+  const seg=LOWEND?16:26,tmp=new THREE.Group(),add=geo=>{const m=new THREE.Mesh(geo);tmp.add(m);return m;};
+  // cranium: like the human skull but broader at the cheekbones, deep at the throat
+  add(loftGeo('wolfCran',[[-0.15,0,0,0,0.02],[-0.14,0.03,0.03,0.03,0.02],[-0.12,0.056,0.052,0.06,0.012],[-0.09,0.074,0.066,0.075,0.006],[-0.05,0.086,0.08,0.088,0],[-0.01,0.089,0.096,0.092],[0.03,0.084,0.107,0.093],[0.07,0.077,0.1,0.092],[0.1,0.064,0.08,0.082],[0.125,0.036,0.042,0.05],[0.137,0,0,0]],{seg,p:2.1,sub:LOWEND?3:4}));
+  // muzzle along +z (rings: z, half-width, down, up, -centre y): stop between the eyes, long tapering snout, narrower lower jaw
+  add(loftGeo('wolfMuz',[[0.02,0.072,0.075,0.075,0.042],[0.06,0.062,0.062,0.064,0.05],[0.1,0.052,0.052,0.05,0.052],[0.13,0.045,0.045,0.04,0.05],[0.157,0.039,0.038,0.033,0.048],[0.178,0.033,0.032,0.027,0.046],[0.192,0.027,0.026,0.021,0.044],[0.2,0.018,0.018,0.014,0.042],[0.204,0,0,0,0.042]],{seg,p:2.5,rx:PI/2,sub:LOWEND?3:5}));
+  // cheek ruff: clumps of fur fanning out and back below the helmet
+  const tuft=new THREE.SphereGeometry(1,8,6);tuft.scale(1,0.5,1);tuft.translate(0,0.5,0);{const p=tuft.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i),k=1-0.75*Math.pow(y,1.6);p.setX(i,p.getX(i)*k);p.setZ(i,p.getZ(i)*k);}tuft.computeVertexNormals();}
+  const P0=V(0.082,-0.015,-0.035),P1=V(0.08,-0.085,0.005),P2=V(0.03,-0.135,0.045),a=V(),b=V(),d=V(),hint=V(0,0,1);let rs=7;const rnd=()=>{rs=(rs*16807)%2147483647;return rs/2147483647;};
+  const NT=LOWEND?14:24;for(const sx of [-1,1])for(let row=0;row<3;row++)for(let i=0;i<NT;i++){const s=clamp((i+rnd()*0.8)/NT,0,1),q=1-s;
+    a.set(q*q*P0.x+2*q*s*P1.x+s*s*P2.x,q*q*P0.y+2*q*s*P1.y+s*s*P2.y+(rnd()-0.5)*0.012,q*q*P0.z+2*q*s*P1.z+s*s*P2.z-row*0.016+(rnd()-0.5)*0.01);a.x*=sx*(0.97-row*0.05);
+    d.set(sx*(0.9-0.55*s)+(rnd()-0.5)*0.5,-0.3-0.7*s+(rnd()-0.5)*0.4,-0.6-row*0.15+(rnd()-0.5)*0.4).normalize();const L=0.018+0.02*rnd()+0.008*(1-s)+row*0.004;
+    b.copy(a).addScaledVector(d,L);const m=add(tuft);const r=0.013+rnd()*0.007;orient(m,a.addScaledVector(d,-0.014),b,hint.set(rnd()-0.5,1,0.2),r,r*0.75);}
+  // ears: cupped triangles laid back for speed, coming out through slots in the helmet
+  const ear=new THREE.ConeGeometry(1,1,12,5);ear.translate(0,0.5,0);{const p=ear.attributes.position;for(let i=0;i<p.count;i++){const z=p.getZ(i);if(z>0)p.setZ(i,-z*0.35+0.12*(1-p.getY(i)));}ear.computeVertexNormals();}
+  WOLF.ears=[];for(const sx of [-1,1]){const base=V(sx*0.056,0.12,-0.015),dir=V(sx*0.38,0.88,-0.32).normalize();
+    const m=add(ear);orient(m,base,b.copy(base).addScaledVector(dir,0.085),hint.set(sx*0.3,0.3,1),0.043,0.016);WOLF.ears.push({base,dir});}
+  tmp.updateMatrixWorld(true);const G=mergeList(tmp.children);
+  // vertex colours from the position on the head
+  const P=G.attributes.position,N=G.attributes.normal,col=new Float32Array(P.count*3),c=new THREE.Color();
+  for(let i=0;i<P.count;i++){wolfColor(P.getX(i),P.getY(i),P.getZ(i),N.getZ(i),c);col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;}
+  G.setAttribute('color',new THREE.BufferAttribute(col,3));WOLF.geo=G;
+  // fur shells: copies pushed out along the normals, skipping the eyes, the nose leather and the lips; fluffier on the ruff, short on the muzzle
+  WOLF.shells=[];const NS=LOWEND?3:5;
+  for(let k=1;k<=NS;k++){const pos=[],nor=[],uv=[],cc=[];const U=G.attributes.uv;
+    for(let t=0;t<P.count;t+=3){let cx=0,cy=0,cz=0;for(let j=0;j<3;j++){cx+=P.getX(t+j)/3;cy+=P.getY(t+j)/3;cz+=P.getZ(t+j)/3;}const ax=Math.abs(cx);
+      if(Math.hypot(ax-0.043,cy*1.35,cz-0.088)<0.022)continue;if(cz>0.184)continue;if(cz>0.05&&Math.abs(cy-(-0.068+(cz-0.06)*0.03))<0.005)continue;
+      for(let j=0;j<3;j++){const i=t+j,x=P.getX(i),y=P.getY(i),z=P.getZ(i);let f=z>0.12?0.45:z>0.085?0.7:1;if(Math.abs(x)>0.078&&y<-0.015)f=1.5;if(y>0.112&&Math.abs(x)>0.04)f=0.6;
+        const o=k*0.0024*f;pos.push(x+N.getX(i)*o,y+N.getY(i)*o,z+N.getZ(i)*o);nor.push(N.getX(i),N.getY(i),N.getZ(i));uv.push(U.getX(i),U.getY(i));const L=1+0.05*k;cc.push(col[i*3]*L,col[i*3+1]*L,col[i*3+2]*L);}}
+    const S=new THREE.BufferGeometry();S.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));S.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));S.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));S.setAttribute('color',new THREE.Float32BufferAttribute(cc,3));S.computeBoundingSphere();
+    WOLF.shells.push(S);}
+  // nose leather + nostrils
+  const nose=new THREE.SphereGeometry(1,16,12);nose.scale(0.019,0.0128,0.0145);nose.translate(0,-0.0245,0.193);WOLF.nose=nose;
+  const nos=new THREE.SphereGeometry(1,8,6);nos.scale(0.0055,0.004,0.004);WOLF.nostril=nos;
+  const eye=new THREE.SphereGeometry(0.0128,18,14);eye.rotateX(PI/2);WOLF.eyeG=eye;
+  const lid=new THREE.TorusGeometry(0.0128,0.0024,6,20);WOLF.lid=lid;
+  const ring=new THREE.TorusGeometry(0.039,0.0045,6,20);ring.rotateX(PI/2);WOLF.slot=ring;
+  // whiskers
+  const wv=[];for(const sx of [-1,1])for(let i=0;i<5;i++){const z=0.145+i*0.007,y=-0.047+(i%2)*0.006;wv.push(sx*0.033,y,z,sx*(0.07+i*0.004),y-0.012+i*0.003,z-0.03);}
+  WOLF.whisk=new THREE.BufferGeometry();WOLF.whisk.setAttribute('position',new THREE.Float32BufferAttribute(wv,3));
+  return WOLF;}
+function wolfFurMats(){if(WOLF.mats)return WOLF.mats;const fur=wolfFurTex(),hair=wolfHairTex();
+  const base=new THREE.MeshPhongMaterial({vertexColors:true,map:fur,bumpMap:fur,bumpScale:0.012,specular:0x1c1a18,shininess:10});
+  const shells=WOLF.shells.map((s,k)=>new THREE.MeshPhongMaterial({vertexColors:true,map:hair,alphaTest:0.22+k*0.15,specular:0x161412,shininess:8,side:THREE.DoubleSide}));
+  const neck=new THREE.MeshPhongMaterial({color:0x8f8477,map:fur,bumpMap:fur,bumpScale:0.012,specular:0x1c1a18,shininess:10});
+  const nose=new THREE.MeshPhongMaterial({color:0x1a1716,specular:0x9a9a9a,shininess:55,bumpMap:fur,bumpScale:0.004});
+  return WOLF.mats={base,shells,neck,nose,dark:new THREE.MeshBasicMaterial({color:0x050404}),whisk:new THREE.LineBasicMaterial({color:0xd8d2c8,transparent:true,opacity:0.55})};}
+function addWolfHead(head){const W=wolfGeos(),M=wolfFurMats();
+  head.add(new THREE.Mesh(W.geo,M.base));for(let k=0;k<W.shells.length;k++)head.add(new THREE.Mesh(W.shells[k],M.shells[k]));
+  head.add(new THREE.Mesh(W.nose,M.nose));for(const sx of [-1,1]){const n=new THREE.Mesh(W.nostril,M.dark);n.position.set(sx*0.0078,-0.0275,0.2065);n.rotation.y=sx*0.5;head.add(n);}
+  for(const sx of [-1,1]){const e=new THREE.Mesh(W.eyeG,wolfEyeMat());e.position.set(sx*0.043,0.0,0.087);e.rotation.set(-0.05,sx*0.36,0,'YXZ');e.scale.set(1,0.66,0.8);
+    const lid=new THREE.Mesh(W.lid,M.dark);lid.position.set(0,0,0.0045);lid.scale.set(1.12,1.12,1);e.add(lid);
+    const tilt=new THREE.Group();tilt.position.copy(e.position);e.position.set(0,0,0);tilt.rotation.z=sx*0.22;tilt.add(e);head.add(tilt);}
+  head.add(new THREE.LineSegments(W.whisk,M.whisk));
+  return W.ears;}
 function makeRider(o){const B=riderGeos();
   const g=new THREE.Group();g.rotation.order='YXZ';
   const sh=new THREE.Mesh(new THREE.CircleGeometry(0.55,16),shadowMat);sh.rotation.x=-PI/2;sh.scale.set(0.8,1.8,1);sh.position.y=0.02;g.add(sh);
@@ -1101,13 +1205,16 @@ function makeRider(o){const B=riderGeos();
   const torso=[mk(B.torS,mSh),mk(B.torJ,mJ)];const neck=mk(B.neck,mS);
   // head group: +z = face, centre at ear level
   const head=new THREE.Group();head.rotation.order='YXZ';body.add(head);
-  head.add(new THREE.Mesh(B.head,mS));
-  const hair=new THREE.Mesh(B.hair,mat(o.hair||0x3b2a1c));hair.scale.set(0.074,0.082,0.083);hair.position.set(0,0.0,-0.014);hair.rotation.x=0.75;head.add(hair);
+  let ears=null;if(o.wolf){ears=addWolfHead(head);neck.material=wolfFurMats().neck;}
+  else{head.add(new THREE.Mesh(B.head,mS));
+  const hair=new THREE.Mesh(B.hair,mat(o.hair||0x3b2a1c));hair.scale.set(0.074,0.082,0.083);hair.position.set(0,0.0,-0.014);hair.rotation.x=0.75;head.add(hair);}
   // aero helmet (photos): glossy shell with a tail, mirrored wrap visor, wordmark on the side, stripes over the tail
   const hel=new THREE.Mesh(o.aero?B.helmTT:B.helmTr,aeroHelmetMat(o.helmet,TEAMS[o.team].accent,o.aero));head.add(hel);
-  const rimH=new THREE.Mesh(o.aero?B.helmTTrim:B.helmTrRim,lycraMat(0x141414));head.add(rimH);
-  head.add(new THREE.Mesh(B.strap,mat(0x1a1a1a)));
-  if(o.specs){const fM=mat(0xffffff),lM=new THREE.MeshPhongMaterial({color:0xff7a00,emissive:0x662200,specular:0xffffff,shininess:120}),F=0.1,Y=0.012;
+  const rimH=new THREE.Mesh(o.aero?B.helmTTrim:B.helmTrRim,o.wolf?wolfFurMats().neck:lycraMat(0x141414));head.add(rimH);
+  const strap=new THREE.Mesh(B.strap,mat(0x1a1a1a));head.add(strap);
+  if(ears){strap.scale.set(1.14,1.04,1.1);for(const E of ears){const r=new THREE.Mesh(WOLF.slot,lycraMat(0x141414));const a=E.base.clone().addScaledVector(E.dir,0.019);orient(r,a,a.clone().add(E.dir),V(Math.sign(E.base.x)*0.25,0.25,1),1,0.62);head.add(r);}}   // rubber-trimmed slots the ears come through
+  if(o.wolf){}   // no visor: the amber eyes stay visible under the brow of the helmet
+  else if(o.specs){const fM=mat(0xffffff),lM=new THREE.MeshPhongMaterial({color:0xff7a00,emissive:0x662200,specular:0xffffff,shininess:120}),F=0.1,Y=0.012;
     for(const sx of [-1,1]){const rim=new THREE.Mesh(new THREE.TorusGeometry(0.03,0.007,6,16),fM);rim.position.set(sx*0.038,Y,F);head.add(rim);
       const lens=new THREE.Mesh(new THREE.CircleGeometry(0.029,16),lM);lens.position.set(sx*0.038,Y,F+0.002);head.add(lens);
       const arm=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.008,0.1),fM);arm.position.set(sx*0.078,Y+0.005,F-0.05);head.add(arm);}
@@ -1118,10 +1225,10 @@ function makeRider(o){const B=riderGeos();
     const fa=new THREE.Mesh(B.fa,LONG?KM2.fore:skinMuscle(o.skin||0xe2b48c,'fore'));arms.add(fa);const glove=new THREE.Mesh(B.fist,mGl);arms.add(glove);
     rig.push({s,ua,fa,glove,delt,a:V(s*0.17,1.23,0.27),e:V(s*0.2,1.0,0.38),h:V(s*0.205,0.79,0.548),L1:0.29,L2:0.31,on:false});}
   const shoeM=shoeMat(o.shoe||0xffffff),soleM=new THREE.MeshPhongMaterial({map:carbonSoleTex(),specular:0x777777,shininess:90}),crM=bikeMat(0x2a2a2c,90),pedM=bikeMat(0x18181a,40),boaM=new THREE.MeshPhongMaterial({color:0xc9ccd0,specular:0xffffff,shininess:110}),capM=new THREE.MeshPhongMaterial({color:o.shoe||0xffffff,specular:0xaaaaaa,shininess:80});
-  const legs=[];for(const sx of [-1,1]){const L={sx,thS:new THREE.Mesh(B.thS,mSh),thK:new THREE.Mesh(B.thK,skinMuscle(o.skin||0xe2b48c,'thigh')),shn:new THREE.Mesh(B.shn,skinMuscle(o.skin||0xe2b48c,'shin')),sock:new THREE.Mesh(B.sock,mat(o.sock||0xf4f4f4)),
+  const legs=[];for(const sx of [-1,1]){const L={sx,thS:new THREE.Mesh(B.thS,mSh),thK:new THREE.Mesh(B.thK,skinMuscle(o.skin||0xe2b48c,o.wolf?'thighW':'thigh')),shn:new THREE.Mesh(B.shn,skinMuscle(o.skin||0xe2b48c,'shin')),sock:new THREE.Mesh(B.sock,mat(o.sock||0xf4f4f4)),
       shoe:makeShoe(B,shoeM,soleM,boaM,capM,pedM,sx),kc:new THREE.Mesh(B.delt,mS),cr:new THREE.Mesh(B.crank,crM),ped:new THREE.Mesh(B.pedal,pedM)};
     g.add(L.thS,L.thK,L.shn,L.sock,L.shoe,L.cr,L.ped,L.kc);legs.push(L);}
-  const M={g,body,arms,bike:bike.g,wheels:bike.wheels,legs,rig,torso,neck,head,bw,bl,aero:!!o.aero};
+  const M={g,body,arms,bike:bike.g,wheels:bike.wheels,legs,rig,torso,neck,head,bw,bl,aero:!!o.aero,tw:o.wolf?1.24:1,tf:o.wolf?1.36:1,nk:o.wolf?1.22:1};
   poseRider(M,0.6,0,0,0,0,0,0.7);scene.add(g);return M;}
 // ---------- road/track shoes from the photos: white perforated upper, two BOA dials, black carbon sole, padded heel collar ----------
 const SHOEM={};function shoeTex(c){const W=512,H=512,cv=mkCanvas(W,H),g=cv.getContext('2d');const col=new THREE.Color(c),hex='#'+col.getHexString(),lum=col.r*0.3+col.g*0.59+col.b*0.11;
@@ -1194,7 +1301,7 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
   for(const m of M.torso)orient(m,_qhp,_qNn,_qF,M.bw*(1+0.012*sb),1+0.03*sb);
   // head & neck: the neck rises forward out of the flat back, the face looks up the track
   _qt1.copy(_qdr).multiplyScalar(0.85).add(_qt2.set(0,0.5,0.12)).normalize();_qak.copy(_qNn).addScaledVector(_qt1,0.14);   // head centre
-  _qt2.set(0,-_qt1.z,_qt1.y);orient(M.neck,_qt1.copy(_qNn).addScaledVector(_qdr,-0.02),_qak,_qt2,1,1);
+  _qt2.set(0,-_qt1.z,_qt1.y);orient(M.neck,_qt1.copy(_qNn).addScaledVector(_qdr,-0.02),_qak,_qt2,M.nk,M.nk);
   M.head.position.copy(_qak);M.head.rotation.set(pitch-0.12*Math.abs(yaw)+(lookPitch||0)+0.012*sb,yaw,0.06*sp*sa);
   // arms
   if(M.aero){_qgr.set(...P0.grip);mix3(_qgr,PZ.horns,st);}else{_qgr.set(...PZ.drops.grip);mix3(_qgr,PZ.tops.grip,su);}
@@ -1213,7 +1320,7 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
     _qak.copy(_qpd).addScaledVector(_qfv,-0.12).addScaledVector(_quv,0.074);
     _qhj.copy(_qhp).addScaledVector(_qF,0.015);_qhj.x+=sx*0.092*M.bw;
     _qt1.set(sx*0.14,0.25,1);rIK(_qhj,_qak,0.44,0.425,_qt1,_qkn);
-    _qt1.subVectors(_qkn,_qhj);_qt2.crossVectors(_qt1,_qXA);orient(L.thS,_qhj,_qkn,_qt2,M.bl,M.bl);orient(L.thK,_qhj,_qkn,_qt2,M.bl,M.bl);
+    _qt1.subVectors(_qkn,_qhj);_qt2.crossVectors(_qt1,_qXA);orient(L.thS,_qhj,_qkn,_qt2,M.bl*M.tw,M.bl*M.tf);orient(L.thK,_qhj,_qkn,_qt2,M.bl*M.tw,M.bl*M.tf);
     _qt1.subVectors(_qak,_qkn);_qt2.crossVectors(_qt1,_qXA);orient(L.shn,_qkn,_qak,_qt2,M.bl,M.bl);L.kc.position.copy(_qkn).addScaledVector(_qt2.normalize(),0.008);L.kc.scale.setScalar(0.047*M.bl);orient(L.sock,_qkn,_qak,_qt2,M.bl*1.07,M.bl*1.07);
     _qfx.crossVectors(_quv,_qfv);_qom.makeBasis(_qfx,_quv,_qfv);L.shoe.quaternion.setFromRotationMatrix(_qom);L.shoe.position.copy(_qpd);
     L.ped.quaternion.copy(L.shoe.quaternion);L.ped.position.copy(_qpd).addScaledVector(_quv,0.004);
@@ -1489,7 +1596,7 @@ function drawLapBoard(n){lapCtx.fillStyle='#0b0b0b';lapCtx.fillRect(0,0,256,192)
 // ---------- riders roster ----------
 const ROSTER=[
   {name:'Ty',team:'wc',jersey:0xffffff,ftp:330,player:true,discR:true,discF:true,num:1},
-  {name:'Vojck',team:'pardus',jersey:0xf2c230,discR:true,num:7,hair:0x2a2018},
+  {name:'Vojck',team:'pardus',jersey:0xf2c230,discR:true,num:7,hair:0x2a2018,wolf:true,kick:1.6},
   {name:'Sašík',team:'pardus',jersey:0xf2c230,discR:true,num:8,hair:0xc9a86a,shoe:0x2b6fd6},
   {name:'Evenepoel',team:'dukla',jersey:0x222222,discR:true,num:12},
   {name:'Vingegaard',team:'dukla',jersey:0x222222,num:14,hair:0xb08a4a},
@@ -1574,7 +1681,7 @@ function resetRiders(){
   order.forEach((ri,slot)=>{const R=riders[ri];const row=slot>>1;
     Object.assign(R,{s:SF-1.2-row*2.3,w:slot%2?1.9:0.8,v:0,h:0,power:0,energy:100,wp:22000,crank:Math.random()*6,draft:0,finished:false,time:0,targetW:0,lane:0.4+Math.random()*1.0,mood:1,sprintAt:170+Math.random()*190,attackT:0,lean:0,dw:0,cda:R.player?0.25:0.26,realP:0,crashed:false,crash:null,targetWp:0,latched:false,eRate:0,intent:0,pushedT:0,contact:0,pullT:0,swing:0,str:R.player?1:0.85+Math.random()*0.3,aggr:Math.random(),highLane:1.6+Math.random()*1.8,pullAt:55+Math.random()*20,ftp:R.player?330:Math.round(TSTAT[R.team].ftp[0]+Math.random()*(TSTAT[R.team].ftp[1]-TSTAT[R.team].ftp[0]))});
     if(!R.player){const T=TSTAT[R.team];R.str=T.str[0]+Math.random()*(T.str[1]-T.str[0]);R.aggr=T.aggr[0]+Math.random()*(T.aggr[1]-T.aggr[0]);R.lane=T.lane+Math.random()*0.5;R.front=T.front;}
-    R.wp=R.player?20000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='elim'||mode==='keirin'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
+    R.wp=R.player?20000:R.kick?25000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='elim'||mode==='keirin'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
     if(mode==='kilo'&&R===player){R.s=START_S-0.6;R.w=0.5;}
     R.targetWp=R.w;R.model.g.rotation.set(0,0,0);
     R.h=surfY(R.s,R.w);R.targetW=R.w;R.prevS=R.s;});
@@ -1715,6 +1822,7 @@ function physics(R,dt){
   if(mode==='elim'&&!bunchChase&&!R.resting&&!R.out&&R.draft<0.08&&phase==='race'&&!isNeutral()&&R.v>8)dE-=2.2+Math.max(0,R.v-11)*0.8;   // elimination: riding on the front / off the front burns the tank fast   // pulling at the front in the wind: extra cost
   if(R.draft>0.1&&Pe<R.ftp*1.1&&!R.resting)dE+=R.draft*3.2*(1-Math.max(0,Pe-0.8*R.ftp)/(0.3*R.ftp));   // sitting on a wheel really refills the tank
   R.eRate+=(dE-R.eRate)*Math.min(1,dt*2);R.energy=clamp(R.energy+dE*dt,0,100);
+  if(R.kick&&P>1.4*R.ftp)P=1.4*R.ftp+(P-1.4*R.ftp)*R.kick;   // a pure sprinter (Vojck): the kick hits much harder and costs him no more than the others
   R.realP=P;
   let draft=0;
   if(mode!=='kilo'){let n=0,nA=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<6&&dd<0.9)draft=Math.max(draft,0.45*(1-(gap-0.3)/5.7)*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;if(gap>0.3&&gap<12&&dd<1.7)nA++;}
@@ -2099,7 +2207,7 @@ function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,n
   for(const m of M.torso)orient(m,_sHp,_sN,_sF,M.bw,1);
   // neck & head (chin slightly up on the top step)
   _sA.set(0,0.99,up?0.02:0.09).normalize();_qak.copy(_sN).addScaledVector(_sA,0.14);
-  orient(M.neck,_sP.copy(_sN).addScaledVector(_sD,-0.02),_qak,_qt2.set(0,-_sA.z,_sA.y),1,1);
+  orient(M.neck,_sP.copy(_sN).addScaledVector(_sD,-0.02),_qak,_qt2.set(0,-_sA.z,_sA.y),M.nk,M.nk);
   M.head.position.copy(_qak);M.head.rotation.set(up?-0.18:0.04,sway*0.3,0);
   // arms
   for(const A of M.rig){const s=A.s;
@@ -2110,7 +2218,7 @@ function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,n
   for(const L of M.legs){const sx=L.sx;
     _qhj.copy(_sHp).addScaledVector(_sF,0.015);_qhj.x+=sx*0.092*M.bw;_qak.set(sx*0.11,0.112,-0.005);
     _qt1.set(0,0,1);rIK(_qhj,_qak,0.44,0.425,_qt1,_qkn);
-    _qt1.subVectors(_qkn,_qhj);_qt2.crossVectors(_qt1,_qXA);orient(L.thS,_qhj,_qkn,_qt2,M.bl,M.bl);orient(L.thK,_qhj,_qkn,_qt2,M.bl,M.bl);
+    _qt1.subVectors(_qkn,_qhj);_qt2.crossVectors(_qt1,_qXA);orient(L.thS,_qhj,_qkn,_qt2,M.bl*M.tw,M.bl*M.tf);orient(L.thK,_qhj,_qkn,_qt2,M.bl*M.tw,M.bl*M.tf);
     _qt1.subVectors(_qak,_qkn);_qt2.crossVectors(_qt1,_qXA);orient(L.shn,_qkn,_qak,_qt2,M.bl,M.bl);L.kc.position.copy(_qkn).addScaledVector(_qt2.normalize(),0.008);L.kc.scale.setScalar(0.047*M.bl);orient(L.sock,_qkn,_qak,_qt2,M.bl*1.07,M.bl*1.07);
     L.shoe.quaternion.identity();L.shoe.rotation.y=sx*0.12;L.shoe.position.set(sx*0.115,_qak.y-0.074,_qak.z+0.12);}
   if(rank>=1&&rank<=3){const my=_sN.y-0.3;const medal=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.012,16),new THREE.MeshPhongMaterial({color:[0xd4a017,0xc0c4c8,0xb06a2c][rank-1],specular:0xffffff,shininess:80}));medal.rotation.x=PI/2;medal.position.set(0,my,0.135);g.add(medal);
