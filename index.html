@@ -258,7 +258,7 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">Velodrom Praha-Motol · v0.12</div>
+    <div class="sub">Velodrom Praha-Motol · v0.13</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -435,7 +435,7 @@ function adTex(t1,t2,bg,fg,ac){
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;}
 // 6 banners on the wooden barrier, evenly round the lap, alternating: Varna Studio, other, Varna Studio, ...
 const BANNERS=[[SF,'logo'],[L0/6,['REKLAMA','ig:dave197.cz','#ffffff','#14284a','#d62828']],[L0/3,'logo'],
-  [L0/2,['MOTOL','SIMULATOR','#14284a','#ffffff','#c6ff1a']],[2*L0/3,'logo'],[5*L0/6,['JEĎ','NAPLNO','#f2c230','#14284a','#14284a']]];
+  [L0/2,['VOLNÁ','REKLAMA','#14284a','#ffffff','#c6ff1a']],[2*L0/3,'logo'],[5*L0/6,['VOLNÁ','REKLAMA','#f2c230','#14284a','#14284a']]];
 function buildBanners(){
   const logo=new THREE.TextureLoader().load('varna-studio.png');logo.anisotropy=MAXANI;
   const BW=4.0,BH=1.0,N=16,p=new THREE.Vector3();
