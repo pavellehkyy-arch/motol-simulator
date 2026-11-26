@@ -82,3 +82,4 @@ Dva nezávislé úkoly spouštěj paralelně. Agenty neřetěz zbytečně, každ
 - Hra běží na telefonu v režimu na šířku (`manifest.json`, fullscreen), výkon na mobilu je priorita.
 - Žádné logo sponzorů (týmy mají jen názvy a barvy dresů).
 - Po změně vždy zkontroluj, že `index.html` jde načíst bez chyby v konzoli.
+- **Verze** je v menu v `index.html` (`Velodrom Praha-Motol · vX.Y`, jediné místo). Před každým sloučením do `main` ji zvedni: velký update zvýší první číslo a druhé vynuluje (v0.9 → v1.0), menší update zvýší druhé (v0.9 → v0.10). Po sloučení do `main` napiš uživateli název nové verze.
