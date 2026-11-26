@@ -269,8 +269,14 @@ tr.me td{color:#ffd166;font-weight:800}
 <div id="ceremony" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:12px 14px 18px;pointer-events:none;text-align:center">
   <div class="panel" style="display:inline-block;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
   <div id="cerVK" style="font-size:12.5px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
-  <div style="font-size:12px;font-weight:700;margin-bottom:10px;text-shadow:0 1px 4px rgba(0,0,0,.8)">🧔 Ťukni na starého šéfa – zhodnotí tvoji jízdu · 📺 televize = výsledky</div>
+  <div style="font-size:12px;font-weight:700;margin-bottom:10px;text-shadow:0 1px 4px rgba(0,0,0,.8)">🧔 Ťukni na starého šéfa – zhodnotí tvoji jízdu · 📺 televize = výsledky<br>👆 Táhni prstem po obrazovce a rozhlédni se – za tebou je 🛒 obchod</div>
   <div class="modes" style="pointer-events:auto;max-width:420px;margin:0 auto"><button class="go" id="cerAgain">Jet znovu</button><button class="go alt" id="cerMenu">Menu</button></div>
+</div>
+<div id="shop" style="display:none;position:fixed;left:12px;right:12px;top:14px;max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;max-height:calc(100vh - 28px);overflow:auto;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod u stolku</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
+  <div style="font-size:13px;opacity:.7;margin-bottom:8px">Platí se penízky, které vyjezdíš v závodech. Zboží je zatím na cestě – brzy tu bude co kupovat.</div>
+  <div id="shopList"></div>
+  <button class="go" id="shopClose" style="margin-top:10px;width:100%;min-width:0;padding:10px;font-size:14px">◀ Zpět na vyhlášení</button>
 </div>
 <div id="coachBox" style="display:none;position:fixed;left:12px;right:12px;top:14px;max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.45;max-height:62vh;overflow:auto">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:26px" id="coachFace">🧔</span><b style="font-size:16px">Starej šéf</b><span id="coachMood" style="margin-left:auto;font-size:12px;font-weight:800;padding:3px 8px;border-radius:8px"></span></div>
@@ -1877,24 +1883,26 @@ lookPad.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&'ontouchs
 lookPad.addEventListener('pointermove',e=>{if(lookId===e.pointerId)lookSet(e.clientX);});
 const lookEnd=()=>{lookId=null;lookSet(null);};lookPad.addEventListener('pointerup',lookEnd);lookPad.addEventListener('pointercancel',lookEnd);
 const cv=$('c');let drag=null;
-cv.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&HAS_TOUCH)return;if(!canSteer())return;drag={id:e.pointerId,x:e.clientX,w0:player.targetWp};try{cv.setPointerCapture(e.pointerId);}catch(_){}});
-cv.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id||!canSteer())return;const dx=e.clientX-drag.x;
+cv.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&HAS_TOUCH)return;if(cerDragStart(e.pointerId,e.clientX,e.clientY)){try{cv.setPointerCapture(e.pointerId);}catch(_){}return;}if(!canSteer())return;drag={id:e.pointerId,x:e.clientX,w0:player.targetWp};try{cv.setPointerCapture(e.pointerId);}catch(_){}});
+cv.addEventListener('pointermove',e=>{cerDragMove(e.pointerId,e.clientX,e.clientY);if(!drag||e.pointerId!==drag.id||!canSteer())return;const dx=e.clientX-drag.x;
   player.targetWp=clamp(drag.w0+dx/(innerWidth*0.85)*TW,-(BAND-0.08),TW-0.4);});
-const endDrag=()=>{drag=null;};cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+const endDrag=e=>{drag=null;cerDragEnd(e.pointerId);};cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
 const HAS_TOUCH='ontouchstart' in window;let tDrag=null,tEff=null;
 if(HAS_TOUCH){
   const effFromTouch=t=>{const r=eff.getBoundingClientRect();setEffort(1-(t.clientY-r.top)/r.height);};
   document.addEventListener('touchstart',e=>{for(const t of e.changedTouches){const el=document.elementFromPoint(t.clientX,t.clientY);
       if(el&&(el===eff||eff.contains(el))){tEff=t.identifier;effFromTouch(t);e.preventDefault();}
       else if(el&&(el===lookPad||lookPad.contains(el))){lookId='t'+t.identifier;lookSet(t.clientX);e.preventDefault();}
+      else if(el===cv&&cerDragStart('t'+t.identifier,t.clientX,t.clientY)){}   // no preventDefault: a plain tap must still click
       else if(el===cv&&canSteer()&&tDrag===null){tDrag={id:t.identifier,x:t.clientX,w0:player.targetWp};drag={id:-1,x:t.clientX,w0:player.targetWp};e.preventDefault();}
       else if(el&&el.closest&&el.closest('.btn')){const b=el.closest('.btn');b.classList.add('on');press(b.dataset.k,true);b._tid=t.identifier;e.preventDefault();}}},{passive:false});
   document.addEventListener('touchmove',e=>{for(const t of e.changedTouches){
+      cerDragMove('t'+t.identifier,t.clientX,t.clientY);
       if(t.identifier===tEff)effFromTouch(t);
       else if(lookId==='t'+t.identifier)lookSet(t.clientX);
       else if(tDrag&&t.identifier===tDrag.id&&canSteer())player.targetWp=clamp(tDrag.w0+(t.clientX-tDrag.x)/(innerWidth*0.85)*TW,-(BAND-0.08),TW-0.4);}
     if(phase==='race'||phase==='countdown'||phase==='done')e.preventDefault();},{passive:false});
-  const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===tEff)tEff=null;if(lookId==='t'+t.identifier){lookId=null;lookSet(null);}if(tDrag&&t.identifier===tDrag.id){tDrag=null;drag=null;}
+  const tEnd=e=>{for(const t of e.changedTouches){cerDragEnd('t'+t.identifier);if(t.identifier===tEff)tEff=null;if(lookId==='t'+t.identifier){lookId=null;lookSet(null);}if(tDrag&&t.identifier===tDrag.id){tDrag=null;drag=null;}
       document.querySelectorAll('.btn').forEach(b=>{if(b._tid===t.identifier){b.classList.remove('on');press(b.dataset.k,false);b._tid=null;}});}};
   document.addEventListener('touchend',tEnd,{passive:false});document.addEventListener('touchcancel',tEnd,{passive:false});
 }
@@ -1912,7 +1920,8 @@ function physics(R,dt){
   let P=R.power;
   // fatigue: hard riding (front work, chasing, sprinting) drains, recovery only when sheltered/easy
   const bunchChase=mode==='elim'&&R.chaseT>0;   // the bunch shares the chase – one bot stands for the whole pack bringing the escapee back
-  if(R.energy<25&&!bunchChase)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
+  if(mode==='sprint'){if(R.energy<45)P=Math.min(P,R.ftp*(0.6+2.9*Math.pow(R.energy/45,1.4)));}   // sprint: the kick lasts ~250 m, then the legs go – a long one dies on the line
+  else if(R.energy<25&&!bunchChase)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
   const Pe=Math.max(P,0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*(R.recK||1.8);
   let dE=(rec-drain*(R.endur||1)*(mode==='elim'?(R.draft>0.1||bunchChase?0.45:1.5):1))/R.wp*100;   // elimination: in the wheels you spend almost nothing, in the wind a lot
   if(R.resting&&Pe<R.ftp)dE+=2.0;   // the resting partner recovers up on the banking
@@ -1920,16 +1929,16 @@ function physics(R,dt){
   if(mode==='elim'&&!bunchChase&&!R.resting&&!R.out&&R.draft<0.08&&phase==='race'&&!isNeutral()&&R.v>8)dE-=2.2+Math.max(0,R.v-11)*0.8;   // elimination: riding on the front / off the front burns the tank fast   // pulling at the front in the wind: extra cost
   if(R.draft>0.1&&Pe<R.ftp*1.1&&!R.resting)dE+=R.draft*3.2*(1-Math.max(0,Pe-0.8*R.ftp)/(0.3*R.ftp));   // sitting on a wheel really refills the tank
   R.eRate+=(dE-R.eRate)*Math.min(1,dt*2);R.energy=clamp(R.energy+dE*dt,0,100);
-  if(R.kick&&P>1.4*R.ftp)P=1.4*R.ftp+(P-1.4*R.ftp)*R.kick;   // a pure sprinter (Vojck): the kick hits much harder and costs him no more than the others
+  if(R.kick&&P>1.4*R.ftp)P=1.4*R.ftp+(P-1.4*R.ftp)*(mode==='sprint'?1+(R.kick-1)*0.35:R.kick);   // (1 on 1 only a touch: otherwise nobody could ever beat him)   // a pure sprinter (Vojck): the kick hits much harder and costs him no more than the others
   R.realP=P;
   let draft=0;
-  if(mode!=='kilo'){let n=0,nA=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<6&&dd<0.9)draft=Math.max(draft,0.45*(1-(gap-0.3)/5.7)*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;if(gap>0.3&&gap<12&&dd<1.7)nA++;}
+  if(mode!=='kilo'){let n=0,nA=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<(mode==='sprint'?14:6)&&dd<0.9)draft=Math.max(draft,(mode==='sprint'?0.47*Math.exp(-(gap-0.3)/6):0.45*(1-(gap-0.3)/5.7))*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;if(gap>0.3&&gap<12&&dd<1.7)nA++;}
     if(draft>0.05)draft=Math.min(0.66,draft+0.045*Math.max(0,n-1));
     if(nA>=2)draft=Math.max(draft,Math.min(0.32,0.11*nA));   // inside a bunch the air is moving with you even a few lengths back
     if(mode==='keirin'&&dernyOn()){const gap=gapTo(R,DERNY),dd=Math.abs(DERNY.w-R.w);if(gap>0.3&&gap<7&&dd<0.9)draft=Math.max(draft,0.55*(1-(gap-1.6)/5.4)*(1-dd/0.9*0.5));}}   // deeper in the bunch = more shelter; the derny + its upright pilot = a big hole in the air
-  R.draft=draft;
+  R.draft=draft;if(mode==='sprint')hookSling(R,dt);
   const m=80,v=R.v;const onBand=R.w<-0.05;
-  const Fp=P>0?Math.min(P/Math.max(v,0.6),420):Math.max(P/Math.max(v,2),-160);
+  const Fp=(P>0?Math.min(P/Math.max(v,0.6),420):Math.max(P/Math.max(v,2),-160))+(R.hkT>0&&P>0.9*R.ftp?HK_F*R.hkK*Math.min(1,R.hkT/0.4):0);   // + the slingshot out of the hook
   const Fr=v>0.05?m*9.81*(onBand?0.03:0.0025):0;
   const Fa=0.5*1.2*R.cda*(1-draft)*v*v;
   R.v=Math.max(0,v+(Fp-Fr-Fa)/m*dt);
@@ -2109,8 +2118,8 @@ function botAI(R,dt){const RP=aiPace();
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
   steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0);
 }
-function steerBot(R,dt,force){
-  const st=clamp(R.targetW-R.w,-1.1*dt,1.1*dt);let nw=R.w+st;
+function steerBot(R,dt,force,rate){rate=rate||1.1;
+  const st=clamp(R.targetW-R.w,-rate*dt,rate*dt);let nw=R.w+st;
   if(!force&&Math.abs(st)>1e-4&&!freeAt(R,nw,1.95))nw=R.w;
   if(force&&Math.abs(st)>1e-4)for(const o of riders){if(o===R||!o.model.g.visible||o.crashed)continue;const g=gapTo(R,o);   // even when fighting, never steer the front wheel into a rear wheel
     if(g>0.9&&g<2.3&&Math.abs(o.w-nw)<0.5&&Math.abs(o.w-nw)<Math.abs(o.w-R.w)+0.02){nw=R.w;break;}}
@@ -2164,7 +2173,9 @@ function resolveContacts(dt){
     if(it===0&&ds>=1.2&&adw<0.42&&solid(A)&&solid(B)){                                  // overlapping wheels
       const rel=Math.abs(A.dw-B.dw),pl=A===player||B===player;
       const aInto=A.dw*Math.sign(B.w-A.w||1);   // rider behind steering into the wheel in front
-      if(rel>(pl?0.35:0.7)&&aInto>0.3&&(Math.sign(B.w-A.w)===Math.sign(A.dw-B.dw)||adw<0.12)){crashRider(A,'hook');continue;}}
+      if(rel>(pl?0.35:0.7)&&aInto>0.3&&(Math.sign(B.w-A.w)===Math.sign(A.dw-B.dw)||adw<0.12)){
+        if(mode==='sprint'&&!A.player){if(B.player&&Math.abs(B.dw)>0.5){A.hookBy=B;crashRider(A,'hook');}else{A.v=Math.max(0,A.v-1.2);A.w+=Math.sign(A.w-B.w||1)*0.12;}continue;}   // sprint: the bot rides his own wheel carefully – only your swerve can take him down
+        crashRider(A,'hook');continue;}}
     if(ds>=1.2){                                                    // rear contact
       const closing=A.v-B.v;
       if(it===0&&solid(A)&&solid(B)&&closing>(A===player?2.5:(B===player?3.0:4.2))&&adw<0.45){crashRider(A,'rear');crashRider(B,'hit');continue;}
@@ -2199,6 +2210,7 @@ function crashRider(R,cause){if(R.crashed||R.finished||!R.model.g.visible)return
   else if(slip){tone(1500,0.5,0.06,'sawtooth');tone(900,0.4,0.05,'sawtooth',0.12);tone(70,0.5,0.32,'square',0.3);}   // tyre squeal, then the thump on the boards
   else tone(85+Math.random()*30,0.45,0.3,'sawtooth');
   if(R===player){crashT=0;showMsg('PÁD! 🚑<small>'+(CAUSE[cause]||'')+' – závod pro tebe skončil</small>',3.2);}
+  else if(mode==='sprint'&&SP&&SP.cur&&R===SP.opp&&!SP.cur.decided&&!player.crashed&&(R.hookBy===player||(R.lastShover===player&&R.pushedT>0&&(cause==='band'||cause==='barrier')))){spFoul(player,'crash');spDecide(SP.opp);return;}
   else if(!player.crashed&&phase==='race')showMsg('<small>💥 '+R.name+(R.clumsy?' zase padá! 🤦':' padá!')+'</small>',1.6);}
 function crashUpdate(R,dt){const C=R.crash;C.t+=dt;C.v=Math.max(0,C.v-(C.slip?3.2:5.5)*dt);R.v=C.v;R.s+=C.v*dt;
   const f=frameAt(R.s);const b=R.w>=0?f.b:8*deg;C.vw-=9.81*Math.sin(b)*(C.slip?0.55:0.4)*dt;C.vw*=Math.exp(-(C.slip?(R.w<0?2.5:0.45):1.3)*dt);   // sliding on the side down the steep boards, the band stops it
@@ -2291,7 +2303,8 @@ function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
   else{$('posLbl').textContent='Mezičas';$('pos').textContent=splits.length?fmt(splits[splits.length-1]):'—';}
   if(mode!=='elim')$('pos').style.color=R.dsq?'#ff5a5f':'';
   $('lap').textContent=mode==='sprint'&&SP?spLapTxt(R):R.finished?'CÍL':mode==='keirin'&&KR?(R.dsq?'Diskvalifikace':!KR.gun?'Pozice '+R.draw+' z losu · start výstřelem':!KR.free?'Za dernou '+(DERNY.v*3.6).toFixed(0)+' km/h · odstoupí za '+Math.max(1,Math.ceil((KR.exitS-DERNY.s)/L0))+(KR.lap1?' · 1. kolo: drž pořadí':''):'Sprint · kolo '+currentLap(R)+'/'+Math.ceil(LAPS)):mode==='points'&&PR?(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+currentLap(R)+'/'+LAPS+' · '+(nextSprintLine(effS(R))>=FIN-1?'cílový sprint ×2':'sprint')+' za '+Math.max(1,Math.ceil((nextSprintLine(effS(R))-effS(R))/L0))):mode==='elim'&&EL?(R.out?'VYŘAZEN':nextElimLine(R.s)>=FIN-0.5?'FINÁLE · kolo '+currentLap(R)+'/'+Math.ceil(LAPS):EL.crossed.has(R)?'✅ v bezpečí · kolo '+currentLap(R):(isNeutral()?'Neutrální kolo · ':'')+'Kolo '+currentLap(R)+' · vyřazení za '+Math.max(1,Math.ceil((nextElimLine(R.s)-R.s)/L0))):mode==='madison'?(()=>{const T=MT&&MT.find(t=>t.me),A=T?T.act:R;if(MT&&MT.neutral)return 'Neutrální kolo · start výstřelem';return A.finished?'CÍL':(T&&T.rest===R?'😮‍💨 Odpočíváš · ':'')+'Kolo '+currentLap(A)+'/'+LAPS+' · sprint za '+Math.max(1,Math.ceil((nextSprintLine(A.s)-A.s)/L0));})():mode==='kilo'?'Zbývá '+Math.max(0,Math.round(FIN-R.s))+' m':(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+currentLap(R)+'/'+LAPS);$('time').textContent=fmt(R.finished?R.time:raceTime);
-  const dr=$('draft');if(R.draft>0.08&&!R.crashed){dr.style.opacity=1;dr.textContent=(R.follow?'🔗 Držíš kolo: '+R.follow.name+(R.follow.energy<35?' (unavený!)':'')+' · ':'V HÁKU ')+'−'+Math.round(R.draft*100)+' % odporu'+(R.eRate>0.03?' · ⚡+'+R.eRate.toFixed(1)+' %/s':'');}else dr.style.opacity=0;
+  const dr=$('draft');if(R.draft>0.08&&!R.crashed){dr.style.opacity=1;dr.textContent=(R.follow?'🔗 Držíš kolo: '+R.follow.name+(R.follow.energy<35?' (unavený!)':'')+' · ':'V HÁKU ')+'−'+Math.round(R.draft*100)+' % odporu'+(mode==='sprint'&&R.hk>0.05?' · 🌀 nasáto '+Math.round(R.hk*100)+' %':R.eRate>0.03?' · ⚡+'+R.eRate.toFixed(1)+' %/s':'');}
+  else if(mode==='sprint'&&R.hkT>0&&!R.crashed){dr.style.opacity=1;dr.textContent='🚀 Vystřelil ses z háku!';}else dr.style.opacity=0;
 }
 
 function bestKilo(){try{return parseFloat(localStorage.getItem('motol_kilo_pb'))||0;}catch(e){return 0;}}
@@ -2325,12 +2338,12 @@ function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,n
       for(const [u,v] of [[P0,P1],[P1,P2]]){const r=limb(mat(c),0.011);place(r,u,v);g.add(r);}}}
   g.rotation.set(0,0,0);return g;}
 let cerObjs=[],confetti=null,cerT=0;const _cp=new THREE.Vector3(),_cl=new THREE.Vector3();
-function clearCeremony(){if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
+function clearCeremony(){cerYaw=cerPitch=0;cerDrag=null;if(shopTag)shopTag.visible=false;$('shop').style.display='none';if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
 function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
   if(mode==='kilo'){const pb=bestKilo();player.isPB=player.finished&&(!pb||player.time<pb);}
   showResults(false);phase='ceremony';cerT=0;clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;
   const E=earnedCredits();lastEarned=E.n;const tot=addVK(E.n);
-  const list=mode==='sprint'&&SP?[SP.winner,SP.winner===player?SP.opp:player].filter(r=>r&&!r.crashed):mode==='madison'?madStandings().filter(t=>!t.act.crashed).map(t=>t.act):mode==='points'?ptsStandings().filter(r=>!r.crashed):mode==='elim'?elimStandings().filter(r=>!r.crashed):standings().filter(r=>!r.crashed&&!r.dsq&&r.finished);const top=list.slice(0,3);
+  const list=mode==='sprint'&&SP?[SP.winner,SP.winner===player?SP.opp:player].filter(r=>r&&(!r.crashed||r===SP.winner)):mode==='madison'?madStandings().filter(t=>!t.act.crashed).map(t=>t.act):mode==='points'?ptsStandings().filter(r=>!r.crashed):mode==='elim'?elimStandings().filter(r=>!r.crashed):standings().filter(r=>!r.crashed&&!r.dsq&&r.finished);const top=list.slice(0,3);
   const pos={1:[0,0.775],2:[1.15,0.475],3:[-1.15,0.425]};if(PODWALL)PODWALL.visible=true;
   top.forEach((R,i)=>{const f=makeStanding(R,i+1);f.position.set(PODX,pos[i+1][1],pos[i+1][0]);f.rotation.y=PI/2;JUDGES.add(f);cerObjs.push(f);});
   const win=list[0]?list[0].time:0;
@@ -2353,9 +2366,57 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
   $('hud').style.display='none';$('ctl').style.display='none';$('ceremony').style.display='block';
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
 const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,1,1),_pp=new THREE.Vector3(),_e3=new THREE.Euler();
+// ---------- shop: a table on the infield by the back straight; you get to it only at the ceremony – turn round (drag) and tap it ----------
+const SHOP_ITEMS=[   // price in penízky; soon: not on sale yet
+  {id:'cap',ic:'🧢',name:'Cyklistická čepička',desc:'Pod helmu, v barvách klubu.',price:150,soon:true},
+  {id:'bidon',ic:'🥤',name:'Bidon Motol',desc:'Na rozjížďky i na válce.',price:80,soon:true},
+  {id:'socks',ic:'🧦',name:'Závodní ponožky',desc:'Vysoké, aero, do sprintu.',price:120,soon:true},
+  {id:'disc',ic:'⚫',name:'Karbonové disky',desc:'Plné kolo dozadu i dopředu.',price:900,soon:true}];
+let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0;
+function shopOwned(){try{return JSON.parse(localStorage.getItem('motol_shop')||'{}')||{};}catch(e){return {};}}
+function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||shopOwned()[id]||getVK()<it.price)return;
+  const o=shopOwned();o[id]=1;try{localStorage.setItem('motol_shop',JSON.stringify(o));}catch(e){}addVK(-it.price);tone(880,0.15,0.08,'triangle');renderShop();}
+function renderShop(){const vk=getVK(),own=shopOwned();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
+  $('shopList').innerHTML=SHOP_ITEMS.map(it=>{const has=own[it.id],can=!it.soon&&!has&&vk>=it.price;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #0001"><span style="font-size:28px;width:34px;text-align:center">'+it.ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+
+      '<button data-buy="'+it.id+'" '+(can?'':'disabled ')+'style="font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:8px 10px;min-width:86px;cursor:'+(can?'pointer':'default')+';background:'+(can?'#e63946':'#d9d4c7')+';color:'+(can?'#fff':'#5a5648')+'">'+(has?'✔ Máš':it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰')+'</button></div>';}).join('');}
+function openShop(){renderShop();$('shop').style.display='block';$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');}
+$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy]');if(b)buyItem(b.dataset.buy);});
+$('shopClose').onclick=$('shopX').onclick=()=>{$('shop').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
+function buildShop(){const f=frameAt(SF+L0/2),px=f.px,pz=f.pz,nx=f.nx,nz=f.nz,fx=f.fx,fz=f.fz,o=BAND*Math.cos(8*deg)+2.7;
+  const g=new THREE.Group();g.position.set(px-nx*o+fx*1.2,INF_Y,pz-nz*o+fz*1.2);g.rotation.y=Math.atan2(-nx,-nz);scene.add(g);   // front (+z) faces the infield
+  const wood=mat(0x9a6a3e),dark=mat(0x3a3a40);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.05,0.8),wood);top.position.y=0.78;g.add(top);
+  for(const sx of [-0.82,0.82])for(const sz of [-0.33,0.33]){const l=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.76,0.05),dark);l.position.set(sx,0.38,sz);g.add(l);}
+  const cc=mkCanvas(256,64),q=cc.getContext('2d');for(let i=0;i<8;i++){q.fillStyle=i%2?'#ffffff':'#d62828';q.fillRect(i*32,0,32,64);}q.fillStyle='rgba(0,0,0,.18)';q.fillRect(0,0,256,5);
+  const cloth=new THREE.Mesh(new THREE.PlaneGeometry(1.84,0.62),new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cc),side:THREE.DoubleSide}));cloth.position.set(0,0.5,0.41);g.add(cloth);
+  // goods on the table: a helmet, two bottles, a folded jersey
+  const hel=new THREE.Mesh(new THREE.SphereGeometry(0.15,14,8,0,2*PI,0,PI/2),mat(0x1e6fd9));hel.position.set(-0.5,0.8,0.05);hel.scale.set(1,0.8,1.35);g.add(hel);
+  for(const [x,c] of [[0.05,0xffd166],[0.2,0x4dde88]]){const b=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.2,10),mat(c));b.position.set(x,0.905,0.1);g.add(b);}
+  const jer=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.05,0.26),mat(0xe63946));jer.position.set(0.55,0.83,0.02);g.add(jer);
+  // sign on two posts behind the table
+  const sc=mkCanvas(256,96),w=sc.getContext('2d');w.fillStyle='#14284a';w.fillRect(0,0,256,96);w.fillStyle='#c6ff1a';w.fillRect(0,0,256,6);w.fillRect(0,90,256,6);
+  w.fillStyle='#fff';w.font='900 46px system-ui';w.textAlign='center';w.textBaseline='middle';w.fillText('OBCHOD',128,42);w.fillStyle='#ffd166';w.font='700 18px system-ui';w.fillText('za penízky',128,76);
+  for(const sx of [-0.7,0.7]){const pst=new THREE.Mesh(new THREE.BoxGeometry(0.04,1.9,0.04),dark);pst.position.set(sx,0.95,-0.42);g.add(pst);}
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.56),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),side:THREE.DoubleSide}));sign.position.set(0,1.62,-0.4);g.add(sign);
+  // a floating cart over it, only at the ceremony, so you notice it when you turn round
+  const tc=mkCanvas(128,128),t=tc.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText('🛒',64,70);
+  shopTag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(tc),depthTest:false}));shopTag.scale.set(0.6,0.6,1);shopTag.position.set(0,2.35,-0.4);shopTag.visible=false;g.add(shopTag);
+  g.updateMatrixWorld(true);OBST.rollers.push([g.position.x,g.position.z]);   // walkers go round it
+  SHOP=g;}
+buildShop();
+// look round at the ceremony: drag anywhere on the picture (a tap still picks the coach, the TV or the shop)
+function cerDragStart(id,x,y){if(phase!=='ceremony')return false;cerDrag={id,x,y,yaw:cerYaw,pitch:cerPitch,moved:false};return true;}
+function cerDragMove(id,x,y){if(!cerDrag||cerDrag.id!==id)return;const dx=x-cerDrag.x,dy=y-cerDrag.y;if(Math.abs(dx)+Math.abs(dy)>8)cerDrag.moved=true;
+  const k=PI*1.25/Math.max(320,innerWidth);cerYaw=cerDrag.yaw+dx*k;cerPitch=clamp(cerDrag.pitch+dy*k,-0.55,0.7);}
+function cerDragEnd(id){if(!cerDrag||cerDrag.id!==id)return;if(cerDrag.moved)cerDragT=performance.now();cerDrag=null;}
+const _lk=new THREE.Vector3();
 function updateCeremony(dt){cerT+=dt;JUDGES.updateMatrixWorld();animCoach(dt);
   if(RESC){RESC.crew.updateMatrixWorld();_cp.set(0,1.35+Math.sin(cerT*0.8)*0.03,-0.55);RESC.crew.localToWorld(_cp);_cl.set(PODX,1.4,0.2+Math.sin(cerT*0.3)*0.3);JUDGES.localToWorld(_cl);camera.position.copy(_cp);}
   else{_cp.set(PODX+10.8,2.3,0.05+Math.sin(cerT*0.25)*0.3);JUDGES.localToWorld(_cp);_cl.set(PODX,1.45,0.1);JUDGES.localToWorld(_cl);camera.position.lerp(_cp,Math.min(1,dt*3));}
+  if(cerYaw||cerPitch){_lk.subVectors(_cl,camera.position);const yw=Math.atan2(_lk.x,_lk.z)+cerYaw,pt=Math.atan2(_lk.y,Math.hypot(_lk.x,_lk.z))+cerPitch,cp=Math.cos(pt);
+    _cl.set(camera.position.x+Math.sin(yw)*cp*10,camera.position.y+Math.sin(pt)*10,camera.position.z+Math.cos(yw)*cp*10);}
+  if(shopTag){shopTag.visible=true;shopTag.position.y=2.35+Math.sin(cerT*2.2)*0.08;}
   camera.up.set(0,1,0);camera.lookAt(_cl);
   if(confetti){const {mesh,parts}=confetti;parts.forEach((p,i)=>{p.y-=p.vy*dt;p.r+=p.vr*dt;if(p.y<0.05)p.y=4+Math.random()*2.5;_pp.set(p.x+Math.sin(cerT+i)*0.2,p.y,p.z);JUDGES.localToWorld(_pp);_e3.set(p.r,p.r*0.7,0);_q.setFromEuler(_e3);_m4.compose(_pp,_q,_sc);mesh.setMatrixAt(i,_m4);});mesh.instanceMatrix.needsUpdate=true;}}
 // ---------- "Starej šéf": cartoon coach next to the podium ----------
@@ -2511,7 +2572,7 @@ function sideRider(R,dir){let best=null,bd=1e9;for(const o of riders){if(o===R||
 function applyShove(dt){for(const R of riders){R.elbowCD=(R.elbowCD||0)-dt;R.elbowT=(R.elbowT||0)-dt;R.slowT=(R.slowT||0)-dt;
     if((R.elbowy||R.clumsy)&&!R.player&&phase==='race'&&R.model.g.visible&&!R.crashed&&!R.finished&&!R.out&&!R.resting&&!isNeutral()){
       if(R.elbowy&&R.elbowCD<=0&&Math.random()<dt*2.5){const d=Math.random()<.5?-1:1;if(sideRider(R,d))elbow(R,d);else if(sideRider(R,-d))elbow(R,-d);}   // elbows anyone next to him
-      if(R.clumsy&&R.v>8&&Math.random()<dt/(R.contact&&Math.abs(R.contact)>0.3?60:450))crashRider(R,'hook');}   // and falls on his own – even more in a scrum
+      if(R.clumsy&&mode!=='sprint'&&R.v>8&&Math.random()<dt/(R.contact&&Math.abs(R.contact)>0.3?60:450))crashRider(R,'hook');}   // and falls on his own – even more in a scrum
     if(R.slT>0&&!R.crashed){R.v=Math.max(0,R.v+R.slA*dt);R.slT-=dt;}
     if(R.sv&&!R.crashed){R.w+=R.sv*dt;R.sv*=Math.exp(-5*dt);if(Math.abs(R.sv)<0.02)R.sv=0;}}}
 function elbow(R,dir){if(R.elbowCD>0||R.crashed||!dir)return null;
@@ -2520,6 +2581,7 @@ function elbow(R,dir){if(R.elbowCD>0||R.crashed||!dir)return null;
   if(!o){R.sv+=dir*0.35;return null;}
   const sR=strength(R)*(0.85+Math.random()*0.3),sO=strength(o)*(o.elbowT>0&&o.elbowDir===-dir?1.6:1)*(0.85+Math.random()*0.3),k=sR/(sR+sO);
   const imp=(0.9+2.0*k)*(R.player?1.25:1);o.sv+=dir*imp;R.sv-=dir*imp*0.25;
+  if(mode==='sprint'&&R===player&&SP&&o===SP.opp&&Math.abs(o.w-R.w)>0.3&&Math.abs(gapTo(R,o))<1.0)spWarn();   // a real shove side by side, not a bump from behind
   o.v=Math.max(0,o.v-0.45*k);o.pushedT=0.8;if(o.player)o.targetWp=clamp(o.targetWp+dir*imp/5,-(BAND-0.08),TW-0.4);o.lastShover=R;o.contact=-dir;R.contact=dir;   // a shoved player doesn't yank back into the wheel
   if(R===player||o===player){tone(60+Math.random()*25,0.16,0.3,'square');if(R.kybl||o.kybl)playKybl();if(ST&&R===player)ST.elbowsGiven++;
     showMsg(R===player?'<small>💪 Loket do '+o.name+'!</small>':'<small>😤 '+R.name+' tě odstrčil loktem!</small>',0.9);}
@@ -3390,7 +3452,9 @@ function showCoach(){const v=coachVerdict();COACH.mood=v.mood;COACH.t=0;
 $('coachClose').onclick=()=>{$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}if(phase==='ceremony')$('ceremony').style.display='block';};
 const ray=new THREE.Raycaster(),_ndc=new THREE.Vector2();
 $('c').addEventListener('click',e=>{if(phase!=='ceremony'||!TVMESH)return;const r=$('c').getBoundingClientRect();_ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(_ndc,camera);
+  if(performance.now()-cerDragT<250)return;   // that was a look-round drag, not a tap
   if(COACH&&ray.intersectObject(COACH.g,true).length){showCoach();return;}
+  if(SHOP&&ray.intersectObject(SHOP,true).length){openShop();return;}
   if(ray.intersectObject(TVMESH).length){$('results').style.display='flex';$('ceremony').style.display='none';}});
 $('resClose').onclick=()=>{$('results').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
 function showResults(display){
@@ -3682,14 +3746,27 @@ function keirinPacedAI(R,dt){if(R.crashed)return;const D=DERNY;
 //   = relegation (in a match of two = the heat is lost)
 // - heat 2 with positions swapped, a deciding heat 3 with a fresh draw
 const SP_LAPS=5,SP_LANE=0.9;let SP=null;
+// ---------- sprint: "nasávání" in the hook and the slingshot out of it ----------
+// sitting right on his wheel you ride in his hole in the air; run up into it from a gap of 3–4 m (the "nasávací mezera")
+// and you charge faster. Pull out beside him while you're still on him and you get thrown past – a short extra push.
+const HK_F=48;
+function hookSling(R,dt){if(R.hkT>0){R.hkT-=dt;return;}
+  let L=null,lg=1e9;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0.3&&g<7&&g<lg){lg=g;L=o;}}
+  if(L&&R.draft>0.16&&Math.abs(L.w-R.w)<0.6&&R.v>6.5){const clos=R.v-L.v;R.hk=Math.min(1,(R.hk||0)+dt*(0.2+clamp(clos,0,3)*0.25+(lg>2.2&&lg<5?0.12:0)));R.hkLead=L;return;}
+  if(!(R.hk>0))return;const H=R.hkLead,g=H?gapTo(R,H):99;
+  if(H&&!H.crashed&&R.hk>=0.3&&g>-0.6&&g<4.5&&Math.abs(H.w-R.w)>=0.6&&R.v>=H.v-0.4){R.hkT=0.7+1.1*R.hk;R.hkK=R.hk;R.hk=0;
+    if(R===player&&phase==='race'){showMsg('🚀<small>Vystřelil ses z háku!</small>',1.0);tone(520,0.25,0.06,'triangle');tone(780,0.3,0.05,'triangle',0.08);}}
+  else R.hk=Math.max(0,R.hk-dt*0.6);}
+function spWarn(){const C=SP&&SP.cur;if(!C||C.decided||C.foul||C.phase1||player.v<6)return;   // a bump at walking pace off the start is nothingif((C.warnT||0)>raceTime)return;C.warnT=raceTime+2.5;C.warn=(C.warn||0)+1;
+  if(C.warn>=2)spFoul(player,'elbow');else{showMsg('🟨 VAROVÁNÍ<small>Strkání do soupeře – příště tě rozhodčí přeřadí</small>',2.6);tone(330,0.25,0.12,'square');}}
 function spNewMatch(){const bots=riders.filter(r=>!r.player&&!r.partner);const opp=bots[Math.floor(Math.random()*bots.length)];
   SP={opp,heat:1,score:[0,0],heats:[],drawP:Math.random()<0.5?1:2,over:false,winner:null,cur:null,busy:false,
-    pers:{aggr:0.3+Math.random()*0.7,jump:220+Math.random()*120,high:1.4+Math.random()*1.3,react:0.25+Math.random()*0.35}};}
+    pers:{aggr:0.3+Math.random()*0.7,jump:200+Math.random()*90,high:1.4+Math.random()*1.3,react:0.25+Math.random()*0.35}};}
 function setupSprint(){const P=player,O=SP.opp;
-  for(const R of [P,O]){const pos=R===P?SP.drawP:3-SP.drawP;R.draw=pos;R.wp*=2.3;
-    Object.assign(R,{s:START_S-0.6,w:pos===1?0.5:1.5,v:0,t200:null,spJump:false,spReactT:0,spFoulT:0,spLaneIn:false,spPrevW:null,spSlowT:0});
+  for(const R of [P,O]){const pos=R===P?SP.drawP:3-SP.drawP;R.draw=pos;R.wp*=1.2;   // a bigger tank for the slow tactical laps, but a full-gas kick still lasts only ~250 m
+    Object.assign(R,{s:START_S-0.6,w:pos===1?0.5:1.5,v:0,t200:null,spJump:false,spChase:false,spReactT:0,spFoulT:0,spLaneIn:false,spPrevW:null,spSlowT:0,hk:0,hkT:0,hkK:0,hkLead:null,hookBy:null,lastShover:null,spSide:0,spSwT:0,spStuckT:0,spBackT:0});
     R.targetW=R.w;R.targetWp=R.w;R.h=surfY(R.s,R.w);R.prevS=R.s;}
-  O.aggr=SP.pers.aggr;O.spReact=SP.pers.react+Math.random()*0.15;
+  O.aggr=SP.pers.aggr;O.spReact=SP.pers.react+Math.random()*0.15;O.cda=P.cda;O.wp=P.wp;   // 1 on 1: same position on the bike, same tank – the race is won by tactics
   SP.cur={n:SP.heat,drawP:SP.drawP,phase1:true,foul:null,fin:[],finT:0,decided:false,nextT:0,breach:SP.cur&&SP.cur.n===SP.heat?SP.cur.breach:0,
     jumpAt:SP.pers.jump*(0.85+Math.random()*0.3),pJump:null};
   makeKeirinHolders([P,O]);}
@@ -3709,9 +3786,11 @@ function spPower(R,vT,cap){const cda=R.cda*(1-R.draft),Pn=(0.5*1.2*cda*vT*vT+80*
 function sprintAI(R,dt){const P=player,C=SP&&SP.cur;if(R.crashed)return;
   if(R.finished||!C||C.decided){spPower(R,Math.max(6,R.v-0.8),R.ftp);R.targetW=1.6;steerBot(R,dt,false);return;}   // roll out after the line
   const g=gapTo(R,P),toGo=FIN-R.s,lead=g<0,pOut=P.crashed||P.finished;   // g>0: the player is in front of me
-  const pJumped=P.v>R.v+0.9&&(P.realP||0)>600&&Math.abs(g)<30;
+  const pJumped=(P.realP||0)>650&&P.v>R.v-0.3&&Math.abs(g)<70;   // he stands on the pedals – you see it in his body before the speed shows
   if(!R.spJump&&!C.phase1){
-    if(pJumped){R.spReactT+=dt;if(R.spReactT>R.spReact)R.spJump=true;}else R.spReactT=0;   // he goes -> I react after a moment
+    if(pJumped){R.spReactT+=dt;if(R.spReactT>R.spReact+(Math.abs(g)>5||R.w>P.w+1.2?0.2:0)){if(toGo>C.jumpAt+90)R.spChase=true;else R.spJump=true;}}else R.spReactT=0;   // he goes -> I react after a moment: far out only onto his wheel, close in all out
+    if(R.spChase&&g>0&&g<4.5&&toGo<C.jumpAt+70&&(R.hk>0.45||P.v<R.v))R.spJump=true;   // sat on him, he's fading -> now
+    if(R.spChase&&P.v<8.5&&R.v<9.5&&toGo>C.jumpAt+90)R.spChase=false;   // he sat up again -> back to cat and mouse
     if(toGo<C.jumpAt)R.spJump=true;
     if(pOut&&toGo<260)R.spJump=true;
     if(!lead&&g>0&&g<10&&toGo<L0*1.7&&P.v<6.5&&P.w<1.3&&R.w>P.w+0.6&&Math.random()<dt*0.5*R.aggr)R.spJump=true;}   // a surprise from above while he dawdles low
@@ -3719,21 +3798,39 @@ function sprintAI(R,dt){const P=player,C=SP&&SP.cur;if(R.crashed)return;
   if(C.phase1){
     if(R.draw===1){vT=lead||pOut?5.4:Math.max(4.5,P.v);tw=0.25;}   // no. 1 leads slowly along the black line
     else{vT=Math.max(0,P.v+clamp((g-4.5)*0.4,-1.5,1.5));tw=Math.min(P.w+1.0,TW-1.4);if(spVmin(R.s,tw)>vT)tw=Math.max(0.25,Math.min(P.w,0.55));}}   // no. 2 sits behind and above (low in the bends when slow), never passes
+  else if(R.spChase&&!R.spJump){   // he went far too early: close onto his wheel, sit in the hook and let him die
+    force=true;if(g>0){vT=P.v+clamp((g-2.4)*0.45,-1.2,3);cap=R.ftp*(g>4?3.45:2.3)*(R.energy<25?0.8:1);tw=g>7?Math.min(P.w,R.w):P.w;}
+    else{vT=Math.max(P.v-0.6,R.v-0.2);cap=R.ftp*2.4;tw=R.w;}}   // he's still coming past: hold my line, then onto him
   else if(!R.spJump){
     if(lead){const w=-g;vT=5.6+0.8*Math.sin(raceTime*0.35)+(w>14?-0.6:0);tw=SP.pers.high;   // controlling from the front, up the banking to watch him
       if(w<3&&P.w<R.w)tw=Math.max(tw,R.w);}   // never come down onto him
-    else{vT=Math.max(0,P.v+clamp((g-5.5)*0.35,-1.5,1.8));tw=Math.min(Math.max(P.w+1.0,1.4),TW-1.2);}   // behind and above: ready to dive
+    else{vT=Math.max(0,P.v+clamp((g-(toGo<L0*2.6?3.8:5.5))*0.35,-1.5,1.8));tw=Math.min(Math.max(P.w+1.0,1.4),TW-1.2);}   // behind and above: ready to dive
     const vm=spVmin(R.s,Math.max(tw,R.w));if(vm>vT+0.2){if(lead&&-g<3&&P.w<R.w)vT=vm+0.5;else tw=0.55;}}   // too slow for the banking: drop low (or keep the speed if he's under me)
   else{   // the sprint
-    vT=24;cap=R.ftp*3.35;force=true;
+    vT=24;cap=R.ftp*3.45;force=true;
     if(lead){const w=-g;tw=toGo<230||w>4?0.45:R.w;   // dive into the sprinters' lane
       if(w<3.2&&P.w<SP_LANE+0.2&&R.w>=SP_LANE)tw=Math.max(tw,SP_LANE+0.2);   // he's in the lane next to me: no entry without a clear lead
       if(w<2.2&&P.w<R.w-0.1)tw=Math.max(tw,R.w);   // no moving down on him
       if(R.spLaneIn)tw=Math.min(tw,0.6);}   // in the lane after the 200 m line -> stay there
-    else if(g>3.5)tw=Math.max(0.3,P.w);   // get on his wheel first
-    else tw=P.w>2.2?Math.max(0.35,P.w-1.0):Math.min(P.w+1.0,TW-0.8);}   // come round – normally outside, under him if he's riding high
-  R.targetW=clamp(tw,0.2,TW-0.8);spPower(R,vT,cap);steerBot(R,dt,force);}
-function spFoul(R,why){const C=SP.cur;if(C.foul)return;C.foul={R,why};const T={door:'sjel jsi dolů na soupeře vedle sebe',band:'předjíždění po modrém pásu',lane:'vedoucí jezdec opustil sprinterský pruh',cut:'vjezd do sprinterského pruhu bez náskoku délky kola'};
+    else spComeRound(R,P,g,toGo,dt,o=>{tw=o.tw;if(o.vT!=null)vT=o.vT;});}
+  R.targetW=clamp(tw,0.2,TW-0.8);spPower(R,vT,cap);steerBot(R,dt,force,R.spJump||R.spChase?1.75:1.1);}
+// behind in the sprint: sit in the hook and charge, then pull out on the side he leaves open; if he shuts the door, drop back to a 3–4 m gap and run at him again
+function spComeRound(R,P,g,toGo,dt,out){R.spSwT-=dt;
+  const urgent=toGo<120&&g<5,charged=R.hk>0.5||R.hkT>0;
+  if(R.spBackT>0&&(P.v>R.v+0.6||(P.realP||0)>1.6*P.ftp))R.spBackT=0;   // he goes while I'm backing off -> straight onto his wheel
+  if(R.spBackT>0){R.spBackT-=dt;out({tw:P.w,vT:P.v-(g<3.5?1.6:-0.4)});return;}   // the "nasávací mezera": open a gap, then run into his slipstream
+  const passing=R.v>P.v+1.2&&g<7&&(P.realP||0)<1.4*P.ftp;   // he's dawdling and I come flying: no point sitting on him, straight round
+  const go=passing||urgent||(g<3.6&&(toGo<165||(charged&&P.v<R.v-0.4&&toGo<270)));   // out of the hook in the last ~160 m – or earlier if he's already fading
+  if(g>7||(!R.spSide&&!go)){R.spSide=0;out({tw:P.w});return;}   // first into his hook and suck – out only when it's time and I'm close enough to be thrown past
+  const roomDn=P.w-0.95>=0.35&&!(R.s>=FIN-200&&P.w<SP_LANE+1.1&&!R.spLaneIn);   // under him only if there's track above the band (and never into his lane in the last 200 m)
+  if(!R.spSide)R.spSide=roomDn&&(P.w>2.0||P.dw>0.35)?-1:1;
+  let tw=R.spSide>0?Math.min(P.w+0.95,TW-0.8):Math.max(0.35,P.w-0.95);
+  // he moves across into the side I'm going for and I'm not alongside yet -> switch to the other side (not too often)
+  if(g>0.9&&R.spSwT<=0&&(P.dw*R.spSide>0.45||Math.abs(P.w-tw)<0.5)){const other=-R.spSide;if(other>0?P.w+0.95<TW-0.8:roomDn){R.spSide=other;R.spSwT=1.1;tw=other>0?Math.min(P.w+0.95,TW-0.8):Math.max(0.35,P.w-0.95);}}
+  // stuck right behind him (he keeps closing the door): back off and take a run at it
+  if(g>0.3&&g<2.2&&Math.abs(P.w-R.w)<0.55){R.spStuckT+=dt;if(R.spStuckT>0.7&&toGo>110){R.spStuckT=0;R.spBackT=1.1;R.spSide=0;}out({tw,vT:P.v+0.3});return;}   // boxed in: don't burn the legs into his back wheel
+  R.spStuckT=Math.max(0,R.spStuckT-dt);out({tw});}
+function spFoul(R,why){const C=SP.cur;if(C.foul)return;C.foul={R,why};const T={door:'sjel jsi dolů na soupeře vedle sebe',band:'předjíždění po modrém pásu',lane:'vedoucí jezdec opustil sprinterský pruh',cut:'vjezd do sprinterského pruhu bez náskoku délky kola',crash:'nebezpečná jízda – shodil jsi soupeře',shut:'zavřel jsi dveře – sjel jsi dolů před soupeře, který tě předjížděl zespodu',elbow:'opakované strkání do soupeře'};
   if(R===player){showMsg('🟥 PŘEŘAZENÍ<small>'+T[why]+' – rozjížďku prohráváš</small>',3.4);tone(220,0.4,0.15,'sawtooth');angerJudges();}
   else showMsg('⚖️ '+R.name+' PŘEŘAZEN<small>'+T[why].replace('jsi ','')+' – rozjížďka je tvoje</small>',3.0);}
 function sprintUpdate(dt){const C=SP&&SP.cur;if(!C||phase==='ceremony'||phase==='menu'||phase==='countdown')return;
@@ -3756,7 +3853,9 @@ function sprintUpdate(dt){const C=SP&&SP.cur;if(!C||phase==='ceremony'||phase===
   // relegation: moving down on the rider beside you, passing below the blue band, the sprinters' lane in the last 200 m
   if(!C.foul&&!C.phase1)for(const [R,Q] of [[P,O],[O,P]]){if(R.crashed||Q.crashed||R.finished||Q.finished)continue;const g=gapTo(R,Q);   // >0: Q in front of R
     let why=null;
-    if(g<0.4&&g>-BIKE_L&&R.w>Q.w&&R.w-Q.w<0.95&&R.dw<-0.3){R.spFoulT+=dt;if(R.spFoulT>0.3)why='door';}else R.spFoulT=Math.max(0,R.spFoulT-dt);
+    if(g<0.4&&g>-BIKE_L&&R.w>Q.w&&R.w-Q.w<0.95&&R.dw<-0.3){R.spFoulT+=dt;if(R.spFoulT>0.3)why='door';}
+    else if(g<-0.4&&g>-3.2&&Q.v>R.v+0.4&&R.w-Q.w<1.2&&R.dw<-0.45&&(R.w>Q.w+0.25||(Q.dw<-0.2&&R.w>Q.w-0.2))){R.spFoulT+=dt;if(R.spFoulT>0.35)why='shut';}   // he's coming past underneath and you drop down in front of him
+    else R.spFoulT=Math.max(0,R.spFoulT-dt);
     if(!why&&R.w<-0.05&&g<0.8&&g>-2.5&&R.v>Q.v)why='band';
     if(!why&&g<-0.3&&R.s>=S200){const inL=R.w<SP_LANE,was=(R.spPrevW!=null?R.spPrevW:R.w)<SP_LANE;
       if(inL&&!was&&Q.w<SP_LANE+0.2&&-g<3.2&&!R.spLaneIn)why='cut';
@@ -3792,12 +3891,17 @@ function sprintTips(add,R){const C=SP&&SP.cur,O=SP&&SP.opp;if(!C||C.decided||!O|
     if(toGo<210&&R.spLaneIn)add(3,'spstay','Drž se dole v pruhu až do cíle, ven nesmíš!',1,12);
     else if(toGo<260&&R.w>SP_LANE&&-g>3.5)add(3,'splane','Dolů pod červenou čáru – teď máš náskok, zavři mu vnitřek!',0,10);
     if(toGo>L0*1.3&&R.v>9.5&&e<0.8)add(2,'spslow','Netahej ho zepředu! Zpomal, ať se musí rozhodnout on.',0,16);
+    if(toGo>380&&e>=0.8&&R.v>13)add(4,'splong','Moc brzo! Tohle do cíle nevydržíš – sedí ti v háku a nasává!',0,12);
+    if(O.hk>0.45&&-g<5&&toGo<400)add(3,'spsuck','Sedí ti v háku a nasává – hlídej, na kterou stranu vyjede!',0,10);
     if(toGo>L0&&-g<12)add(1,'splook','Ohlídni se (Q/R) – musíš vidět, kde je.',0,25);}
   else{   // behind
     if(O.v>R.v+1&&e<0.8&&g<25)add(4,'spgo2','Ujíždí ti! Za ním, naplno!',0,6);
     if(g>14&&toGo<L0*1.2&&e<0.8)add(4,'spgap','Máš moc velkou díru – jeď, nebo ho nedojedeš!',0,8);
     if(toGo<320&&toGo>170&&e<0.8&&g<10)add(3,'spjump','Teď! Skoč mu to z klopení, dokud se neohlíží!',0,10);
     if(g<10&&R.w<O.w+0.4&&toGo>L0)add(2,'sphigh','Drž se za ním a výš – z kopce máš lepší rozjezd.',0,18);
+    if(O.v>12&&g>0.3&&g<7&&Math.abs(O.w-R.w)<0.6&&R.hk<0.5)add(3,'sphook','Sedni mu přesně do háku! Nech si mezeru 3–4 m a rozjeď se do něj – víc nasaješ.',0,14);
+    if(R.hk>=0.5&&toGo<330)add(4,'spsling','Máš nasáto! Vyjeď vedle něj a vystřelí tě to ven!',0,8);
+    if(O.v>13&&toGo>400&&g>0&&g<30)add(3,'spwait','Nastoupil moc brzo – nepanikař, sedni mu na kolo, on umře.',0,12);
     if(R.w<-0.05)add(4,'spband','Po modrým se nepředjíždí – přeřadí tě!',0,6);}}
 function setupPoints(){PR={ord:{},whistle:-1,med:0};for(const R of riders)R.pPrev=R.s;}
 function ptsStandings(){return riders.filter(r=>r.model.g.visible&&!r.partner).sort((a,b)=>(a.crashed-b.crashed)||(b.pts-a.pts)||(a.pFinOrd-b.pFinOrd)||(effS(b)-effS(a)));}
