@@ -27,6 +27,7 @@ Hlavní skript je na řádcích cca 292–3723. Před ním je CSS (32–178) a n
 | 1792–1904 | audio (WebAudio), vstup (dotyk, posuvník) |
 | 1905–2147 | simulace, závodní AI, mozek balíku (skupiny, útoky, stamina) |
 | 2148–2354 | kontakty (pády, loktování, zaháknutí kol) |
+| ~2369 | obchod (bílý stolek z infieldu u protilehlé rovinky – jen cíl pro ťuknutí a ikona, rozhlížení na vyhlášení `cerYaw`, panel `#shop`, `SHOP_ITEMS`) |
 | 2355–2523 | trenér „Starej šéf“, pivní plechovky, loket |
 | 2524–2708 | vylučovačka, madison |
 | 2709–3078 | high five, startér, házení v madisonu, záchranka, chodníčky na infieldu, závěrečné titulky |
@@ -34,7 +35,7 @@ Hlavní skript je na řádcích cca 292–3723. Před ním je CSS (32–178) a n
 | 3414–3683 | intro startu, KEIRIN, BODOVAČKA, pozadí menu |
 | 3684–3722 | herní smyčka |
 
-Režimy mají vlastní bloky `// -------- KILOMETR / KEIRIN / BODOVAČKA / VYLUČOVAČKA / MADISON / SCRATCH --------` (kolem řádků 3130–3260).
+Sprint (~3739) má i blok `sprint: "nasávání" in the hook` (`hookSling`, `spComeRound`, `spWarn`). Režimy mají vlastní bloky `// -------- KILOMETR / KEIRIN / BODOVAČKA / VYLUČOVAČKA / MADISON / SCRATCH --------` (kolem řádků 3130–3260).
 
 ## Automatické delegování
 
