@@ -2,7 +2,7 @@
 
 3D simulátor dráhové cyklistiky na Velodromu Praha-Motol (153,846 m, klopení až 52°).
 
-**Hrát:** https://pavellehkyy-arch.github.io/motol-simulator/
+**Hrát:** https://motolsimulator.com/
 
 - Scratch na 13 kol (2 km) proti 8 soupeřům z týmů Tufo Pardus Prostějov, Dukla Praha, Sparta Praha a Favorit Brno – všichni jezdci jsou zhruba stejně silní, rozhoduje taktika
 - Start bodovacích závodů podle UCI: polovina jezdců u mantinelu, polovina ve sprinterském pruhu s držiteli, neutrální kolo a letmý start výstřelem
