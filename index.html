@@ -1957,7 +1957,7 @@ if(HAS_TOUCH){
 }
 function updateBar(){const pct=w=>clamp((w+BAND)/(BAND+TW)*100,0,100);$('hbDot').style.left=pct(player.w)+'%';$('hbTarget').style.left=pct(player.targetWp)+'%';
   const e=keys.sprint?1:effort;$('effThumb').style.bottom=(e*100)+'%';
-  const P=player.follow?Math.round(player.realP||0):Math.round(effortPower(e));$('effW').textContent=mode==='sprint'&&e<0.8&&!player.follow?Math.round(spCruiseV(e)*3.6)+' km/h':(player.follow?'🔗 ':'')+Math.max(0,P)+' W';
+  const P=player.follow?Math.round(player.realP||0):Math.round(effortPower(e)+(e>=0.12?player.gearW||0:0));$('effW').textContent=mode==='sprint'&&e<0.8&&!player.follow?Math.round(spCruiseV(e)*3.6)+' km/h':(player.follow?'🔗 ':'')+Math.max(0,P)+' W';
   $('effThumb').style.background=e>=0.8?'#ff5a5f':player.follow?'#7cf7b0':'#fff';}
 
 function showMsg(html,t){$('msg').innerHTML=html;msgT=t;}
@@ -1971,7 +1971,7 @@ function physics(R,dt){
   const bunchChase=mode==='elim'&&R.chaseT>0;   // the bunch shares the chase – one bot stands for the whole pack bringing the escapee back
   if(mode==='sprint'){if(R.energy<45)P=Math.min(P,R.ftp*(0.6+2.9*Math.pow(R.energy/45,1.4)));}   // sprint: the kick lasts ~250 m, then the legs go – a long one dies on the line
   else if(R.energy<25&&!bunchChase)P=Math.min(P,R.ftp*(0.8+0.7*R.energy/25));     // tired riders fade
-  const Pe=Math.max(P,0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*(R.recK||1.8);
+  const Pe=Math.max(P-(R.gearAdd||0),0);const drain=Math.max(0,Pe-0.75*R.ftp)*0.9+Math.max(0,Pe-R.ftp)*0.8,rec=Math.max(0,0.7*R.ftp-Pe)*(R.recK||1.8);
   let dE=(rec-drain*(R.endur||1)*(mode==='elim'?(R.draft>0.1||bunchChase?0.45:1.5):1))/R.wp*100;   // elimination: in the wheels you spend almost nothing, in the wind a lot
   if(R.resting&&Pe<R.ftp)dE+=2.0;   // the resting partner recovers up on the banking
   if(mode!=='kilo'&&mode!=='keirin'&&mode!=='sprint'&&!R.resting&&R.draft<0.08&&Pe>0.8*R.ftp)dE-=(Pe/R.ftp-0.8)*(mode==='points'&&R.attackT>0?1.1:mode==='scratch'||mode==='points'||mode==='madison'?1.4:2.6);
@@ -1979,7 +1979,6 @@ function physics(R,dt){
   if(R.draft>0.1&&Pe<R.ftp*1.1&&!R.resting)dE+=R.draft*3.2*(1-Math.max(0,Pe-0.8*R.ftp)/(0.3*R.ftp));   // sitting on a wheel really refills the tank
   R.eRate+=(dE-R.eRate)*Math.min(1,dt*2);R.energy=clamp(R.energy+dE*dt,0,100);
   if(R.kick&&P>1.4*R.ftp)P=1.4*R.ftp+(P-1.4*R.ftp)*(mode==='sprint'?1+(R.kick-1)*0.35:R.kick);   // (1 on 1 only a touch: otherwise nobody could ever beat him)   // a pure sprinter (Vojck): the kick hits much harder and costs him no more than the others
-  if(R.player&&R.gearW&&P>0)P+=R.gearW;   // shop discs: +20 W each
   R.realP=P;
   let draft=0;
   if(mode!=='kilo'){let n=0,nA=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<(mode==='sprint'?14:6)&&dd<0.9)draft=Math.max(draft,(mode==='sprint'?0.47*Math.exp(-(gap-0.3)/6):0.45*(1-(gap-0.3)/5.7))*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;if(gap>0.3&&gap<12&&dd<1.7)nA++;}
@@ -2181,6 +2180,7 @@ function playerControl(dt){
   const e=keys.sprint?1:effort;R.follow=null;
   R.noLatchT=Math.max(0,(R.noLatchT||0)-dt);
   if(R.latched&&e>=0.8){R.latched=false;R.noLatchT=4;}   // you pushed the effort up to sprint while hooked on -> you mean it: leave the wheel and go
+  R.gearAdd=0;
   if(R.finished){R.power=80;}
   else{let ah=null,gap=1e9;
     if(mode!=='kilo'&&e>=0.12)for(const o of riders){if(o===R||o.crashed||o.resting||o.out||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0.3&&g<14&&g<gap&&Math.abs(o.w-R.w)<0.75){gap=g;ah=o;}}
@@ -2192,8 +2192,8 @@ function playerControl(dt){
     if(ah){R.follow=ah;const vT=ah.v+(gap-(ah===DERNY?2.2:1.9))*0.5;const cda=R.cda*(1-R.draft);
       const brake=vT<R.v-0.3;const Pt=clamp((0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+(brake?900:260)*(vT-R.v)*(brake?R.v/6:1),-2600,raceTime<6?480:1150);R.fP=(R.fP==null?Pt:R.fP+(Pt-R.fP)*Math.min(1,dt*6));R.power=R.fP;}
     else R.fP=null;
-    if(!ah)
-    R.power=mode==='sprint'&&e<0.8?spCruise(R,e):effortPower(e);}
+    if(!ah){const cruise=mode==='sprint'&&e<0.8;R.gearAdd=!cruise&&e>=0.12?(R.gearW||0):0;   // shop discs: +20 W each on top of the power you ask for
+      R.power=(cruise?spCruise(R,e):effortPower(e))+R.gearAdd;}}
   let sd=0;if(keys.left)sd-=1;if(keys.right)sd+=1;
   // slot into the slipstream: when you close on a rider and aren't steering, line up behind his wheel
   if(sd||drag){R.latched=false;R.noMagT=2.5;}else R.noMagT=Math.max(0,(R.noMagT||0)-dt);
@@ -2392,7 +2392,7 @@ let WALK_V=null,WALK_RACED=false;   // the coach's verdict on the last race, kep
 function clearCeremony(){walkCerUI(false);if(phase==='ceremony'){WALK_RACED=true;try{WALK_V=coachVerdict();}catch(e){WALK_V=null;}}cerYaw=cerPitch=0;cerDrag=null;if(shopTag)shopTag.visible=false;$('shop').style.display='none';if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
 function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
   if(mode==='kilo'){const pb=bestKilo();player.isPB=player.finished&&(!pb||player.time<pb);}
-  showResults(false);phase='ceremony';cerT=0;walkCerUI(true);clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;
+  showResults(false);phase='ceremony';cerT=0;walkCerUI(true);clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;coachToWalkSpot();
   const E=earnedCredits();lastEarned=E.n;const tot=addVK(E.n);
   const list=mode==='sprint'&&SP?[SP.winner,SP.winner===player?SP.opp:player].filter(r=>r&&(!r.crashed||r===SP.winner)):mode==='madison'?madStandings().filter(t=>!t.act.crashed).map(t=>t.act):mode==='points'?ptsStandings().filter(r=>!r.crashed):mode==='elim'?elimStandings().filter(r=>!r.crashed):standings().filter(r=>!r.crashed&&!r.dsq&&r.finished);const top=list.slice(0,3);
   const pos={1:[0,0.775],2:[1.15,0.475],3:[-1.15,0.425]};if(PODWALL)PODWALL.visible=true;
@@ -3947,6 +3947,9 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
 // ---------- PLOCHA: walk round the velodrome (joystick, camera behind you; TV / shop / coach / start line open by themselves when you come up to them) ----------
 const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false,lk:new THREE.Vector3(),lkOk:false,hop:null};
 const WALK_COACH=[9.05,3.15];   // on the walk the old boss waits by the right-hand booths (spot 1 on the sketch)
+// the boss's spot by the right-hand booths – used on the walk and at the ceremony alike
+function coachToWalkSpot(){if(!COACH)return;if(!COACH.home)COACH.home=[COACH.g.position.clone(),COACH.g.rotation.y];
+  const v=V(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);JUDGES.worldToLocal(v);COACH.g.position.set(v.x,COACH.home[0].y,v.z);COACH.g.rotation.y=Math.atan2(1.5-WALK_COACH[0],1.2-WALK_COACH[1])-JUDGES.rotation.y;}
 const WALK_ALBI=[-10.9,-1.5];   // Albi, our best start holder: off duty he hangs about by the left-hand booths (spot 3 on the sketch)
 const WALK_BOX=[[WALK_ALBI[0]-0.35,WALK_ALBI[1]-0.35,WALK_ALBI[0]+0.35,WALK_ALBI[1]+0.35],[-3.75,-11.05,-0.85,-9.75],[WALK_COACH[0]-0.4,WALK_COACH[1]-0.4,WALK_COACH[0]+0.4,WALK_COACH[1]+0.4]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
 function walkFree(x,z){if(!NAV.grid)buildNav();const R=0.24;
@@ -4001,8 +4004,7 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
   else{WALK.jx=WALK.jy=0;WALK.joy=WALK.look=null;WALK.k={};WALK.camOk=WALK.lkOk=false;}
-  WALK.r.g.visible=true;COACH.g.visible=true;if(!COACH.home)COACH.home=[COACH.g.position.clone(),COACH.g.rotation.y];
-  {const v=V(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);JUDGES.worldToLocal(v);COACH.g.position.set(v.x,COACH.home[0].y,v.z);COACH.g.rotation.y=Math.atan2(1.5-WALK_COACH[0],1.2-WALK_COACH[1])-JUDGES.rotation.y;}COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
+  WALK.r.g.visible=true;COACH.g.visible=true;coachToWalkSpot();COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
   phase='walk';albiShow(true);document.body.classList.add('walking');player.model.g.visible=false;$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';if(!WALK.joy)joyHome();walkSay('');initAudio();}
 function walkCerUI(on){document.body.classList.toggle('cerwalk',on);if(phase!=='walk')$('walkUI').style.display=on?'block':'none';if(on){WALK.jx=WALK.jy=0;WALK.joy=null;WALK.k={};joyHome();}}
 function walkStop(){albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
