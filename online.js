@@ -8,9 +8,10 @@
     url: 'https://maiswaiilplgvewuurux.supabase.co',
     key: 'sb_publishable_O9_eyeEuS4QHe4q2jYgRZg_mDnHKm-o'   // veřejný klíč, smí být v kódu
   };
-  var MODE_MAP = { kilo: 'kilometr', points: 'bodovacka', elim: 'vylucovacka' };
+  var MODE_MAP = { kilo: 'kilometr', points: 'bodovacka', elim: 'vylucovacka', teamsprint: 'team_sprint' };
   var MODES = [['kilometr', 'Kilometr'], ['sprint', 'Sprint'], ['keirin', 'Keirin'], ['scratch', 'Scratch'],
-    ['bodovacka', 'Bodovačka'], ['madison', 'Madison'], ['vylucovacka', 'Vylučovačka']];
+    ['bodovacka', 'Bodovačka'], ['madison', 'Madison'], ['vylucovacka', 'Vylučovačka'],
+    ['omnium', 'Omnium'], ['team_sprint', 'Team sprint']];
   var MSG = {
     network: 'Nejde se připojit. Zkontroluj internet a zkus to znovu.',
     rate: 'Moc pokusů za sebou. Zkus to za chvíli.',
@@ -407,8 +408,8 @@
       box.appendChild(closeBtn());
     }
     function fmtRow(mode, r) {
-      if (mode === 'kilometr') return r.best_time_s == null ? '–' : Number(r.best_time_s).toFixed(3).replace('.', ',') + ' s';
-      if (mode === 'bodovacka' || mode === 'madison') return (r.best_points == null ? '–' : r.best_points + ' b');
+      if (mode === 'kilometr' || mode === 'team_sprint') return r.best_time_s == null ? '–' : Number(r.best_time_s).toFixed(3).replace('.', ',') + ' s';
+      if (mode === 'bodovacka' || mode === 'madison' || mode === 'omnium') return (r.best_points == null ? '–' : r.best_points + ' b');
       return (r.wins || 0) + '× vítěz';
     }
     /* záložky disciplín + tabulka; kreslí se do okna žebříčku i do televize na ploše */

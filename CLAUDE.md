@@ -46,6 +46,8 @@ Hlavní skript je na řádcích cca 292–3723. Před ním je CSS (32–178) a n
 | 3414–3683 | intro startu, KEIRIN, BODOVAČKA, pozadí menu |
 | 3684–3722 | herní smyčka |
 
+OMNIUM a TEAM SPRINT mají vlastní blok těsně před sekcí PLOCHA (`// ---------- OMNIUM: …` a `// ---------- TEAM SPRINT: …`). Omnium nemá vlastní `mode`: `OMNI={ev,tot,res}` drží průběh a `mode` je vždy aktuální disciplína (tempový závod = bodovačka s `TEMPO=true`, parametry `PT_LAPS`, `PT_EVERY`, `PT_FROM`, `PT_DBL`, `PT_TAB` nastavuje `resetRiders`). Po disciplínách 1–3 `startCeremony` volá `omniBreak()`. Team sprint má `mode==='teamsprint'` a stav `TSP` (pozor, `TS` je turbo ve smyčce). Server zná režimy `omnium` (body) a `team_sprint` (čas).
+
 Sprint (~3739) má i blok `sprint: "nasávání" in the hook` (`hookSling`, `spComeRound`, `spWarn`). Režimy mají vlastní bloky `// -------- KILOMETR / KEIRIN / BODOVAČKA / VYLUČOVAČKA / MADISON / SCRATCH --------` (kolem řádků 3130–3260).
 
 ## Automatické delegování

@@ -123,6 +123,19 @@ test('režimy a neplatné hodnoty se přeloží a oříznou', async () => {
   assert.deepStrictEqual([r.p_mode, r.p_time_s, r.p_points, r.p_position, r.p_reward], ['bodovacka', null, 32, null, 0]);
 });
 
+test('team sprint jde na server jako team_sprint s časem, omnium s body', async () => {
+  const { O, srv } = makeEnv();
+  await O.verify('a@b.cz', '123456');
+  O.report({ mode: 'teamsprint', time: 55.8123, points: null, position: 2, reward: 100 });
+  assert.ok(await until(() => srv.results.length === 1));
+  const r = srv.results[0];
+  assert.deepStrictEqual([r.p_mode, r.p_time_s, r.p_points, r.p_position], ['team_sprint', 55.812, null, 2]);
+  O.report({ mode: 'omnium', time: null, points: 142, position: 1, reward: 200 });
+  assert.ok(await until(() => srv.results.length === 2));
+  const o = srv.results[1];
+  assert.deepStrictEqual([o.p_mode, o.p_time_s, o.p_points, o.p_position], ['omnium', null, 142, 1]);
+});
+
 test('bez přihlášení se nic neposílá', async () => {
   const { O, srv } = makeEnv();
   O.report({ mode: 'kilo', time: 70, position: 1, reward: 100 });
