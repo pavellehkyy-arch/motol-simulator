@@ -8,6 +8,7 @@
 - Zásahy do `index.html` jsou jen čtyři: načtení skriptu, hák `Online.report(...)` v `startCeremony` (po výpočtu `me`), větev `Online.buy(id)` na začátku `buyItem` a výjimka `#onlineOv` v globálním click-handleru, který jinak odostřuje (blur) každé aktivní pole a nedal by psát do okna přihlášení.
 - Server (projekt `maiswaiilplgvewuurux`, Frankfurt): tabulky `profiles`, `results`, `purchases`, `shop_items` se zapnutým RLS. Hráč do nich nezapisuje přímo, jen přes funkce `set_nickname`, `submit_result`, `buy_item`, `import_local_progress`, `get_leaderboard`. Odměnu za závod počítá hra, server ji omezí (max 400 za závod, 5000 za 24 h).
 - Přezdívky čekají na schválení majitelem (`profiles.nickname_status`), výsledky jde skrýt (`results.hidden`).
+- Zlatá třpytivá přezdívka v žebříčku: `profiles.badge = 'gold'` (nastavuje jen majitel v SQL, `get_leaderboard` ho vrací, `online.js` přidá třídu `gold`).
 - Testy: `node --test tests/online.test.js tests/online-ui.test.js` (atrapa serveru, bez sítě).
 - Účty fungují přes e-mail s kódem. Klíč v `online.js` je veřejný (publishable). Tajné klíče do repozitáře nikdy nepatří.
 

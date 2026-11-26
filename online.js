@@ -276,6 +276,9 @@
       '#onlineOv table{width:100%;border-collapse:collapse;font-size:14px}' +
       '#onlineOv td{padding:5px 4px;border-top:1px solid #0001}' +
       '#onlineOv tr.me td{font-weight:900;background:#c6ff1a55}' +
+      '#onlineOv td.gold{font-weight:900;color:transparent;background:linear-gradient(100deg,#b8860b 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#b8860b 100%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}' +
+      '@keyframes onGold{0%{background-position:150% 0}100%{background-position:-100% 0}}' +
+      '@media (prefers-reduced-motion:reduce){#onlineOv td.gold{animation:none}}' +
       '#onlineOv .os{font-size:12px;opacity:.7}';
     document.head.appendChild(st);
 
@@ -421,7 +424,7 @@
         r.rows.forEach(function (x) {
           var mine = P && P.nickname && x.nickname === P.nickname;
           tb.appendChild(h('tr', { class: mine ? 'me' : '' }, [
-            h('td', { text: x.place + '.' }), h('td', { text: String(x.nickname) }), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
+            h('td', { text: x.place + '.' }), h('td', { text: String(x.nickname), class: x.badge === 'gold' ? 'gold' : '' }), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
         });
         list.appendChild(tb);
       });
