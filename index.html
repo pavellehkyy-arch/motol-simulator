@@ -1849,7 +1849,7 @@ document.querySelectorAll('.btn').forEach(b=>{const k=b.dataset.k;
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);});
 const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'sprint',ShiftLeft:'sprint',ShiftRight:'sprint',KeyQ:'lookL',KeyR:'lookR',KeyW:'effUp',ArrowUp:'effUp',KeyS:'effDn',ArrowDown:'effDn'};
 const GAMEKEYS=['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS','KeyQ','KeyR','KeyC','KeyE','KeyM','KeyP','Digit1','Digit2','Digit3','Digit4','ShiftLeft','ShiftRight'];
-document.addEventListener('click',()=>{const a=document.activeElement;if(a&&a.blur&&a!==document.body)a.blur();},true);
+document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;const a=document.activeElement;if(a&&a.blur&&a!==document.body)a.blur();},true);
 window.addEventListener('keydown',e=>{if(GAMEKEYS.includes(e.code)&&phase!=='menu')e.preventDefault();},true);
 window.addEventListener('keyup',e=>{if(GAMEKEYS.includes(e.code)&&phase!=='menu')e.preventDefault();},true);
 const PRESET={Digit1:0.06,Digit2:0.42,Digit3:0.72,Digit4:1};
