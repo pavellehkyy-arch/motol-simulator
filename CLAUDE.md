@@ -32,7 +32,7 @@ Hlavní skript je na řádcích cca 292–3723. Před ním je CSS (32–178) a n
 | 331–500 | geometrie dráhy (153,846 m, klopení), textury dráhy, mantinel, síť |
 | 501–754 | hala (oblouky, střecha, světla), schodiště, válce na trénink |
 | 755–975 | jezdci, kola, kola/ráfky, týmové dresy |
-| 973–1513 | anatomie jezdců (lofty `loftGeo`, `riderGeos`), vlk (Vojck), boty, posturální pozice; stojící lidé `makeHuman` (rozhodčí, startér, nosiči, záchranáři `makeMedic`, hrdina na ploše) mají lofty z `humanGeos()` a `humFront(y)` dává přední plochu hrudi pro kravaty a klopy |
+| 973–1513 | anatomie jezdců (lofty `loftGeo`, `riderGeos`), vlk (Vojck), boty, posturální pozice; stojící lidé `makeHuman` (rozhodčí, startér, nosiči, záchranáři `makeMedic`, hrdina na ploše) dnes staví `makeScanHuman` (Albiho naměřené tělo `PHOTO_MODEL` jako šablona, oblečení obarvené po oblastech, bunda může mít texturu; přepínač `SCAN_BODIES`, `o.loft` vrátí starší lofty z `humanGeos()`); Albi sám je `makePhotoHuman` (fotosken) |
 | 1514–1690 | rozhodčí |
 | 1691–1790 | soupiska jezdců, stav hry |
 | 1792–1904 | audio (WebAudio), vstup (dotyk, posuvník) |
