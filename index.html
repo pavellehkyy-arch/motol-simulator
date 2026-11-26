@@ -3920,12 +3920,12 @@ function spWarn(){const C=SP&&SP.cur;if(!C||C.decided||C.foul||C.phase1||player.
   if(C.warn>=2)spFoul(player,'elbow');else{showMsg('🟨 VAROVÁNÍ<small>Strkání do soupeře – příště tě rozhodčí přeřadí</small>',2.6);tone(330,0.25,0.12,'square');}}
 function spNewMatch(){const bots=riders.filter(r=>!r.player&&!r.partner);const opp=bots[Math.floor(Math.random()*bots.length)];
   SP={opp,heat:1,score:[0,0],heats:[],drawP:Math.random()<0.5?1:2,over:false,winner:null,cur:null,busy:false,
-    pers:{aggr:0.3+Math.random()*0.7,jump:200+Math.random()*90,high:1.4+Math.random()*1.3,react:0.25+Math.random()*0.35}};}
+    pers:{aggr:0.3+Math.random()*0.7,jump:200+Math.random()*90,high:1.4+Math.random()*1.3,react:0.14+Math.random()*0.22}};}
 function setupSprint(){const P=player,O=SP.opp;
   for(const R of [P,O]){const pos=R===P?SP.drawP:3-SP.drawP;R.draw=pos;R.wp*=1.2;   // a bigger tank for the slow tactical laps, but a full-gas kick still lasts only ~250 m
-    Object.assign(R,{s:START_S-0.6,w:pos===1?0.5:1.5,v:0,t200:null,spJump:false,spChase:false,spReactT:0,spFoulT:0,spLaneIn:false,spPrevW:null,spSlowT:0,hk:0,hkT:0,hkK:0,hkLead:null,hookBy:null,lastShover:null,spSide:0,spSwT:0,spStuckT:0,spBackT:0});
+    Object.assign(R,{s:START_S-0.6,w:pos===1?0.5:1.5,v:0,t200:null,spJump:false,spChase:false,spReactT:0,spFoulT:0,spLaneIn:false,spPrevW:null,spSlowT:0,hk:0,hkT:0,hkK:0,hkLead:null,hookBy:null,lastShover:null,spSide:0,spSwT:0,spStuckT:0,spBackT:0,spAP:0,spPv:null});
     R.targetW=R.w;R.targetWp=R.w;R.h=surfY(R.s,R.w);R.prevS=R.s;}
-  O.aggr=SP.pers.aggr;O.spReact=SP.pers.react+Math.random()*0.15;O.cda=P.cda;O.wp=P.wp;   // 1 on 1: same position on the bike, same tank – the race is won by tactics
+  O.aggr=SP.pers.aggr;O.spReact=SP.pers.react+Math.random()*0.1;O.cda=P.cda;O.wp=P.wp;   // 1 on 1: same position on the bike, same tank – the race is won by tactics
   SP.cur={n:SP.heat,drawP:SP.drawP,phase1:true,foul:null,fin:[],finT:0,decided:false,nextT:0,breach:SP.cur&&SP.cur.n===SP.heat?SP.cur.breach:0,
     jumpAt:SP.pers.jump*(0.85+Math.random()*0.3),pJump:null};
   makeKeirinHolders([P,O]);}
@@ -3945,25 +3945,29 @@ function spPower(R,vT,cap){const cda=R.cda*(1-R.draft),Pn=(0.5*1.2*cda*vT*vT+80*
 function sprintAI(R,dt){const P=player,C=SP&&SP.cur;if(R.crashed)return;
   if(R.finished||!C||C.decided){spPower(R,Math.max(6,R.v-0.8),R.ftp);R.targetW=1.6;steerBot(R,dt,false);return;}   // roll out after the line
   const g=gapTo(R,P),toGo=FIN-R.s,lead=g<0,pOut=P.crashed||P.finished;   // g>0: the player is in front of me
-  const pJumped=(P.realP||0)>650&&P.v>R.v-0.3&&Math.abs(g)<70;   // he stands on the pedals – you see it in his body before the speed shows
+  const pVe=vEq(P);R.spAP=(R.spAP||0)+(((pVe-(R.spPv??pVe))/dt)-(R.spAP||0))*Math.min(1,dt*3);R.spPv=pVe;   // how he's accelerating (or dying), read off his speed as if on the black line
+  const pJumped=((P.realP||0)>650||(g>0&&P.v>R.v+1.6&&P.v>8))&&P.v>R.v-0.3&&g>-70;   // he stands on the pedals – you see it in his body before the speed shows (or he's simply riding away)
+  const pFade=R.spAP<-0.12&&pVe>9.5;R.spFade=pFade;   // still going all out but the speed is falling: he's empty
+  if(!R.spJump){   // also in the first half lap: if no. 1 goes from the gun, or no. 2 comes past at full gas, I'm onto it at once
+    if(pJumped&&!R.spChase){R.spReactT+=dt;if(R.spReactT>R.spReact+(lead&&-g<20?0.12:0)+(Math.abs(g)>8?0.1:0)){if(toGo>C.jumpAt+90)R.spChase=true;else R.spJump=true;}}else if(!pJumped)R.spReactT=0;   // he goes -> I react after a blink: far out only onto his wheel (he'll die in the wind), close in all out
+    if(R.spChase&&g>0&&g<4.5&&toGo<C.jumpAt+70&&(R.hk>0.45||P.v<R.v-0.2||pFade))R.spJump=true;   // sat on him, he's fading -> now
+    if(R.spChase&&g>0&&g<6&&pFade&&toGo<C.jumpAt+160&&R.energy>P.energy+12)R.spJump=true;   // he went long and he's dead: come round him a bit earlier
+    if(R.spChase&&P.v<8.5&&R.v<9.5&&(P.realP||0)<1.2*P.ftp&&R.spReactT<=0&&toGo>C.jumpAt+90)R.spChase=false;}   // he sat up again -> back to cat and mouse
   if(!R.spJump&&!C.phase1){
-    if(pJumped){R.spReactT+=dt;if(R.spReactT>R.spReact+(Math.abs(g)>5||R.w>P.w+1.2?0.2:0)){if(toGo>C.jumpAt+90)R.spChase=true;else R.spJump=true;}}else R.spReactT=0;   // he goes -> I react after a moment: far out only onto his wheel, close in all out
-    if(R.spChase&&g>0&&g<4.5&&toGo<C.jumpAt+70&&(R.hk>0.45||P.v<R.v))R.spJump=true;   // sat on him, he's fading -> now
-    if(R.spChase&&P.v<8.5&&R.v<9.5&&toGo>C.jumpAt+90)R.spChase=false;   // he sat up again -> back to cat and mouse
     if(toGo<C.jumpAt)R.spJump=true;
     if(pOut&&toGo<260)R.spJump=true;
     if(!lead&&g>0&&g<10&&toGo<L0*1.7&&P.v<6.5&&P.w<1.3&&R.w>P.w+0.6&&Math.random()<dt*0.5*R.aggr)R.spJump=true;}   // a surprise from above while he dawdles low
   let vT,tw,cap=R.ftp*1.3,force=false;
-  if(C.phase1){
+  if(C.phase1&&!R.spChase){
     if(R.draw===1){vT=lead||pOut?5.4:Math.max(4.5,P.v);tw=0.25;}   // no. 1 leads slowly along the black line
     else{vT=Math.max(0,P.v+clamp((g-4.5)*0.4,-1.5,1.5));tw=Math.min(P.w+1.0,TW-1.4);if(spVmin(R.s,tw)>vT)tw=Math.max(0.25,Math.min(P.w,0.55));}}   // no. 2 sits behind and above (low in the bends when slow), never passes
   else if(R.spChase&&!R.spJump){   // he went far too early: close onto his wheel, sit in the hook and let him die
-    force=true;if(g>0){vT=P.v+clamp((g-2.4)*0.45,-1.2,3);cap=R.ftp*(g>4?3.45:2.3)*(R.energy<25?0.8:1);tw=g>7?Math.min(P.w,R.w):P.w;}
-    else{vT=Math.max(P.v-0.6,R.v-0.2);cap=R.ftp*2.4;tw=R.w;}}   // he's still coming past: hold my line, then onto him
+    force=true;if(g>0){vT=P.v+clamp((g-2.5)*0.55,-1.5,3)+Math.max(0,R.spAP)*0.35;cap=R.ftp*(g>5?3.45:g>3.3?2.6:2.0)*(R.energy<20?0.85:1);tw=g>7?Math.min(P.w,R.w):P.w;}   // shut the gap hard while it's small, then sit 2–3 m behind him in the hook – he pays for the wind, I don't
+    else{vT=Math.max(P.v-(g<-3?1.2:0.4),R.v-0.2);cap=R.ftp*3;tw=R.w;}}   // he's still coming past: wind it up under him so he goes by slowly, hold my line, then onto him
   else if(!R.spJump){
     if(lead){const w=-g;vT=5.6+0.8*Math.sin(raceTime*0.35)+(w>14?-0.6:0);tw=SP.pers.high;   // controlling from the front, up the banking to watch him
       if(w<3&&P.w<R.w)tw=Math.max(tw,R.w);}   // never come down onto him
-    else{vT=Math.max(0,P.v+clamp((g-(toGo<L0*2.6?3.8:5.5))*0.35,-1.5,1.8));tw=Math.min(Math.max(P.w+1.0,1.4),TW-1.2);}   // behind and above: ready to dive
+    else{vT=Math.max(0,P.v+clamp((g-(toGo<L0*2.6?3.4:4.6))*0.35,-1.5,1.8));tw=Math.min(Math.max(P.w+1.0,1.4),TW-1.2);}   // behind and above: ready to dive
     const vm=spVmin(R.s,Math.max(tw,R.w));if(vm>vT+0.2){if(lead&&-g<3&&P.w<R.w)vT=vm+0.5;else tw=0.55;}}   // too slow for the banking: drop low (or keep the speed if he's under me)
   else{   // the sprint
     vT=24;cap=R.ftp*3.45;force=true;
@@ -3979,8 +3983,9 @@ function spComeRound(R,P,g,toGo,dt,out){R.spSwT-=dt;
   if(R.spBackT>0&&(P.v>R.v+0.6||(P.realP||0)>1.6*P.ftp))R.spBackT=0;   // he goes while I'm backing off -> straight onto his wheel
   if(R.spBackT>0){R.spBackT-=dt;out({tw:P.w,vT:P.v-(g<3.5?1.6:-0.4)});return;}   // the "nasávací mezera": open a gap, then run into his slipstream
   const passing=R.v>P.v+1.2&&g<7&&(P.realP||0)<1.4*P.ftp;   // he's dawdling and I come flying: no point sitting on him, straight round
-  const go=passing||urgent||(g<3.6&&(toGo<165||(charged&&P.v<R.v-0.4&&toGo<270)));   // out of the hook in the last ~160 m – or earlier if he's already fading
-  if(g>7||(!R.spSide&&!go)){R.spSide=0;out({tw:P.w});return;}   // first into his hook and suck – out only when it's time and I'm close enough to be thrown past
+  const go=passing||urgent||(g<3.6&&(toGo<165||(charged&&(P.v<R.v-0.4||R.spFade)&&toGo<270)||(charged&&R.spFade&&toGo<SP.cur.jumpAt+60&&R.energy>P.energy+15)));   // out of the hook in the last ~160 m – or earlier if he's already fading
+  if(g>7){R.spSide=0;out({tw:P.w});return;}   // too far: full gas onto his wheel
+  if(!R.spSide&&!go){out({tw:P.w,vT:P.v+clamp((g-2.3)*0.6,-1.5,2)+Math.max(0,R.spAP||0)*0.35});return;}   // first into his hook and suck – out only when it's time and I'm close enough to be thrown past
   const roomDn=P.w-0.95>=0.35&&!(R.s>=FIN-200&&P.w<SP_LANE+1.1&&!R.spLaneIn);   // under him only if there's track above the band (and never into his lane in the last 200 m)
   if(!R.spSide)R.spSide=roomDn&&(P.w>2.0||P.dw>0.35)?-1:1;
   let tw=R.spSide>0?Math.min(P.w+0.95,TW-0.8):Math.max(0.35,P.w-0.95);
