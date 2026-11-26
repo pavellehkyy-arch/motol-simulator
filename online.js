@@ -373,6 +373,7 @@
       box.appendChild(h('div', { class: 'om', text: ctx.msg }));
       box.appendChild(h('button', { class: 'ob', text: 'Uložit', on: { click: go } }));
       box.appendChild(closeBtn('Později'));
+      setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
     }
     function statusText() {
       if (!P || !P.nickname) return 'zatím žádná';
