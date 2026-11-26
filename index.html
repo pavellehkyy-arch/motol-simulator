@@ -4061,20 +4061,31 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
   if(al.length&&!isNeutral()){const ld=al.reduce((a,b)=>effS(a)>effS(b)?a:b),nl=nextSprintLine(effS(ld));
     if(nl-effS(ld)<L0&&PR.whistle!==nl&&nl<FIN-1){PR.whistle=nl;bell();if(phase==='race'&&!player.finished)showMsg('🔔<small>Sprint o body za 1 kolo · 5-3-2-1</small>',1.8);}}}
 // ---------- PLOCHA: walk round the velodrome (joystick, camera behind you; TV / shop / coach / start line open by themselves when you come up to them) ----------
-const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false,lk:new THREE.Vector3(),lkOk:false,hop:null};
+const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false,lk:new THREE.Vector3(),lkOk:false,hop:null,vy:0,air:false,land:0,tapT:0,tapX:0,tapY:0};
 const WALK_COACH=[9.05,3.15];   // on the walk the old boss waits by the right-hand booths (spot 1 on the sketch)
 // the boss's spot by the right-hand booths – used on the walk and at the ceremony alike
 function coachToWalkSpot(){if(!COACH)return;if(!COACH.home)COACH.home=[COACH.g.position.clone(),COACH.g.rotation.y];
   const v=V(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);JUDGES.worldToLocal(v);COACH.g.position.set(v.x,COACH.home[0].y,v.z);COACH.g.rotation.y=Math.atan2(1.5-WALK_COACH[0],1.2-WALK_COACH[1])-JUDGES.rotation.y;}
 const WALK_ALBI=[-10.9,-1.5];   // Albi, our best start holder: off duty he hangs about by the left-hand booths (spot 3 on the sketch)
 const WALK_BOX=[[WALK_ALBI[0]-0.35,WALK_ALBI[1]-0.35,WALK_ALBI[0]+0.35,WALK_ALBI[1]+0.35],[-3.75,-11.05,-0.85,-9.75],[WALK_COACH[0]-0.4,WALK_COACH[1]-0.4,WALK_COACH[0]+0.4,WALK_COACH[1]+0.4]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
-function walkFree(x,z){if(!NAV.grid)buildNav();const R=0.24;
+// winners' podium on the walk: three boxes you can jump onto, [x0,x1,z0,z1,top] in JUDGES space; the strip round it is open ground (the nav grid blocks it for the holders)
+const POD_BOX=[[PODX-0.425,PODX+0.425,-0.6,0.6,0.775],[PODX-0.425,PODX+0.425,0.6,1.7,0.475],[PODX-0.425,PODX+0.425,-1.7,-0.6,0.425]];
+const _pl=new THREE.Vector3();let _podInv=null;
+function podLocal(x,z){if(!_podInv){JUDGES.updateMatrixWorld();_podInv=new THREE.Matrix4().copy(JUDGES.matrixWorld).invert();}return _pl.set(x,FLOOR_Y,z).applyMatrix4(_podInv);}
+function podArea(l){return l.x>PODX-0.7&&l.x<PODX+1.8&&l.z>-2.25&&l.z<2.25;}
+function podTop(x,z,m){const l=podLocal(x,z);let t=-1;if(!podArea(l))return t;for(const b of POD_BOX)if(l.x>b[0]-m&&l.x<b[1]+m&&l.z>b[2]-m&&l.z<b[3]+m&&b[4]>t)t=b[4];return t;}
+function podPen(x,z,y,R){const l=podLocal(x,z);let p=-1;if(!podArea(l))return p;for(const b of POD_BOX)if(FLOOR_Y+b[4]>y+0.12)p=Math.max(p,Math.min(l.x-b[0]+R,b[1]+R-l.x,l.z-b[2]+R,b[3]+R-l.z));return p;}   // how deep you'd be in a step higher than your feet (<0 = clear)
+function walkFree(x,z,y){if(!NAV.grid)buildNav();const R=0.24;
+  if(y!==undefined){const pn=podPen(x,z,y,R);if(pn>0&&pn>=podPen(WALK.pos.x,WALK.pos.z,y,R)-1e-4)return false;}   // a podium step higher than your feet stops you – jump onto it (moving away from it always works)
   for(let q=0;q<5;q++){const X=x+(q===1?R:q===2?-R:0),Z=z+(q===3?R:q===4?-R:0),i=Math.floor((X-NAV.x0)/NAV.c),j=Math.floor((Z-NAV.z0)/NAV.c);
+    if(podArea(podLocal(X,Z)))continue;
     if(i<0||j<0||i>=NAV.nx||j>=NAV.nz||NAV.grid[j*NAV.nx+i])return false;}
   for(const b of WALK_BOX)if(x>b[0]-R&&x<b[2]+R&&z>b[1]-R&&z<b[3]+R)return false;return true;}
 function walkGround(x,z){if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.pz,a=dx*f.fx+dz*f.fz,o=-(dx*f.nx+dz*f.nz);   // walking up the ramp onto the apron
     if(Math.abs(a)<R.HWr&&o>R.oT&&o<R.oB)return R.yT+(R.yB-R.yT)*(o-R.oT)/(R.oB-R.oT);}
+  const t=podTop(x,z,0.1);if(t>0)return FLOOR_Y+t;
   return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
+function walkJump(){if(phase!=='walk'||WALK.hop||WALK.air)return;WALK.air=true;WALK.vy=3.5;tone(300,0.09,0.03,'triangle');}   // ~0.62 m: onto steps 2 and 3 from the floor, onto 1 from them
 function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText(ic,64,70);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));sp.scale.set(0.6,0.6,1);sp.visible=false;scene.add(sp);return sp;}
 function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();const tv=new THREE.Vector3(),co=new THREE.Vector3(),st=new THREE.Vector3();
@@ -4115,7 +4126,7 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   if(!WALK.r){const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
     WALK.r=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});scene.add(WALK.r.g);}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
-  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;
+  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;
   if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
@@ -4131,6 +4142,7 @@ const JOY_R=56,JOY=$('joy');
 function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
 const wui=$('walkUI');
 wui.addEventListener('pointerdown',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.target.closest('button'))return;e.preventDefault();
+  if(phase==='walk'){const n=performance.now();if(n-WALK.tapT<320&&Math.hypot(e.clientX-WALK.tapX,e.clientY-WALK.tapY)<90){walkJump();WALK.tapT=0;}else{WALK.tapT=n;WALK.tapX=e.clientX;WALK.tapY=e.clientY;}}   // double tap anywhere: jump
   if(e.clientX<innerWidth*0.45&&!WALK.joy){const j=$('joy');const x=clamp(e.clientX,70,innerWidth-70),y=clamp(e.clientY,70,innerHeight-70);j.style.left=x+'px';j.style.top=y+'px';WALK.joy={id:e.pointerId,x,y};}
   else if(!WALK.look)WALK.look={id:e.pointerId,x:e.clientX,y:e.clientY};try{wui.setPointerCapture(e.pointerId);}catch(_){}});
 wui.addEventListener('pointermove',e=>{const J=WALK.joy,L=WALK.look;
@@ -4141,7 +4153,7 @@ wui.addEventListener('pointerup',joyUp);wui.addEventListener('pointercancel',joy
 const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
 window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
-addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)walkJump();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>wipe(walkStart);
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
@@ -4153,13 +4165,17 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.
   const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
   let ix=WALK.jx+(K.r?1:0)-(K.l?1:0),iy=WALK.jy+(K.f?1:0)-(K.b?1:0);const im=Math.hypot(ix,iy);if(im>1){ix/=im;iy/=im;}const amt=Math.min(1,im);
   const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
-  const top=amt>0.85||K.run?3.6:1.7*Math.max(amt,0.35),tgt=amt>0.08?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?5:9));
+  const top=K.run||(WALK.jy>0.8&&amt>0.9)?4.3:1.7*Math.max(amt,0.35),tgt=amt>0.08?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?5:9));
   if(ml>1e-3){const want=Math.atan2(mx,mz);let d=want-WALK.head;d=Math.atan2(Math.sin(d),Math.cos(d));WALK.head+=d*Math.min(1,dt*10);}
   if(WALK.hop){const H=WALK.hop;H.t+=dt;const u=Math.min(1,H.t/0.55);WALK.pos.lerpVectors(H.a,H.b,u);WALK.pos.y+=Math.sin(PI*u)*0.45;WALK.spd=0;if(u>=1)WALK.hop=null;}   // jump off the podium / the stretcher
   else if(WALK.spd>0.02){const ux=ml>1e-3?mx/ml:Math.sin(WALK.head),uz=ml>1e-3?mz/ml:Math.cos(WALK.head),st=WALK.spd*dt,P=WALK.pos;   // slide along walls: try the full step, then each axis on its own
-    if(walkFree(P.x+ux*st,P.z+uz*st)){P.x+=ux*st;P.z+=uz*st;}else if(walkFree(P.x+ux*st,P.z)){P.x+=ux*st;WALK.spd*=0.92;}else if(walkFree(P.x,P.z+uz*st)){P.z+=uz*st;WALK.spd*=0.92;}else WALK.spd=0;}
-  if(!WALK.hop){const gy=walkGround(WALK.pos.x,WALK.pos.z);WALK.pos.y+=(gy-WALK.pos.y)*Math.min(1,dt*9);}
+    const fy=P.y;if(walkFree(P.x+ux*st,P.z+uz*st,fy)){P.x+=ux*st;P.z+=uz*st;}else if(walkFree(P.x+ux*st,P.z,fy)){P.x+=ux*st;WALK.spd*=0.92;}else if(walkFree(P.x,P.z+uz*st,fy)){P.z+=uz*st;WALK.spd*=0.92;}else WALK.spd=0;}
+  if(!WALK.hop){const gy=walkGround(WALK.pos.x,WALK.pos.z);if(!WALK.air&&gy<WALK.pos.y-0.2){WALK.air=true;WALK.vy=0;}   // stepped off the podium edge: fall
+    if(WALK.air){WALK.vy-=9.81*dt;WALK.pos.y+=WALK.vy*dt;if(WALK.pos.y<=gy&&WALK.vy<=0){WALK.pos.y=gy;WALK.air=false;WALK.land=0.2;tone(110,0.07,0.05,'sine');}}
+    else WALK.pos.y+=(gy-WALK.pos.y)*Math.min(1,dt*9);}
   const r=WALK.r,a=clamp(WALK.spd/1.7,0,1.25);WALK.ph+=dt*WALK.spd*(WALK.spd>2.4?3.6:4.6);r.t+=dt;const T=walkPose(WALK.T||(WALK.T={}),WALK.ph,Math.min(1,a));if(a>1)T.lean+=(a-1)*0.9;
+  if(WALK.air){T.l0h=T.l1h=-0.55;T.l0k=T.l1k=0.95;T.a0x=T.a1x=-0.7;T.e0=T.e1=-0.6;}   // tuck in the air
+  else if(WALK.land>0){WALK.land-=dt;const c=WALK.land/0.2;T.l0k=Math.max(T.l0k,0.7*c);T.l1k=Math.max(T.l1k,0.7*c);T.l0h=Math.min(T.l0h,-0.3*c);T.l1h=Math.min(T.l1h,-0.3*c);T.y-=0.07*c;}   // soft landing
   poseHuman(r,T,1-Math.exp(-dt*10));r.g.position.copy(WALK.pos);r.g.rotation.y=WALK.head;
   // camera behind and above, pulled in when a wall or the banking is in the way
   const cp=Math.cos(WALK.pitch),sp=Math.sin(WALK.pitch);let D=3.6;for(let q=0;q<10;q++){const x=WALK.pos.x-fx*cp*D,z=WALK.pos.z-fz*cp*D;if(walkFree(x,z)||D<=1.3)break;D-=0.25;}
@@ -4167,6 +4183,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.
   if(!WALK.camOk){WALK.cam.copy(_wc);WALK.camOk=true;}if(!WALK.lkOk){WALK.lk.copy(_wl);WALK.lkOk=true;}const ck=WALK.hop?dt*3:dt*10;WALK.cam.lerp(_wc,Math.min(1,ck));WALK.lk.lerp(_wl,Math.min(1,ck*1.2));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(WALK.lk);
   // zones: come up to it and it opens, walk away and it closes
   const Z=walkZones();let near=null,nd=1e9;for(const z of Z){const d=Math.hypot(z.p.x-WALK.pos.x,z.p.z-WALK.pos.z);if(z.tag)z.tag.position.y+=((z.id==='start'?z.p.y:FLOOR_Y)+z.h+Math.sin(idleT*2.2+z.h)*0.08-z.tag.position.y);if(d<z.r+(z.id===WALK.zone?0.5:0)&&d<nd){near=z.id;nd=d;}}
+  if(WALK.air)near=WALK.zone;else if(podTop(WALK.pos.x,WALK.pos.z,0.1)>0)near=null;   // mid-jump nothing flips; up on the podium no panel covers the view
   if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
   if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
   if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
