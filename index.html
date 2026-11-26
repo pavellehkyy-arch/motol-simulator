@@ -2638,13 +2638,16 @@ let HOLDERS=[];const STAIR_O=new THREE.Object3D();
 const HOLDER_LOOKS=[{top:0x1d3557,pants:0x1d3557,stripe:0xffffff},{top:0x111418,pants:0x111418,stripe:0xc6ff1a},{top:0x8a1c1c,pants:0x1c1c22,stripe:0xffffff},{top:0x2b5fb4,pants:0x1d2a44,stripe:0xffffff},{top:0x3a3f46,pants:0x23262b,stripe:0xe63946}];
 const HAIRS=[[0x3b2a1e,'short'],[0x1a1410,'short'],[0x7a5a3a,'long'],[0x2a2522,'cap'],[0x8a8a88,'bald'],[0xb08a4a,'short']];
 const SKINS=[0xdcae8a,0xe2b896,0xc99a74,0xa8775a,0xeac4a4];
-function makeHolder(s,w){const idx=HOLDERS.length,featured=idx===0;const L=featured?{top:0x141d33,pants:0x141d33,suit:true,suitLapel:0x111a2e,collar:0xf6f6f4,tie:0x1a2440,tieStripes:0xc9ccd4,cuffs:0xf6f6f4,watch:0xc9a24a,glassesCol:0xb9a57e,zip:null,shoes:0x0c0c0c,shoeSole:0x050505}:HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LOOKS.length)],H=featured?[0x4a3424,'tousled']:HAIRS[Math.floor(Math.random()*HAIRS.length)];
+function makeHolder(s,w,featured){const idx=HOLDERS.length;const L=featured?{top:0x141d33,pants:0x141d33,suit:true,suitLapel:0x111a2e,collar:0xf6f6f4,tie:0x1a2440,tieStripes:0xc9ccd4,cuffs:0xf6f6f4,watch:0xc9a24a,glassesCol:0xb9a57e,zip:null,shoes:0x0c0c0c,shoeSole:0x050505}:HOLDER_LOOKS[Math.floor(Math.random()*HOLDER_LOOKS.length)],H=featured?[0x4a3424,'tousled']:HAIRS[Math.floor(Math.random()*HAIRS.length)];
   const r=featured?makePhotoHuman():makeHuman(Object.assign({hair:H[0],hairStyle:H[1],capCol:[0x1d3557,0xe63946,0x111111][Math.floor(Math.random()*3)],skin:featured?0xe2b896:SKINS[Math.floor(Math.random()*SKINS.length)],zip:0xdddddd,shoes:0xf0f0f0,shoeSole:0x222222,mustache:featured?false:Math.random()<0.2,glasses:featured},L));
   scene.add(r.g);const h={r,s,w,cs:s,cw:w,st:'hold',t:0,ph:0,pos:new THREE.Vector3(),head:0,path:null,wait:Math.random()*0.25,spd:1.25+Math.random()*0.3,idx:HOLDERS.length,vel:0};
   surf(s,w,h.pos);const f=frameAt(s);h.head=Math.atan2(f.fx,f.fz);r.g.position.copy(h.pos);r.g.rotation.y=h.head;poseHuman(r,holdPose(0),1);HOLDERS.push(h);return h;}
 function holdPose(t){return {lean:0.42,hx:-0.3,l0h:-0.28,l0k:0.32,l1h:0.05,l1k:0.12,a0x:-1.05+Math.sin(t*1.3)*0.02,a0z:0.05,e0:-0.35,a1x:-1.0,a1z:0.05,e1:-0.4,y:-0.03};}
-function makeHolders(list){clearHolders();for(const A of (list||MT.map(T=>T.act))){if(A.w>1)continue;makeHolder(A.s-1.05,A.w+0.05);A.held=true;}}
-function makeKeirinHolders(list){clearHolders();for(const A of list)makeHolder(A.s-1.05,A.w);}
+// the photo-modelled holder goes to the player's rider, or to the held rider closest to the player
+function photoHolderFor(list){if(!list.length)return null;if(!player||list.includes(player))return player?player:list[0];
+  let best=list[0],bd=1e9;for(const A of list){const d=Math.abs(A.s-player.s)+Math.abs(A.w-player.w);if(d<bd){bd=d;best=A;}}return best;}
+function makeHolders(list){clearHolders();const L=(list||MT.map(T=>T.act)).filter(A=>A.w<=1),F=photoHolderFor(L);for(const A of L){makeHolder(A.s-1.05,A.w+0.05,A===F);A.held=true;}}
+function makeKeirinHolders(list){clearHolders();const F=photoHolderFor(list);for(const A of list)makeHolder(A.s-1.05,A.w,A===F);}
 function clearHolders(){for(const h of HOLDERS)scene.remove(h.r.g);HOLDERS=[];for(const r of riders)r.held=false;}
 function releaseHolders(){for(const h of HOLDERS)if(h.st==='hold'){h.st='push';h.t=-h.wait;}if(mode!=='keirin')for(const r of riders)if(r.held&&r.model.g.visible)r.v=Math.max(r.v,1.3);}   // the holders' shove
 // position on the track / blue band (w >= -BAND) or on the wooden apron further in (w < -BAND)
