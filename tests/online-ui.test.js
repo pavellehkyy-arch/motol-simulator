@@ -98,7 +98,7 @@ test('žebříček: zlatá přezdívka dostane třídu gold, ostatní ne (a ciz�
     { place: 3, nickname: 'Hacker', best_time_s: '62', best_points: null, wins: 0, badge: 'x" onclick="y' }]) });
   O._ui.open('board');
   await new Promise((r) => setTimeout(r, 30));
-  const gold = box.find((e) => e.tag === 'td' && e.className === 'gold');
+  const gold = box.find((e) => e.tag === 'span' && e.className === 'gold');
   assert.strictEqual(gold.length, 1);
   assert.match(gold[0].textContent, /Zlatý/);
 });

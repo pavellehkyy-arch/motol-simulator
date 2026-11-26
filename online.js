@@ -276,9 +276,10 @@
       '#onlineOv table{width:100%;border-collapse:collapse;font-size:14px}' +
       '#onlineOv td{padding:5px 4px;border-top:1px solid #0001}' +
       '#onlineOv tr.me td{font-weight:900;background:#c6ff1a55}' +
-      '#onlineOv td.gold{font-weight:900;color:transparent;background:linear-gradient(100deg,#b8860b 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#b8860b 100%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}' +
+      '#onlineOv span.gold{font-weight:900;color:#c99700}' +
+      '@supports ((-webkit-background-clip:text) or (background-clip:text)){#onlineOv span.gold{color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(100deg,#a67400 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#a67400 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}}' +
       '@keyframes onGold{0%{background-position:150% 0}100%{background-position:-100% 0}}' +
-      '@media (prefers-reduced-motion:reduce){#onlineOv td.gold{animation:none}}' +
+      '@media (prefers-reduced-motion:reduce){#onlineOv span.gold{animation:none}}' +
       '#onlineOv .os{font-size:12px;opacity:.7}';
     document.head.appendChild(st);
 
@@ -424,7 +425,7 @@
         r.rows.forEach(function (x) {
           var mine = P && P.nickname && x.nickname === P.nickname;
           tb.appendChild(h('tr', { class: mine ? 'me' : '' }, [
-            h('td', { text: x.place + '.' }), h('td', { text: String(x.nickname), class: x.badge === 'gold' ? 'gold' : '' }), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
+            h('td', { text: x.place + '.' }), h('td', x.badge === 'gold' ? null : { text: String(x.nickname) }, x.badge === 'gold' ? [h('span', { class: 'gold', text: String(x.nickname) })] : null), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
         });
         list.appendChild(tb);
       });
