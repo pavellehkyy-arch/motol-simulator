@@ -2444,7 +2444,7 @@ function playerControl(dt){
     if(ah){R.follow=ah;const vT=ah.v+(gap-(ah===DERNY?2.2:1.9))*0.5;const cda=R.cda*(1-R.draft);
       const brake=vT<R.v-0.3;const Pt=clamp((0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+(brake?900:260)*(vT-R.v)*(brake?R.v/6:1),-2600,raceTime<6?480:1150);R.fP=(R.fP==null?Pt:R.fP+(Pt-R.fP)*Math.min(1,dt*6));R.power=R.fP;}
     else R.fP=null;
-    if(!ah){const cruise=mode==='sprint'&&e<0.8;R.gearAdd=!cruise&&e>=0.12?(R.gearW||0):0;   // shop discs: +20 W each on top of the power you ask for
+    if(!ah){const cruise=mode==='sprint'&&e<0.8;R.gearAdd=!cruise&&e>=0.12?(R.gearW||0):0;   // shop gear (wheels + helmet) on top of the power you ask for
       R.power=(cruise?spCruise(R,e):effortPower(e))+R.gearAdd;}}
   let sd=0;if(keys.left)sd-=1;if(keys.right)sd+=1;
   // slot into the slipstream: when you close on a rider and aren't steering, line up behind his wheel
@@ -2677,10 +2677,10 @@ const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,
 const SHOP_ITEMS=[   // price in penízky; w = extra watts (only what you wear counts: one front wheel, one rear wheel, one helmet); tab: kola / helmy; slot f/r + wk = makeWheel kind
   {id:'wire_f',tab:'kola',slot:'f',wk:'wire',name:'Přední výplet',desc:'Klasické kolo s dráty. Základ, máš ho vždycky.',price:0,w:0,free:true},
   {id:'wire_r',tab:'kola',slot:'r',wk:'wire',name:'Zadní výplet',desc:'Klasické kolo s dráty. Základ, máš ho vždycky.',price:0,w:0,free:true},
-  {id:'spoke5_f',tab:'kola',slot:'f',wk:5,name:'Přední loukoťák',desc:'Karbonové kolo s pěti loukotěmi dopředu. +10 W',price:500,w:10},
-  {id:'spoke5_r',tab:'kola',slot:'r',wk:5,name:'Zadní loukoťák',desc:'Karbonové kolo s pěti loukotěmi dozadu. +10 W',price:500,w:10},
-  {id:'disc_f',tab:'kola',slot:'f',wk:'disc',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +20 W',price:1000,w:20},
-  {id:'disc_r',tab:'kola',slot:'r',wk:'disc',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +20 W',price:1000,w:20},
+  {id:'spoke5_f',tab:'kola',slot:'f',wk:5,name:'Přední loukoťák',desc:'Karbonové kolo s pěti loukotěmi dopředu. +15 W',price:500,w:15},
+  {id:'spoke5_r',tab:'kola',slot:'r',wk:5,name:'Zadní loukoťák',desc:'Karbonové kolo s pěti loukotěmi dozadu. +15 W',price:500,w:15},
+  {id:'disc_f',tab:'kola',slot:'f',wk:'disc',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +25 W',price:1000,w:25},
+  {id:'disc_r',tab:'kola',slot:'r',wk:'disc',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +25 W',price:1000,w:25},
   {id:'helm_road',tab:'helmy',kind:'road',name:'Silniční helma',desc:'Černobílá, plná větráků. Základ, máš ji vždycky.',price:0,w:0,free:true},
   {id:'helm_aero',tab:'helmy',kind:'aero',name:'Aero helma',desc:'Hladká bílá skořepina, málo větráků. +10 W',price:1500,w:10},
   {id:'helm_shield',tab:'helmy',kind:'shield',name:'Aero helma se štítem',desc:'Bílá perleť a duhový štít na magnetech. +20 W',price:2500,w:20},
