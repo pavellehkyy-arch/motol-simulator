@@ -277,9 +277,13 @@
       '#onlineOv td{padding:5px 4px;border-top:1px solid #0001}' +
       '#onlineOv tr.me td{font-weight:900;background:#c6ff1a55}' +
       '#onlineOv span.gold{font-weight:900;color:#c99700}' +
-      '@supports ((-webkit-background-clip:text) or (background-clip:text)){#onlineOv span.gold{color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(100deg,#a67400 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#a67400 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}}' +
+      '.obd{text-align:left;font-size:14px}.obd .ot{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 8px}' +
+      '.obd .ot button{font:inherit;font-size:12px;font-weight:800;border:0;border-radius:8px;padding:6px 8px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer}' +
+      '.obd .ot button.on{background:#c6ff1a;color:#111}.obd table{width:100%;border-collapse:collapse}.obd td{padding:5px 4px;border-top:1px solid #fff2}' +
+      '.obd tr.me td{font-weight:900;color:#c6ff1a}.obd span.gold{font-weight:900;color:#ffd700}' +
+      '@supports ((-webkit-background-clip:text) or (background-clip:text)){#onlineOv span.gold,.obd span.gold{color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(100deg,#a67400 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#a67400 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}}' +
       '@keyframes onGold{0%{background-position:150% 0}100%{background-position:-100% 0}}' +
-      '@media (prefers-reduced-motion:reduce){#onlineOv span.gold{animation:none}}' +
+      '@media (prefers-reduced-motion:reduce){#onlineOv span.gold,.obd span.gold{animation:none}}' +
       '#onlineOv .os{font-size:12px;opacity:.7}';
     document.head.appendChild(st);
 
@@ -404,20 +408,19 @@
       if (mode === 'bodovacka' || mode === 'madison') return (r.best_points == null ? '–' : r.best_points + ' b');
       return (r.wins || 0) + '× vítěz';
     }
-    function viewBoard() {
-      box.appendChild(h('h2', { text: '🏆 Žebříček' }));
+    /* záložky disciplín + tabulka; kreslí se do okna žebříčku i do televize na ploše */
+    function boardInto(wrap, state, rerender, alive) {
       var tabs = h('div', { class: 'ot' });
       MODES.forEach(function (m) {
-        tabs.appendChild(h('button', { text: m[1], class: m[0] === ctx.boardMode ? 'on' : '',
-          on: { click: function () { ctx.boardMode = m[0]; render(); } } }));
+        tabs.appendChild(h('button', { text: m[1], class: m[0] === state.boardMode ? 'on' : '',
+          on: { click: function () { state.boardMode = m[0]; rerender(); } } }));
       });
-      box.appendChild(tabs);
+      wrap.appendChild(tabs);
       var list = h('div', { text: 'Načítám…' });
-      box.appendChild(list);
-      box.appendChild(closeBtn());
-      var mode = ctx.boardMode;
+      wrap.appendChild(list);
+      var mode = state.boardMode;
       O.leaderboard(mode).then(function (r) {
-        if (cur !== 'board' || ctx.boardMode !== mode) return;
+        if (!alive() || state.boardMode !== mode) return;
         list.textContent = '';
         if (!r.ok) { list.textContent = msgFor(r.err); return; }
         if (!r.rows.length) { list.textContent = 'Zatím tu nikdo není. Buď první!'; return; }
@@ -430,6 +433,19 @@
         list.appendChild(tb);
       });
     }
+    function viewBoard() {
+      box.appendChild(h('h2', { text: '🏆 Žebříček' }));
+      boardInto(box, ctx, render, function () { return cur === 'board'; });
+      box.appendChild(closeBtn());
+    }
+    /* žebříček v televizi na ploše: O.board(el) překreslí obsah prvku el */
+    var tvGen = 0;
+    O.board = function (el) {
+      if (!el) return;
+      var my = ++tvGen;
+      el.innerHTML = '';
+      boardInto(el, ctx, function () { O.board(el); }, function () { return my === tvGen; });
+    };
 
     /* lišta v menu: žebříček a účet */
     var bar = document.getElementById('onlineBar');

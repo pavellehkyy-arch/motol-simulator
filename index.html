@@ -119,6 +119,7 @@ tr.me td{color:#ffd166;font-weight:800}
 #walkUI{position:fixed;inset:0;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
 #joy{position:absolute;left:0;top:0;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:rgba(10,20,35,.38);border:2px solid rgba(255,255,255,.45);pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #joy i{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 2px 10px rgba(0,0,0,.45)}
+#tvTabs{display:flex;gap:6px;margin:0 0 10px}#tvTabs button{flex:1;font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:9px 6px;cursor:pointer;background:rgba(255,255,255,.12);color:#fff}#tvTabs button.on{background:#c6ff1a;color:#111}
 body.walking #results{background:none;pointer-events:none;align-items:flex-start}body.walking #results .card{pointer-events:auto;background:rgba(8,20,40,.88);border-radius:16px;padding:10px 14px;max-height:78vh}
 body.cerwalk #againBtn,body.cerwalk #menuBtn{display:none}
 body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,body.cerwalk #walkMsg{display:none}
@@ -296,8 +297,11 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 </div>
 <div id="results" class="screen" style="display:none">
   <div class="card">
+    <div id="tvTabs" style="display:none"><button data-t="res" class="on">📋 Výsledky závodu</button><button data-t="board">🏆 Žebříček</button></div>
     <h1 style="font-size:32px" id="resTitle">VÝSLEDKY</h1>
     <table id="resTable"></table>
+    <div id="tvNone" style="display:none;padding:14px 4px;opacity:.85">Zatím žádný závod – výsledky tu uvidíš po první jízdě.</div>
+    <div id="tvBoard" class="obd" style="display:none"></div>
     <div class="modes">
       <button class="go" id="againBtn">Jet znovu</button>
       <button class="go alt" id="menuBtn">Menu</button>
@@ -3457,7 +3461,7 @@ $('c').addEventListener('click',e=>{if(phase!=='ceremony'||!TVMESH)return;const 
   if(COACH&&ray.intersectObject(COACH.g,true).length){showCoach();return;}
   if(SHOP&&ray.intersectObject(SHOP,true).length){openShop();return;}
   if(ray.intersectObject(TVMESH).length){$('results').style.display='flex';$('ceremony').style.display='none';}});
-$('resClose').onclick=()=>{$('results').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
+$('resClose').onclick=()=>{$('results').style.display='none';tvReset();if(phase==='ceremony')$('ceremony').style.display='block';};
 function showResults(display){
   let h='';
   if(mode==='madison'){$('resTitle').textContent=player.crashed?'MADISON · PÁD 🚑':'MADISON · VÝSLEDKY';
@@ -3940,7 +3944,7 @@ function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();
   for(const z of Z)if(z.ic){z.tag=walkTag(z.ic);z.tag.position.set(z.p.x,(z.id==='start'?st.y:FLOOR_Y)+z.h,z.p.z);WALK.tags.push(z.tag);}
   return WALK.zones=Z;}
 function walkSay(t,sec){const m=$('walkMsg');m.innerHTML=t;m.style.display=t?'block':'none';WALK.msgT=sec||0;}
-function walkOpen(id){if(id==='tv'){if(WALK_RACED){$('againBtn').style.display='none';$('menuBtn').style.display='none';$('results').style.display='flex';}else walkSay('📺 Zatím žádný závod – výsledky tu uvidíš po první jízdě.',3.5);}
+function walkOpen(id){if(id==='tv'){$('againBtn').style.display='none';$('menuBtn').style.display='none';$('tvTabs').style.display='flex';tvTab(WALK_RACED||!window.Online?'res':'board');$('results').style.display='flex';}
   else if(id==='shop')openShop();
   else if(id==='coach')showCoach();
   else if(id==='start'){$('walkRaceBack').textContent='Zpět na plochu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
@@ -3955,7 +3959,12 @@ function albiTick(dt){const A=ALBI;if(!A||!A.r.g.visible)return;const r=A.r;r.t+
   r.g.rotation.y=A.head;const T={hy:d<9?clamp(ang,-1.0,1.0):Math.sin(r.t*0.3)*0.4,lean:0.02,y:Math.sin(r.t*1.6)*0.004,l0h:0.04,l1h:-0.03};
   if(A.wave>0){A.wave-=dt;const w=Math.min(1,A.wave*2,(2.4-A.wave)*4);T.a0x=-2.6*w;T.a0z=(0.35+Math.sin(r.t*11)*0.35)*w;T.e0=-0.5*w;T.mo=0.6*w*(0.5+0.5*Math.sin(r.t*14));}
   poseHuman(r,T,1-Math.exp(-dt*8));}
-function walkClose(id){if(id==='tv'){$('results').style.display='none';walkSay('');}
+// TV on the floor: switch between the last race's results and the online leaderboard
+function tvTab(t){if(t==='board'&&!(window.Online&&Online.board))t='res';for(const b of $('tvTabs').children)b.classList.toggle('on',b.dataset.t===t);const r=t==='res';
+  $('resTitle').style.display=$('resTable').style.display=r&&WALK_RACED?'':'none';$('tvNone').style.display=r&&!WALK_RACED?'':'none';$('tvBoard').style.display=r?'none':'';if(!r)Online.board($('tvBoard'));}
+function tvReset(){$('tvTabs').style.display='none';$('tvNone').style.display='none';$('tvBoard').style.display='none';$('resTitle').style.display=$('resTable').style.display='';}
+$('tvTabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){tvTab(b.dataset.t);tone(660,0.06,0.04,'triangle');}});
+function walkClose(id){if(id==='tv'){$('results').style.display='none';tvReset();walkSay('');}
   else if(id==='shop')$('shop').style.display='none';
   else if(id==='coach'){if($('coachBox').style.display==='block')$('coachClose').onclick();}
   else if(id==='start')$('walkRace').style.display='none';}

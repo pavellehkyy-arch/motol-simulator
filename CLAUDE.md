@@ -5,7 +5,7 @@
 ## Online účty a žebříček (Supabase)
 
 - Celé napojení je v samostatném souboru `online.js` (bez knihoven, volá Supabase přes `fetch`). Hra ho načítá přes `<script src="online.js" defer>`. Když selže, hra běží dál jen lokálně.
-- Zásahy do `index.html` jsou jen čtyři: načtení skriptu, hák `Online.report(...)` v `startCeremony` (po výpočtu `me`), větev `Online.buy(id)` na začátku `buyItem` a výjimka `#onlineOv` v globálním click-handleru, který jinak odostřuje (blur) každé aktivní pole a nedal by psát do okna přihlášení.
+- Zásahy do `index.html` jsou jen pět: načtení skriptu, hák `Online.report(...)` v `startCeremony` (po výpočtu `me`), větev `Online.buy(id)` na začátku `buyItem`, výjimka `#onlineOv` v globálním click-handleru, který jinak odostřuje (blur) každé aktivní pole a nedal by psát do okna přihlášení, a `Online.board(el)` v `tvTab` (televize na ploše přepíná Výsledky závodu / Žebříček).
 - Server (projekt `maiswaiilplgvewuurux`, Frankfurt): tabulky `profiles`, `results`, `purchases`, `shop_items` se zapnutým RLS. Hráč do nich nezapisuje přímo, jen přes funkce `set_nickname`, `submit_result`, `buy_item`, `import_local_progress`, `get_leaderboard`. Odměnu za závod počítá hra, server ji omezí (max 400 za závod, 5000 za 24 h).
 - Přezdívky čekají na schválení majitelem (`profiles.nickname_status`), výsledky jde skrýt (`results.hidden`).
 - Zlatá třpytivá přezdívka v žebříčku: `profiles.badge = 'gold'` (nastavuje jen majitel v SQL, `get_leaderboard` ho vrací, `online.js` přidá třídu `gold`).
