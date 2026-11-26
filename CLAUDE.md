@@ -53,6 +53,9 @@ Agenty z `.claude/agents/` volej sám, bez čekání na pokyn, podle tohoto pře
 | Nízké FPS, zasekávání, paměť | `performance-optimizer` |
 | Něco nefunguje, pád, divné chování | `bug-hunter` |
 | Po každé větší změně kódu, před commitem | `code-reviewer` a potom `playtester` |
+| Změna herní logiky (body, pořadí, kola, vyřazování) | `test-writer` |
+| Změna rychlostí, energie, AI nebo podezření na nevyváženost | `balance-simulator` |
+| Po větší změně nebo přidání režimu | `docs-keeper` (mapa řádků a README) |
 | Rozdělení `index.html` na moduly, úklid kódu | `refactorer` |
 | Texty hry, README, české popisky | `czech-copywriter` |
 | PWA, GitHub Pages, verze, release | `release-manager` |
