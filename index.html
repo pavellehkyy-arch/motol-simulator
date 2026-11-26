@@ -430,9 +430,9 @@ function adTex(t1,t2,bg,fg,ac){
   g.font='900 104px system-ui,Arial,sans-serif';g.fillText(t1,W/2+14,132,W-90);
   g.font='600 54px system-ui,Arial,sans-serif';if('letterSpacing' in g)g.letterSpacing='14px';g.fillText(t2,W/2+14,212,W-90);
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;}
-// 6 banners on the wooden barrier, evenly round the lap: 3x Varna Studio (both straights + one bend) and 3 others
-const BANNERS=[[SF,'logo'],[L0/6,['VELODROM','PRAHA-MOTOL','#ffffff','#14284a','#d62828']],[L0/3,['MOTOL','SIMULATOR','#14284a','#ffffff','#c6ff1a']],
-  [L0/2,'logo'],[2*L0/3,['JEĎ','NAPLNO','#f2c230','#14284a','#14284a']],[5*L0/6,'logo']];
+// 6 banners on the wooden barrier, evenly round the lap, alternating: Varna Studio, other, Varna Studio, ...
+const BANNERS=[[SF,'logo'],[L0/6,['VELODROM','PRAHA-MOTOL','#ffffff','#14284a','#d62828']],[L0/3,'logo'],
+  [L0/2,['MOTOL','SIMULATOR','#14284a','#ffffff','#c6ff1a']],[2*L0/3,'logo'],[5*L0/6,['JEĎ','NAPLNO','#f2c230','#14284a','#14284a']]];
 function buildBanners(){
   const logo=new THREE.TextureLoader().load('varna-studio.png');logo.anisotropy=MAXANI;
   const BW=4.0,BH=1.0,N=16,p=new THREE.Vector3();
