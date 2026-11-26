@@ -261,6 +261,9 @@
       '.onb{font:inherit;font-size:13px;font-weight:800;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:8px 12px;cursor:pointer}' +
       '#onlineOv{position:fixed;left:0;top:0;right:0;bottom:0;z-index:90;display:none;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;background:rgba(5,12,28,.78)}' +
       '#onlineOv .oc{background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:16px;max-width:440px;width:100%;max-height:100%;overflow:auto;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.4;text-align:left}' +
+      '#onlineOv,#onlineOv *{-webkit-user-select:text;user-select:text}' +
+      '#onlineOv .oc{touch-action:pan-y}' +
+      '#onlineOv .oi{touch-action:manipulation;-webkit-appearance:none;appearance:none}' +
       '#onlineOv h2{margin:0 0 8px;font-size:18px}' +
       '#onlineOv p{margin:0 0 10px}' +
       '#onlineOv .oi{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:10px 12px;margin:0 0 10px;border:2px solid #cfc9b8;border-radius:10px;background:#fff;color:#111}' +
