@@ -1967,7 +1967,7 @@ function resetRiders(){
   order.forEach((ri,slot)=>{const R=riders[ri];const row=slot>>1;
     Object.assign(R,{s:SF-1.2-row*2.3,w:slot%2?1.9:0.8,v:0,h:0,power:0,energy:100,wp:22000,crank:Math.random()*6,draft:0,finished:false,time:0,targetW:0,lane:0.4+Math.random()*1.0,mood:1,sprintAt:170+Math.random()*190,attackT:0,lean:0,dw:0,cda:R.player?0.25:0.26,realP:0,crashed:false,crash:null,targetWp:0,latched:false,eRate:0,intent:0,pushedT:0,contact:0,pullT:0,swing:0,str:R.player?1:0.85+Math.random()*0.3,aggr:Math.random(),highLane:1.6+Math.random()*1.8,pullAt:55+Math.random()*20,ftp:R.player?330:Math.round(TSTAT[R.team].ftp[0]+Math.random()*(TSTAT[R.team].ftp[1]-TSTAT[R.team].ftp[0]))});
     if(!R.player){const T=TSTAT[R.team];R.str=T.str[0]+Math.random()*(T.str[1]-T.str[0]);R.aggr=T.aggr[0]+Math.random()*(T.aggr[1]-T.aggr[0]);R.lane=T.lane+Math.random()*0.5;R.front=T.front;}
-    R.wp=R.player?20000:R.kick?25000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='elim'||mode==='keirin'||mode==='sprint'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
+    R.wp=R.player?20000:R.kick?25000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='elim'||mode==='keirin'||mode==='sprint'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.mark=false;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
     if(mode==='kilo'&&R===player){R.s=START_S-0.6;R.w=0.5;}
     R.targetWp=R.w;R.model.g.rotation.set(0,0,0);
     R.h=surfY(R.s,R.w);R.targetW=R.w;R.prevS=R.s;});
@@ -2151,7 +2151,7 @@ function updatePace(dt){if(mode==='kilo'||mode==='sprint')return;if(mode==='elim
   if(mode==='points'){if(left<3)racePace=Math.max(racePace,12.0);if(left<2)racePace=Math.max(racePace,12.5);if(left<1.2)racePace=Math.max(racePace,13.0);}   // wound up before every sprint, but a points race is long
   else{const md=mode==='madison'?0.5:0;if(left<4)racePace=Math.max(racePace,12.3+md);if(left<2.2)racePace=Math.max(racePace,12.9+md);if(left<1.4)racePace=Math.max(racePace,13.5+md);}
   const rpT=Math.min(racePace,NEU_V+Math.max(0,raceTime-goT)*0.22);racePaceNow+=(rpT-racePaceNow)*Math.min(1,dt/5);}   // the bunch changes pace gradually, not in steps   // after the flying start the bunch winds it up over ~15 s
-function freeAt(R,w,ds){ds=ds||2.0;for(const o of riders){if(o===R||!o.model.g.visible)continue;if(o.crashed&&(o.crash.t>1.5||o.w<-0.4))continue;const g=gapTo(R,o);if(g<0&&Math.abs(o.w-R.w)<0.64&&Math.abs(o.w-w)>=Math.abs(o.w-R.w))continue;   /* the man right on my wheel doesn't stop me moving away from him */const back=o.v>R.v+0.5?4.5:3;const fwd=ds+Math.max(0,R.v-o.v)*1.6;if(g<fwd&&g>-back&&Math.abs(o.w-w)<0.64)return false;}return true;}
+function freeAt(R,w,ds){ds=ds||2.0;for(const o of riders){if(o===R||!o.model.g.visible)continue;if(o.crashed&&(o.crash.t>1.5||o.w<-0.4))continue;const g=gapTo(R,o);if((g<0||g>=BIKE_L)&&Math.abs(o.w-R.w)<0.64&&Math.abs(o.w-w)>Math.abs(o.w-R.w))continue;   /* the man right on my wheel – or the one whose wheel I'm on – doesn't stop me moving away from him */const back=o.v>R.v+0.5?4.5:3;const fwd=ds+Math.max(0,R.v-o.v)*1.6;if(g<fwd&&g>-back&&Math.abs(o.w-w)<0.64)return false;}return true;}
 function strength(R){return R.str*(0.6+0.4*R.energy/100)*(1+0.35*clamp((R.realP||0)/R.ftp-1,0,1.5));}
 // ---------- race brain: groups, chases, rotating pacelines, attacks; every bot has his own hidden stamina (energy) and rides by it ----------
 let AIG=null;
@@ -2174,6 +2174,7 @@ function analyzeField(){const RP=aiPace();const L=riders.filter(o=>o.model.g.vis
     g.chase=chaseDesire(g);
     let v=RP;
     if(g.i>bunch.i){const gap=g.gapAhead;v=RP+clamp(gap*0.03,0.3,1.6);}   // dropped: try to get back on
+    else if(g.chase>0.2&&mode==='keirin'&&g.workers)v=Math.max(RP,vEq(g.ahead.tail)+clamp(g.gapAhead*0.04,0.3,2.2));   // keirin: only ~3 laps left, everybody's race is at stake – ride at the attacker's speed and more
     else if(g.chase>0.2)v=g.workers?RP+Math.min(1.6,g.chase*(0.7+1.0*clamp(g.gapAhead/55,0,1))*(0.45+0.55*g.eAvg/100)*(g.workers>=3?1:g.workers===2?0.85:0.65)):RP-0.3;   // nobody willing to work -> the chase dies
     else if(g.brk&&!g.intent)v=RP-(easy?1.6:1.1);   // rolled off the front by accident: sit up and wait for the bunch
     else if(g.brk){const e=g.m.reduce((a,o)=>a+o.energy,0)/g.m.length;v=g.m.length===1&&e<30&&!g.head.player?RP-0.6:RP+0.7+0.9*e/100;}   // the break rides to stay away – or sits up when it's empty
@@ -2206,8 +2207,8 @@ function botAI(R,dt){const RP=aiPace();
     if(d<gap&&d<40&&Math.abs(o.w-R.w)<0.9){gap=d;ahead=o;}}
   if(mode==='madison')for(const o of riders){if(!o.resting||o.crashed||teamOf(o)===teamOf(R))continue;const d=gapTo(R,o);if(d>0&&d<20&&Math.abs(o.w-R.w)<1.0&&o.v<R.v){wreck={w:o.w>1.1?0.4:o.w+0.95,crash:{t:0},mad:true};if(d<10&&o.slowT>0)wreck.brake=o.v+0.3;}}
   for(const c of cans){if(c.t<-0.3)continue;const d=gapTo(R,c);if(d>0&&d<22&&Math.abs(c.w-R.w)<0.9)wreck={w:c.w,crash:{t:0}};}
-  const lastLine=toGo>=FIN-eS-1,inter=(mode==='points'||mode==='madison')&&!lastLine;
-  const sprinting=toGo<R.sprintAt*(inter?0.6:1)*(0.65+0.35*R.energy/100)&&R.energy>(inter?30:2)&&(!inter||!R.grp||R.grp.i===0||R.grp.gapFront<12);   // an empty tank waits longer before it kicks; a mid-race sprint is only worth it with legs and a place near the front
+  const keirin0=mode==='keirin';const lastLine=toGo>=FIN-eS-1,inter=(mode==='points'||mode==='madison')&&!lastLine;
+  const sprinting=(toGo<R.sprintAt*(inter?0.6:1)*(keirin0?0.85+0.15*R.energy/100:0.65+0.35*R.energy/100)||(mode==='keirin'&&R.grp&&R.grp.gapFront>8&&toGo<R.sprintAt+R.grp.gapFront*5))&&R.energy>(inter?30:2)&&(!inter||!R.grp||R.grp.i===0||R.grp.gapFront<12);   // keirin: somebody is clear -> go earlier, the gap has to be closed too   // an empty tank waits longer before it kicks; a mid-race sprint is only worth it with legs and a place near the front
   const neutral=isNeutral(),keirin=mode==='keirin';
   // ---- decisions, a couple of times a second: attack, follow a move, give up a hopeless chase ----
   R.thinkT=(R.thinkT||Math.random()*0.5)-dt;
@@ -2220,10 +2221,19 @@ function botAI(R,dt){const RP=aiPace();
       else if(mode==='scratch'&&toFin>1.8&&toFin<10)rate=0.0006+0.003*R.aggr;
       else if(keirin&&lapsLeft>1.7&&lapsLeft<4.6)rate=R.aggr/16;                                           // somebody always goes long after the derny
       if(Math.random()<rate*0.5){R.brkFlag=true;R.attackT=keirin?4+Math.random()*5:mode==='points'?10+Math.random()*10:6+Math.random()*7;R.attackFrom=R.s;}}
+    // keirin: whoever goes after the derny is marked at once – the man right behind him jumps onto his wheel, nobody lets him ride away
+    const markOn=(keirin&&KR&&KR.free)||(mode==='scratch'&&toFin<4&&eS-START_S>0.7*L0);   // keirin after the derny, the end of a scratch: nobody gets a free ride away
+    if(markOn&&!sprinting&&R.attackT<=0&&R.energy>30){for(const o of riders){if(o===R||o.crashed||o.dsq||o.finished||!o.model.g.visible||!(o.attackT>0||o.atkT>0))continue;const d=gapTo(R,o);if(d<2.5||d>35)continue;
+      const between=riders.filter(x=>x!==R&&x!==o&&x.model.g.visible&&!x.crashed&&!x.dsq&&gapTo(R,x)>0&&gapTo(R,x)<d&&!(x.bridge===o)).length;
+      if(between<=1&&!riders.some(x=>x!==R&&x.bridge===o&&gapTo(x,o)<d)&&Math.random()<(between?0.35:0.75)+0.25*R.aggr){R.attackT=8+Math.random()*3;R.bridge=o;R.mark=true;R.brkFlag=true;break;}}
+      // he's coming from behind at full gas: I look back, see it and wind it up before he's past – so I can jump onto his wheel as he goes by
+      if(!(R.attackT>0))for(const o of riders){if(o===R||o.crashed||o.dsq||!o.model.g.visible||!(o.atkT>0||o.attackT>0))continue;const d=gapTo(R,o);if(d<-14||d>2.5||o.v<R.v+1.0)continue;
+        if(Math.random()<0.55+0.35*R.aggr){R.attackT=8+Math.random()*3;R.bridge=o;R.mark=true;R.brkFlag=true;break;}}}
     // follow a fresh move: an aggressive rider with legs jumps across to the attacker
     if(!neutral&&!sprinting&&R.attackT<=0&&g.bunch&&R.energy>66&&R.aggr>0.55&&!keirin)for(const o of riders){if(o===R||!(o.attackT>0)||o.crashed||o.team===R.team)continue;const d=gapTo(R,o);
       if(d>4&&d<28&&!riders.some(x=>x.bridge===o)&&Math.random()<0.12*R.aggr){R.attackT=5+Math.random()*4;R.bridge=o;R.brkFlag=true;break;}}}
-  if(R.attackT>0){R.attackT-=dt;if(R.attackT<=0)R.bridge=null;}
+  if(R.attackT>0){R.attackT-=dt;if(R.mark&&R.bridge&&!R.bridge.crashed&&!R.bridge.finished&&R.energy>12){const d=gapTo(R,R.bridge);if(d>3&&d<60)R.attackT=Math.max(R.attackT,1);}   // keirin: I don't give up the wheel until I'm on it
+    if(R.attackT<=0){R.bridge=null;R.mark=false;}}
   // somebody sits in front of me and won't ride: come round him and do the work myself
   R.passT=Math.max(0,(R.passT||0)-dt);
   if(anyA&&gapA<8&&!neutral&&R.grp&&anyA.grp===R.grp&&vEq(anyA)<R.grp.vT-1.0&&(anyA.player||anyA.energy<=18||mateAhead(anyA))&&!sprinting&&R.energy>25&&!mateAhead(R)){R.stuckT=(R.stuckT||0)+dt;if(R.stuckT>2.5){R.passT=7;R.passWho=anyA;R.stuckT=0;}}else R.stuckT=0;   // whoever dawdles in front of me (the player too): I go round
@@ -2242,7 +2252,7 @@ function botAI(R,dt){const RP=aiPace();
   let vT=g.vT*R.mood;
   if(neutral){const ld=AIG&&AIG.G[0]?effS(AIG.G[0].head):eS;vT=NEU_V+clamp((ld-eS-4)*0.15,0,2.2);}   // neutral lap: close up into a compact bunch
   if(raceTime<5)vT=Math.min(vT,2+raceTime*2.2);
-  if(R.attackT>0)vT=R.bridge&&!R.bridge.crashed?Math.max(vEq(R.bridge)+Math.min(2.4,gapTo(R,R.bridge)*0.12),RP+1):RP+(mode==='points'?1.9:2.5);
+  if(R.attackT>0)vT=R.bridge&&!R.bridge.crashed?(R.mark?vEq(R.bridge)+clamp((gapTo(R,R.bridge)-2)*0.45,-1.5,3.2):Math.max(vEq(R.bridge)+Math.min(2.4,gapTo(R,R.bridge)*0.12),RP+1)):RP+(mode==='points'?1.9:2.5);
   if(!front&&!(R.attackT>0)&&R.pullT<=0&&anyA){const tgt=ahead&&gap<12?ahead:anyA;const d=tgt===ahead?gap:gapA;
     if(d<6&&!neutral)vT=Math.min(vT+0.6,vEq(tgt)+(d-1.9)*0.7);   // sit on the wheel
     else if(d<6)vT=Math.min(vT,vEq(tgt)+(d-1.9)*0.7);
@@ -2275,7 +2285,8 @@ function botAI(R,dt){const RP=aiPace();
   if(wreck)vT=Math.min(vT,R.v);
   if(wreck&&wreck.brake)vT=Math.min(vT,wreck.brake);
   const cda=R.cda*(1-R.draft),Pneed=(0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT;
-  const capP0=keirin?(sprinting?R.ftp*3.2:R.ftp*2.3):sprinting?R.ftp*(inter?2.2:3):R.attackT>0?R.ftp*1.7:front&&(chasing||g.brk)?R.ftp*(0.95+0.6*R.energy/100):lapsLeft>2.5?R.ftp*(0.95+0.4*R.energy/100):R.ftp*1.45,capP=empty?R.ftp*0.68:packLim&&R.energy>15?Math.max(packLim,capP0):capP0;
+  const bridging=R.attackT>0&&R.mark&&R.bridge&&gapTo(R,R.bridge)>3.5;   // shutting down a move: as hard as he went
+  const capP0=keirin?(sprinting?R.ftp*3.45:bridging?R.ftp*3.5:R.ftp*2.3):sprinting?R.ftp*(inter?2.2:3.45):bridging?R.ftp*3.3:R.attackT>0?R.ftp*1.7:front&&(chasing||g.brk)?R.ftp*(0.95+0.6*R.energy/100):lapsLeft>2.5?R.ftp*(0.95+0.4*R.energy/100):R.ftp*1.45,capP=empty?R.ftp*0.68:packLim&&R.energy>15?Math.max(packLim,capP0):capP0;
   const closing=!front&&anyA&&gapA>3.5&&gapA<GROUP_GAP*1.5&&R.energy>12;   // a short dig to get back on a wheel is always worth it
   if(R.held&&neutral&&raceTime<4&&!wreck)vT=Math.max(vT,Math.min(NEU_V,2+raceTime*2.2));   // standing start: the whole held column rolls off together, nobody waits for the man in front
   const Rv=vEq(R);const tight=ahead&&gap<dGap+1&&clos>0.8&&Math.abs(ahead.w-R.w)<0.5;R.power=clamp(Pneed+(sprinting||R.attackT>0||tight?620:380)*(vT-Rv)*(vT<Rv-0.3?Rv/5:1),wreck||tight?-2000:-900,closing&&!empty?Math.max(capP,R.ftp*1.35):capP);   // no brakes on a track bike: you back off the pedals
@@ -2290,7 +2301,8 @@ function botAI(R,dt){const RP=aiPace();
   if(sprinting){tw=0.55;if(ahead&&gap<16&&ahead.v<R.v-1.2)tw=ahead.w+0.9;}
   const wantPass=ahead&&gap<5&&(vT>ahead.v+0.4||sprinting||R.attackT>0)&&R.pullT<=0;
   if(wantPass){const up=ahead.w+0.85;if(freeAt(R,up,3))tw=up;else if(R.aggr>0.65&&lapsLeft<1.2)tw=up;else tw=Math.min(tw,ahead.w);}
-  if(R.attackT>0&&!wantPass)tw=ahead&&gap<8?ahead.w+0.85:0.55;
+  if(R.attackT>0&&R.mark&&R.bridge&&!sprinting)tw=R.bridge.w;
+  else if(R.attackT>0&&!wantPass)tw=ahead&&gap<8?ahead.w+0.85:0.55;
   if(g.gapFront>40&&(!anyA||gapA>15)&&!sprinting&&!(R.attackT>0))tw=0.45;   // dropped / lapped: hold the black line, the others pass above
   if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
@@ -2354,8 +2366,9 @@ function resolveContacts(dt){
       if(M===A){A.s-=BIKE_L-ds;A.v=Math.min(A.v,1);}else{M.w+=Math.sign(M.w-W.w||1)*(BODY_W-adw);}continue;}
     const solid=o=>!o.resting||o.slowT>0;
     if(it===0&&ds>=1.2&&adw<0.42&&solid(A)&&solid(B)){                                  // overlapping wheels
-      const rel=Math.abs(A.dw-B.dw),pl=A===player||B===player;
-      const aInto=A.dw*Math.sign(B.w-A.w||1);   // rider behind steering into the wheel in front
+      const dwE=o=>o.player&&o.dwA!=null&&Math.abs(o.dwA)<Math.abs(o.dw)?o.dwA:o.dw;   // the player: how he really moved, not what he asked for (pinned by a slide or a shoulder, he isn't steering into anybody)
+      const rel=Math.abs(dwE(A)-dwE(B)),pl=A===player||B===player;
+      const aInto=dwE(A)*Math.sign(B.w-A.w||1);   // rider behind steering into the wheel in front
       if(rel>(pl?0.35:0.7)&&aInto>0.3&&(Math.sign(B.w-A.w)===Math.sign(A.dw-B.dw)||adw<0.12)){
         if(mode==='sprint'&&!A.player){if(B.player&&Math.abs(B.dw)>0.5){A.hookBy=B;crashRider(A,'hook');}else{A.v=Math.max(0,A.v-6*dt);A.w=clamp(A.w+Math.sign(A.w-B.w||1)*0.8*dt,0.2,TW-0.8);}continue;}   // sprint: the bot rides his own wheel carefully – only your swerve can take him down
         crashRider(A,'hook');continue;}}
@@ -2400,6 +2413,7 @@ function crashUpdate(R,dt){const C=R.crash;C.t+=dt;C.v=Math.max(0,C.v-(C.slip?3.
   R.w=Math.max(-BAND-0.4,R.w+C.vw*dt);if(R.w<=-BAND-0.4)C.vw=0;C.yaw+=C.spin*dt;C.spin*=Math.exp(-2.2*dt);R.dw=0;}
 function simStep(dt,withPlayer){
   raceTime+=dt;if(mode==='keirin')dernyUpdate(dt);updatePace(dt);
+  if(player){player.dwA=player.wPrev!=null?(player.w-player.wPrev)/dt:0;player.wPrev=player.w;}   // real sideways movement over the last step
   if(withPlayer&&!player.crashed)playerControl(dt);
   if(mode==='elim'&&EL)EL.alive=riders.filter(aliveE);
   if(mode!=='kilo'&&mode!=='elim'&&mode!=='sprint')analyzeField();
@@ -3874,7 +3888,8 @@ function keirinPacedAI(R,dt){if(R.crashed)return;const D=DERNY;
     const slotS=Math.min(D.s-2.2-k*1.95,P?P.s-(Math.abs(R.w-P.w)>0.6?1.7:1.95):1e9),gs=slotS-R.s;   // my slot, but never ahead of the man drawn in front of me   // >0: I'm still behind my slot -> go, <0: ahead of it -> ease off
     vT=D.v+clamp(gs*0.8,-3,4.5);
     if(P){const g=gapTo(R,P);if(g<2.3&&Math.abs(R.w-P.w)<0.6)vT=Math.min(vT,P.v+(g-1.95)*0.8);   // never into his back wheel
-      tw=g>1.5?P.w:Math.max(R.w,P.w+0.7);}   // stay above him until he's in front, then slot in behind
+      tw=g>1.5?P.w:Math.max(R.w,P.w+0.95);
+      if(g<=1.5&&g>-8)vT=Math.max(vT,Math.min(P.v,D.v)-0.9);}   // I'm level with / in front of the man drawn ahead of me: move up out of his line and ease gently – never stop dead in front of him   // stay above him until he's in front, then slot in behind
     else tw=gapTo(R,D)>1.0?0.35:R.w;
     lim=KR.gunT<6?R.ftp*3:R.ftp*1.8;}
   else{let ah=null,ga=1e9;for(const o of line){const g=gapTo(R,o);if(g>0&&g<25&&g<ga&&Math.abs(o.w-R.w)<0.7){ga=g;ah=o;}}
