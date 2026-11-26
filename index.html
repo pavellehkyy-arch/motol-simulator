@@ -102,7 +102,7 @@ tr.me td{color:#ffd166;font-weight:800}
 .mcard .sub{animation:fadeUp .5s .3s both;margin-bottom:10px}
 .vk{display:inline-flex;align-items:center;gap:6px;background:rgba(198,255,26,.14);border:1px solid rgba(198,255,26,.6);border-radius:20px;padding:4px 12px;margin-bottom:16px;font-weight:900;font-size:16px;color:#c6ff1a;animation:fadeUp .5s .4s both}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.mgroup{margin:0 0 14px}.mhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;letter-spacing:.16em;color:#c6ff1a;margin:0 2px 8px;animation:fadeUp .5s .4s both}.mhead::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,rgba(198,255,26,.6),rgba(198,255,26,0))}.mhead.e{color:#7fd3ff}.mhead.e::after{background:linear-gradient(90deg,rgba(127,211,255,.6),rgba(127,211,255,0))}
+.mgroup{margin:0 0 14px}.mgrid.m2b{grid-template-columns:1fr 1fr}.m2b .mode b{font-size:1.35em}.mhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;letter-spacing:.16em;color:#c6ff1a;margin:0 2px 8px;animation:fadeUp .5s .4s both}.mhead::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,rgba(198,255,26,.6),rgba(198,255,26,0))}.mhead.e{color:#7fd3ff}.mhead.e::after{background:linear-gradient(90deg,rgba(127,211,255,.6),rgba(127,211,255,0))}
 .mode{pointer-events:auto;font:inherit;border:0;cursor:pointer;color:var(--f,#fff);background:var(--c);border-radius:16px;padding:18px 10px 16px;text-align:center;position:relative;overflow:hidden;
   box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 -4px 0 rgba(0,0,0,.18);animation:cardIn .55s calc(.45s + var(--i)*.09s) cubic-bezier(.2,1.3,.4,1) both;transition:transform .15s}
 .mode b{display:block;font-size:clamp(16px,4.4vw,21px);font-weight:900;letter-spacing:.03em}
@@ -255,20 +255,10 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
     <div class="sub">Velodrom Praha-Motol · v0.8</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
-    <div class="mgroup"><div class="mhead">⚡ SPRINTERSKÉ DISCIPLÍNY</div>
-    <div class="modes mgrid m3">
-      <button class="mode" id="btnSprint" style="--i:0;--c:#ffd166;--f:#111"><b>SPRINT</b><span>1 na 1 · na 2 vítězné</span></button>
-      <button class="mode" id="btnKeirin" style="--i:1;--c:#ff7a00"><b>KEIRIN</b><span>za dernou · 6 jezdců</span></button>
-      <button class="mode" id="btnKilo" style="--i:2;--c:#c6ff1a;--f:#111"><b>KILOMETR</b><span>6,5 kola na čas</span></button>
-    </div></div>
-    <div class="mgroup"><div class="mhead e">🫁 VYTRVALOSTNÍ DISCIPLÍNY</div>
-    <div class="modes mgrid">
-      <button class="mode" id="btnScratch" style="--i:3;--c:#e63946"><b>SCRATCH</b><span>13 kol · 10 jezdců</span></button>
-      <button class="mode" id="btnPoints" style="--i:4;--c:#0f9d8a"><b>BODOVAČKA</b><span>40 kol · sprint á 10 kol</span></button>
-      <button class="mode" id="btnMad" style="--i:5;--c:#2b5fb4"><b>MADISON</b><span>30 kol · dvojice</span></button>
-      <button class="mode" id="btnElim" style="--i:6;--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
-    </div></div>
-    <button class="mode" id="btnWalk" style="--i:7;--c:#14284a;width:100%;border:2px solid #c6ff1a"><b>🚶 PLOCHA</b><span>projdi si velodrom – televize, obchod, šéf, start</span></button>
+    <div class="modes mgrid m2b">
+      <button class="mode" id="btnStart" style="--i:0;--c:#e63946"><b>🏁 START</b><span>vyber si závod a jeď</span></button>
+      <button class="mode" id="btnWalk" style="--i:1;--c:#14284a;border:2px solid #c6ff1a"><b>🚶 PLOCHA</b><span>projdi si velodrom – televize, obchod, šéf, start</span></button>
+    </div>
   </div>
 </div>
 <div id="wipe"><i></i><i></i><i></i></div>
@@ -3529,7 +3519,7 @@ function startGun(){const f=$('flash');f.classList.remove('on');void f.offsetWid
   if(!actx||muted)return;try{const len=0.35,b=actx.createBuffer(1,actx.sampleRate*len,actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,4);
     const s=actx.createBufferSource(),g=actx.createGain(),fl=actx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=1800;g.gain.value=0.6;s.buffer=b;s.connect(fl);fl.connect(g);g.connect(actx.destination);s.start();}catch(e){}}
 let shake=0;
-$('btnSprint').onclick=()=>startRace('sprint');$('btnScratch').onclick=()=>startRace('scratch');$('btnKeirin').onclick=()=>startRace('keirin');$('btnPoints').onclick=()=>startRace('points');$('btnKilo').onclick=()=>startRace('kilo');$('btnMad').onclick=()=>startRace('madison');$('btnElim').onclick=()=>startRace('elim');$('againBtn').onclick=()=>startRace();
+$('btnStart').onclick=()=>{$('menu').style.display='none';$('walkRaceBack').textContent='Zpět do menu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');};$('againBtn').onclick=()=>startRace();
 
 $('menuBtn').onclick=()=>wipe(()=>{clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;});
 
@@ -3953,7 +3943,7 @@ function walkSay(t,sec){const m=$('walkMsg');m.innerHTML=t;m.style.display=t?'bl
 function walkOpen(id){if(id==='tv'){if(WALK_RACED){$('againBtn').style.display='none';$('menuBtn').style.display='none';$('results').style.display='flex';}else walkSay('📺 Zatím žádný závod – výsledky tu uvidíš po první jízdě.',3.5);}
   else if(id==='shop')openShop();
   else if(id==='coach')showCoach();
-  else if(id==='start'){$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
+  else if(id==='start'){$('walkRaceBack').textContent='Zpět na plochu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
   else if(id==='albi'){ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
     try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Čau Kemi!');u.lang='cs-CZ';u.rate=1.05;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}}
 let ALBI=null;
@@ -4010,8 +4000,8 @@ addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const 
 $('btnWalk').onclick=()=>wipe(walkStart);
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
 $('walkMenu').onclick=()=>wipe(()=>{walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
-$('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';};
-$('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b)wipe(()=>{walkStop();beginRace(b.dataset.m);});});
+$('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';if(phase==='menu')$('menu').style.display='flex';};
+$('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;if(phase==='walk')wipe(()=>{walkStop();beginRace(b.dataset.m);});else{$('walkRace').style.display='none';startRace(b.dataset.m);}});
 const _wc=new THREE.Vector3(),_wl=new THREE.Vector3();
 function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.g.visible)animCoach(dt,RCOACH);   // the bunch keeps rolling round the track while you walk
   const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
