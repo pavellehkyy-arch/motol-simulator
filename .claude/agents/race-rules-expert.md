@@ -1,6 +1,7 @@
 ---
 name: race-rules-expert
 description: Použij proaktivně, když se implementuje nebo mění pravidlo disciplíny (scratch, bodovačka, vylučovačka, madison, keirin, kilometr, rozjížďky) nebo start. Ověřuje shodu s pravidly UCI.
+model: sonnet
 tools: Read, Grep, Glob, WebSearch, WebFetch
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: game-designer
 description: Použij proaktivně před implementací nové featury, herního režimu, levelu nebo změny obtížnosti a vyváženosti. Navrhuje mechaniky a čísla, nepíše kód.
+model: sonnet
 tools: Read, Grep, Glob
 ---
 

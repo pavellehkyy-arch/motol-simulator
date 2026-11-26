@@ -1,6 +1,7 @@
 ---
 name: physics-tuner
 description: Použij proaktivně u úkolů o fyzice: rychlosti, klopení dráhy, závětří, energie a únava, kolize, pády, sjezd z klopení, ladění pocitu z jízdy.
+model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 

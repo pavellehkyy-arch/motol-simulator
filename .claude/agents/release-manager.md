@@ -1,6 +1,7 @@
 ---
 name: release-manager
 description: Použij u úkolů o nasazení a balení: GitHub Pages, PWA (manifest, ikony), náhled při sdílení (og.jpg), verze, commit zprávy, README před vydáním.
+model: sonnet
 tools: Read, Grep, Glob, Bash, Edit
 ---
 

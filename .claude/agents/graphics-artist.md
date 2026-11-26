@@ -1,6 +1,7 @@
 ---
 name: graphics-artist
 description: Použij proaktivně u úkolů o vzhledu: 3D modely (jezdci, kola, hala, rozhodčí, postavy), materiály, procedurální textury, světla, stíny, kamera, dresy.
+model: sonnet
 tools: Read, Grep, Glob
 ---
 

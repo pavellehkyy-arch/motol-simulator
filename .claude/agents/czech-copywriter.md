@@ -1,6 +1,7 @@
 ---
 name: czech-copywriter
 description: Použij proaktivně u úkolů o textech: české popisky ve hře, hlášky trenéra a komentátora, názvy, README, popis projektu, text pro sdílení.
+model: sonnet
 tools: Read, Grep, Glob, Edit
 ---
 

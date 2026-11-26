@@ -1,6 +1,7 @@
 ---
 name: ai-tactician
 description: Použij proaktivně u úkolů o chování soupeřů: taktika, útoky, střídání v balíku, stamina, sprint, pozicování, obtížnost AI.
+model: sonnet
 tools: Read, Grep, Glob
 ---
 

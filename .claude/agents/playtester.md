@@ -1,6 +1,7 @@
 ---
 name: playtester
 description: Použij proaktivně po změně kódu nebo pravidel. Projde herní scénáře myšlenkově i skriptem a hlásí, co by se mohlo pokazit pro hráče.
+model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 

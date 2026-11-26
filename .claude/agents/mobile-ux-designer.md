@@ -1,6 +1,7 @@
 ---
 name: mobile-ux-designer
 description: Použij proaktivně u úkolů o ovládání a rozhraní na telefonu: dotykové ovládání (přejetí, posuvník síly), HUD, menu, načítací obrazovka, rozložení na šířku, čitelnost.
+model: sonnet
 tools: Read, Grep, Glob
 ---
 

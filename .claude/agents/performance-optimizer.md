@@ -1,6 +1,7 @@
 ---
 name: performance-optimizer
 description: Použij proaktivně, když je hra pomalá, zasekává se, má nízké FPS, velkou spotřebu paměti nebo se dlouho načítá, zvlášť na mobilu.
+model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: audio-designer
 description: Použij proaktivně u úkolů o zvuku: motor derny, výstřel startéra, píšťalka, dav, kroky, nárazy, hudba, hlasitost a mixáž. Vše přes WebAudio.
+model: sonnet
 tools: Read, Grep, Glob
 ---
 
