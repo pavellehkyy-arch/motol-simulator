@@ -116,6 +116,14 @@ tr.me td{color:#ffd166;font-weight:800}
 @keyframes sweep{0%{transform:translateX(-120%)}30%,100%{transform:translateX(120%)}}
 /* ---- transitions / intro / countdown ---- */
 #wipe{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden;display:none}
+#walkUI{position:fixed;inset:0;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#joy{position:absolute;left:0;top:0;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:rgba(10,20,35,.38);border:2px solid rgba(255,255,255,.45);pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#joy i{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 2px 10px rgba(0,0,0,.45)}
+body.walking #results{background:none;pointer-events:none;align-items:flex-start}body.walking #results .card{pointer-events:auto;background:rgba(8,20,40,.88);border-radius:16px;padding:10px 14px;max-height:78vh}
+body.cerwalk #againBtn,body.cerwalk #menuBtn{display:none}
+body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,body.cerwalk #walkMsg{display:none}
+#walkMenu{position:absolute;top:12px;right:12px;padding:9px 14px;font-size:14px}
+#walkMsg{position:absolute;left:50%;top:20%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:15px;font-weight:800;background:rgba(10,20,35,.8);border-radius:12px;padding:10px 16px;pointer-events:none;display:none}
 #wipe i{position:absolute;top:-20%;bottom:-20%;width:60%;left:-80%;transform:skewX(-18deg)}
 #wipe i:nth-child(1){background:#c6ff1a}#wipe i:nth-child(2){background:#e63946}#wipe i:nth-child(3){background:#0d1b33}
 #wipe.go{display:block}#wipe.go i{animation:wipe .9s cubic-bezier(.7,0,.3,1) both}
@@ -260,17 +268,30 @@ tr.me td{color:#ffd166;font-weight:800}
       <button class="mode" id="btnMad" style="--i:5;--c:#2b5fb4"><b>MADISON</b><span>30 kol · dvojice</span></button>
       <button class="mode" id="btnElim" style="--i:6;--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
     </div></div>
+    <button class="mode" id="btnWalk" style="--i:7;--c:#14284a;width:100%;border:2px solid #c6ff1a"><b>🚶 PLOCHA</b><span>projdi si velodrom – televize, obchod, šéf, start</span></button>
   </div>
 </div>
 <div id="wipe"><i></i><i></i><i></i></div>
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
+<div id="walkUI"><div id="joy"><i></i></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div></div>
+<div id="walkRace" class="screen" style="display:none"><div class="card mcard">
+  <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
+  <div class="modes mgrid" id="walkRaceList">
+    <button class="mode" data-m="sprint" style="--c:#ffd166;--f:#111"><b>SPRINT</b><span>1 na 1</span></button>
+    <button class="mode" data-m="keirin" style="--c:#ff7a00"><b>KEIRIN</b><span>za dernou</span></button>
+    <button class="mode" data-m="kilo" style="--c:#c6ff1a;--f:#111"><b>KILOMETR</b><span>na čas</span></button>
+    <button class="mode" data-m="scratch" style="--c:#e63946"><b>SCRATCH</b><span>13 kol</span></button>
+    <button class="mode" data-m="points" style="--c:#0f9d8a"><b>BODOVAČKA</b><span>40 kol</span></button>
+    <button class="mode" data-m="madison" style="--c:#2b5fb4"><b>MADISON</b><span>dvojice</span></button>
+    <button class="mode" data-m="elim" style="--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
+  </div>
+  <button class="go alt" id="walkRaceBack" style="margin-top:12px">Zpět na plochu</button>
+</div></div>
 
 <div id="ceremony" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:12px 14px 18px;pointer-events:none;text-align:center">
-  <div class="panel" style="display:inline-block;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
-  <div id="cerVK" style="font-size:12.5px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
-  <div style="font-size:12px;font-weight:700;margin-bottom:10px;text-shadow:0 1px 4px rgba(0,0,0,.8)">🧔 Ťukni na starého šéfa – zhodnotí tvoji jízdu · 📺 televize = výsledky<br>👆 Táhni prstem po obrazovce a rozhlédni se – za tebou je 🛒 obchod</div>
-  <div class="modes" style="pointer-events:auto;max-width:420px;margin:0 auto"><button class="go" id="cerAgain">Jet znovu</button><button class="go alt" id="cerMenu">Menu</button></div>
+  <div class="panel" style="display:none;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
+  <div id="cerVK" style="font-size:15px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
 </div>
 <div id="shop" style="display:none;position:fixed;left:12px;right:12px;top:14px;max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;max-height:calc(100vh - 28px);overflow:auto;box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod u stolku</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
@@ -446,6 +467,7 @@ function inPoly(x,z,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;
 const INF_Y=surfY(0,-BAND);
 // the wooden apron ("chodníček") is level with the bottom of the blue band; the green infield floor is 20 cm lower,
 // the step is a dark-brown bevelled edge all the way round
+let RAMP=null;   // the ramp up onto the apron, for the walk mode's floor height
 const APRON_O1=BAND*Math.cos(8*deg)-0.02,APRON_O2=APRON_O1+1.1,BEVEL_W=0.32,FLOOR_Y=INF_Y-0.2;
 let _infEdge=null;function groundAt(x,z){if(!_infEdge)_infEdge=infieldPoly(APRON_O2+BEVEL_W-BAND*Math.cos(8*deg));return inPoly(x,z,_infEdge)?FLOOR_Y:INF_Y;}
 // underpass stairwell in the infield of the 1st turn (just after the start)
@@ -495,17 +517,17 @@ const holePath=()=>new THREE.Path(STAIR.corners.map(([x,z])=>new THREE.Vector2(x
   const bt=new THREE.CanvasTexture(bc);bt.wrapT=THREE.RepeatWrapping;
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));geo.setIndex(I);geo.computeVertexNormals();
   const em=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({map:bt,side:THREE.DoubleSide,specular:0x3a3028,shininess:45}));em.receiveShadow=true;scene.add(em);}
- // ramp up onto the apron next to the judges (dark plywood board), red tape on the floor in front of it
- {const sR=SF-3.5,HWr=1.6,LEN=2.6,P=[],I=[];const pt=(s,o,y)=>{const f=frameAt(s);P.push(f.px-f.nx*o,y,f.pz-f.nz*o);};
-  const yT=INF_Y+0.035,yB=FLOOR_Y+0.004,oT=o2-0.05,oB=o2+LEN;
+ // ramp up onto the apron left of the judges (dark plywood board), red tape on the floor between it and the judges' booth
+ {const sR=SF-5.8,HWr=1.6,LEN=2.6,P=[],I=[];const pt=(s,o,y)=>{const f=frameAt(s);P.push(f.px-f.nx*o,y,f.pz-f.nz*o);};
+  const yT=INF_Y+0.035,yB=FLOOR_Y+0.004,oT=o2-0.05,oB=o2+LEN;RAMP={sR,HWr,oT,oB,yT,yB};
   for(const ds of [-HWr,HWr]){pt(sR+ds,oT,yT);pt(sR+ds,oB,yB);pt(sR+ds,oT,FLOOR_Y);pt(sR+ds,oT,yT-0.03);}
   // 0..3 left, 4..7 right
   I.push(0,4,1,1,4,5, 0,3,4,3,7,4, 3,2,7,2,6,7, 0,1,2,0,2,3, 4,6,5,4,7,6, 1,5,2,2,5,6);
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setIndex(I);geo.computeVertexNormals();
   const rc=mkCanvas(128,128),rg=rc.getContext('2d');rg.fillStyle='#2e2622';rg.fillRect(0,0,128,128);for(let i=0;i<400;i++){rg.fillStyle='rgba(255,255,255,'+Math.random()*0.05+')';rg.fillRect(Math.random()*128,Math.random()*128,2,2);}
   const ramp=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({color:0x3a302a,specular:0x222222,shininess:20,side:THREE.DoubleSide,flatShading:true}));ramp.receiveShadow=true;ramp.castShadow=true;scene.add(ramp);
-  const f=frameAt(sR-HWr+0.15),o0=oB,o1=oB+6;const tg=new THREE.PlaneGeometry(0.06,o1-o0);tg.rotateX(-PI/2);const tape=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({color:0xd8222a}));
-  tape.position.set(f.px-f.nx*(o0+o1)/2,FLOOR_Y+0.016,f.pz-f.nz*(o0+o1)/2);tape.rotation.y=Math.atan2(f.nx,f.nz);scene.add(tape);}}
+  const tA=SF-3.4,tB=SF-1.1,oL=o2+1.8,f=frameAt((tA+tB)/2);const tg=new THREE.PlaneGeometry(0.06,tB-tA);tg.rotateX(-PI/2);const tape=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({color:0xd8222a}));
+  tape.position.set(f.px-f.nx*oL,FLOOR_Y+0.016,f.pz-f.nz*oL);tape.rotation.y=Math.atan2(f.fx,f.fz);scene.add(tape);}}
 
 // ---------- hall: arched steel trusses, membrane roof, lights ----------
 const HW=20.5,HL=72,WALLH=3,RISE=10.5;
@@ -1339,7 +1361,7 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
     _qt1.set(sx*0.085,0.32,-0.04);rollP(_qt1);_qt2.set(sx*0.085,_qpd.y,_qpd.z);_qt2.x=_qpd.x-sx*0.04;_qXA.set(1,0,0);orient(L.cr,_qt1,_qt2,_qXA,1,1);}}
 // per frame: effort decides seated / seated sprint / out of the saddle; resting & finished riders sit up; bots glance round
 function animRider(R,dt){const M=R.model;let A=R.an;if(!A)A=R.an={st:0,su:0,sp:0,br:Math.random()*6,yaw:0,gl:3+Math.random()*8,glY:0,glT:0};
-  const ftp=R.ftp||330,P=phase==='menu'?(R.menuP||ftp*0.75):R.realP!=null?R.realP:(R.power||0),e=clamp(P/ftp,0,2.2),v=R.v||0;
+  const ftp=R.ftp||330,P=(phase==='menu'||phase==='walk')?(R.menuP||ftp*0.75):R.realP!=null?R.realP:(R.power||0),e=clamp(P/ftp,0,2.2),v=R.v||0;
   const pre=v<0.4&&(phase==='countdown'||phase==='race')&&(mode==='kilo'||mode==='keirin'||mode==='sprint')&&!R.finished;
   // out of the saddle only for the jump: a max sprint (or getting going from a standstill) lifts the rider for 2 s, then he sits down;
   // he can jump again only after easing off
@@ -1352,7 +1374,7 @@ function animRider(R,dt){const M=R.model;let A=R.an;if(!A)A=R.an={st:0,su:0,sp:0
   const spT=clamp((e-0.95)/0.45,0,1);A.sp+=(spT-A.sp)*Math.min(1,dt*3);
   A.br+=dt*(1.5+2.2*Math.min(e,1.6)+(1-(R.energy==null?100:R.energy)/100)*1.6);
   let yT=0;
-  if(!R.player&&(phase==='race'||phase==='menu')&&v>5&&A.sp<0.3&&A.st<0.3){A.gl-=dt;if(A.gl<=0){A.glT=0.5+Math.random()*0.5;A.glY=(Math.random()<0.5?-1:1)*(0.8+Math.random()*0.6);A.gl=(R.resting?2.5:6)+Math.random()*10;}}
+  if(!R.player&&(phase==='race'||phase==='menu'||phase==='walk')&&v>5&&A.sp<0.3&&A.st<0.3){A.gl-=dt;if(A.gl<=0){A.glT=0.5+Math.random()*0.5;A.glY=(Math.random()<0.5?-1:1)*(0.8+Math.random()*0.6);A.gl=(R.resting?2.5:6)+Math.random()*10;}}
   if(A.glT>0){A.glT-=dt;yT=A.glY;}
   A.yaw+=(yT-A.yaw)*Math.min(1,dt*8);
   poseRider(M,R.crank||0,A.st,A.su*(1-A.st),A.sp*(1-A.st)*(1-A.su),Math.sin(A.br),A.yaw,e,0);}
@@ -1548,7 +1570,7 @@ function angerJudges(){const d=(((SF+1.5-player.s)%L0)+L0)%L0;const t=clamp(d/Ma
   if(judgeAnger<=0)JUDGE_RIGS.forEach((r,i)=>r.delay=0.15+i*0.22+Math.random()*0.1);judgeAnger=Math.max(judgeAnger,t);judgeAngerT=0;}
 function updateJudges(dt){if(!JUDGE_RIGS.length)return;checkBlueBand();
   if(judgeAnger>0){judgeAnger-=dt;judgeAngerT+=dt;}
-  if(phase==='menu'||phase==='intro')judgeAnger=0;
+  if(phase==='menu'||phase==='intro'||phase==='walk')judgeAnger=0;
   judgeTarget(_jp);const k=1-Math.exp(-dt*7);
   for(const r of JUDGE_RIGS){r.t+=dt;const t=r.t;
     r.look.lerp(_jp,1-Math.exp(-dt*5));_jl.copy(r.look);r.g.worldToLocal(_jl);
@@ -1861,7 +1883,7 @@ addEventListener('keydown',e=>{if(e.repeat)return;if(phase==='menu'){const m={Di
 // mouse wheel = effort (desktop)
 addEventListener('wheel',e=>{if(phase!=='race'&&phase!=='countdown')return;e.preventDefault();setEffort(effort-Math.sign(e.deltaY)*Math.min(0.08,Math.abs(e.deltaY)*0.0009+0.02));},{passive:false});
 let paused=false;function togglePause(){if(phase!=='race'&&phase!=='countdown'&&!paused)return;paused=!paused;$('msg').innerHTML=paused?'⏸ PAUZA<small>P / Esc = pokračovat</small>':'';if(!paused){last=performance.now();msgT=0;}}
-addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;if(window.__walkKeys)window.__walkKeys();});
 addEventListener('keyup',e=>{if(KEYMAP[e.code])keys[KEYMAP[e.code]]=false;});
 
 // controls: horizontal swipe anywhere = height on track, right slider = effort
@@ -2339,14 +2361,15 @@ function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,n
       for(const [u,v] of [[P0,P1],[P1,P2]]){const r=limb(mat(c),0.011);place(r,u,v);g.add(r);}}}
   g.rotation.set(0,0,0);return g;}
 let cerObjs=[],confetti=null,cerT=0;const _cp=new THREE.Vector3(),_cl=new THREE.Vector3();
-function clearCeremony(){cerYaw=cerPitch=0;cerDrag=null;if(shopTag)shopTag.visible=false;$('shop').style.display='none';if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
+let WALK_V=null,WALK_RACED=false;   // the coach's verdict on the last race, kept for the walk mode (riders get reset after the ceremony)
+function clearCeremony(){walkCerUI(false);if(phase==='ceremony'){WALK_RACED=true;try{WALK_V=coachVerdict();}catch(e){WALK_V=null;}}cerYaw=cerPitch=0;cerDrag=null;if(shopTag)shopTag.visible=false;$('shop').style.display='none';if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
 function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
   if(mode==='kilo'){const pb=bestKilo();player.isPB=player.finished&&(!pb||player.time<pb);}
-  showResults(false);phase='ceremony';cerT=0;clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;
+  showResults(false);phase='ceremony';cerT=0;walkCerUI(true);clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;
   const E=earnedCredits();lastEarned=E.n;const tot=addVK(E.n);
   const list=mode==='sprint'&&SP?[SP.winner,SP.winner===player?SP.opp:player].filter(r=>r&&(!r.crashed||r===SP.winner)):mode==='madison'?madStandings().filter(t=>!t.act.crashed).map(t=>t.act):mode==='points'?ptsStandings().filter(r=>!r.crashed):mode==='elim'?elimStandings().filter(r=>!r.crashed):standings().filter(r=>!r.crashed&&!r.dsq&&r.finished);const top=list.slice(0,3);
   const pos={1:[0,0.775],2:[1.15,0.475],3:[-1.15,0.425]};if(PODWALL)PODWALL.visible=true;
-  top.forEach((R,i)=>{const f=makeStanding(R,i+1);f.position.set(PODX,pos[i+1][1],pos[i+1][0]);f.rotation.y=PI/2;JUDGES.add(f);cerObjs.push(f);});
+  top.forEach((R,i)=>{const f=makeStanding(R,i+1);f.userData.me=R===player||!!(R.me);f.position.set(PODX,pos[i+1][1],pos[i+1][0]);f.rotation.y=PI/2;JUDGES.add(f);cerObjs.push(f);});
   const win=list[0]?list[0].time:0;
   if(mode==='sprint'&&SP)drawTV([[player.name||'Ty',player.crashed?'DNF':String(SP.score[0]),true],[SP.opp.name,String(SP.score[1]),false]].sort((a,b)=>b[1]-a[1]));else if(mode==='madison')drawTV(madStandings().map(t=>[TEAMS[t.key].name,t.act.crashed?'DNF':t.pts+' b',t.me]));else if(mode==='points')drawTV(ptsStandings().map(R=>[R.name,R.crashed?'DNF':R.pts+' b',R.player]));else if(mode==='elim')drawTV(elimStandings().map((R,i)=>[R.name,elimLabel(R,i),R.player]));else drawTV(standings().map((R,i)=>[R.name,R.crashed?'DNF':R.dsq?'DSQ':R.finished?(i===0||mode==='kilo'?fmt(R.time):'+'+(R.time-win).toFixed(2)+' s'):'—',R.player]));
   // confetti
@@ -3431,7 +3454,7 @@ function coachVerdict(){
   if(S.band>2)m.push('A po modrým pásu se nejezdí, to je tvoje chyba číslo jedna!');
   if(!m.length)m.push('Prostě jsi byl pomalej. Víc kilometrů, míň mobilu!');
   return {mood:'angry',lines:b.concat(m.slice(0,3),[pick(['Zítra v sedm na dráze, a ne abys přišel pozdě!','Teď mi zmiz z očí a jdi si to rozjet!','Přemejšlej o tom!'])])};}
-function showCoach(){const v=coachVerdict();COACH.mood=v.mood;COACH.t=0;
+function showCoach(){const v=phase==='walk'?(WALK_V||{mood:'happy',lines:['Nazdar! Nejdřív něco odjeď, pak ti řeknu, co si o tom myslím.','Start je na chodníčku u cílové čáry – tam si vybereš závod.']}):coachVerdict();COACH.mood=v.mood;COACH.t=0;
   $('coachText').innerHTML=v.lines.filter(Boolean).map(l=>'<p style="margin:0 0 7px">'+l+'</p>').join('');
   $('coachFace').textContent=v.mood==='happy'?'😄':'😡';const md=$('coachMood');md.textContent=v.mood==='happy'?'SPOKOJENÝ':'NAŠTVANÝ';md.style.background=v.mood==='happy'?'#c6ff1a':'#ff5a5f';md.style.color=v.mood==='happy'?'#111':'#fff';
   $('coachBox').style.display='block';$('ceremony').style.display='none';
@@ -3507,7 +3530,7 @@ function startGun(){const f=$('flash');f.classList.remove('on');void f.offsetWid
     const s=actx.createBufferSource(),g=actx.createGain(),fl=actx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=1800;g.gain.value=0.6;s.buffer=b;s.connect(fl);fl.connect(g);g.connect(actx.destination);s.start();}catch(e){}}
 let shake=0;
 $('btnSprint').onclick=()=>startRace('sprint');$('btnScratch').onclick=()=>startRace('scratch');$('btnKeirin').onclick=()=>startRace('keirin');$('btnPoints').onclick=()=>startRace('points');$('btnKilo').onclick=()=>startRace('kilo');$('btnMad').onclick=()=>startRace('madison');$('btnElim').onclick=()=>startRace('elim');$('againBtn').onclick=()=>startRace();
-$('cerAgain').onclick=()=>startRace();$('cerMenu').onclick=()=>$('menuBtn').onclick();
+
 $('menuBtn').onclick=()=>wipe(()=>{clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;});
 
 if(/Instagram|FBAN|FBAV/i.test(navigator.userAgent))$('iabHint').style.display='block';
@@ -3907,6 +3930,111 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
     R.pPrev=R.s;}
   if(al.length&&!isNeutral()){const ld=al.reduce((a,b)=>effS(a)>effS(b)?a:b),nl=nextSprintLine(effS(ld));
     if(nl-effS(ld)<L0&&PR.whistle!==nl&&nl<FIN-1){PR.whistle=nl;bell();if(phase==='race'&&!player.finished)showMsg('🔔<small>Sprint o body za 1 kolo · 5-3-2-1</small>',1.8);}}}
+// ---------- PLOCHA: walk round the velodrome (joystick, camera behind you; TV / shop / coach / start line open by themselves when you come up to them) ----------
+const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false,lk:new THREE.Vector3(),lkOk:false,hop:null};
+const WALK_COACH=[9.05,3.15];   // on the walk the old boss waits by the right-hand booths (spot 1 on the sketch)
+const WALK_ALBI=[-10.9,-1.5];   // Albi, our best start holder: off duty he hangs about by the left-hand booths (spot 3 on the sketch)
+const WALK_BOX=[[WALK_ALBI[0]-0.35,WALK_ALBI[1]-0.35,WALK_ALBI[0]+0.35,WALK_ALBI[1]+0.35],[-3.75,-11.05,-0.85,-9.75],[WALK_COACH[0]-0.4,WALK_COACH[1]-0.4,WALK_COACH[0]+0.4,WALK_COACH[1]+0.4]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
+function walkFree(x,z){if(!NAV.grid)buildNav();const R=0.24;
+  for(let q=0;q<5;q++){const X=x+(q===1?R:q===2?-R:0),Z=z+(q===3?R:q===4?-R:0),i=Math.floor((X-NAV.x0)/NAV.c),j=Math.floor((Z-NAV.z0)/NAV.c);
+    if(i<0||j<0||i>=NAV.nx||j>=NAV.nz||NAV.grid[j*NAV.nx+i])return false;}
+  for(const b of WALK_BOX)if(x>b[0]-R&&x<b[2]+R&&z>b[1]-R&&z<b[3]+R)return false;return true;}
+function walkGround(x,z){if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.pz,a=dx*f.fx+dz*f.fz,o=-(dx*f.nx+dz*f.nz);   // walking up the ramp onto the apron
+    if(Math.abs(a)<R.HWr&&o>R.oT&&o<R.oB)return R.yT+(R.yB-R.yT)*(o-R.oT)/(R.oB-R.oT);}
+  return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
+function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText(ic,64,70);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));sp.scale.set(0.6,0.6,1);sp.visible=false;scene.add(sp);return sp;}
+function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();const tv=new THREE.Vector3(),co=new THREE.Vector3(),st=new THREE.Vector3();
+  TVMESH.getWorldPosition(tv);co.set(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);holderGround(SF-4.8,-BAND-0.55,st);   // start: on the apron at the top of the ramp (spot 2)
+  const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.3},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6},{id:'albi',ic:null,p:V(WALK_ALBI[0],FLOOR_Y,WALK_ALBI[1]),r:2.2}];
+  for(const z of Z)if(z.ic){z.tag=walkTag(z.ic);z.tag.position.set(z.p.x,(z.id==='start'?st.y:FLOOR_Y)+z.h,z.p.z);WALK.tags.push(z.tag);}
+  return WALK.zones=Z;}
+function walkSay(t,sec){const m=$('walkMsg');m.innerHTML=t;m.style.display=t?'block':'none';WALK.msgT=sec||0;}
+function walkOpen(id){if(id==='tv'){if(WALK_RACED){$('againBtn').style.display='none';$('menuBtn').style.display='none';$('results').style.display='flex';}else walkSay('📺 Zatím žádný závod – výsledky tu uvidíš po první jízdě.',3.5);}
+  else if(id==='shop')openShop();
+  else if(id==='coach')showCoach();
+  else if(id==='start'){$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
+  else if(id==='albi'){ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
+    try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Čau Kemi!');u.lang='cs-CZ';u.rate=1.05;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}}
+let ALBI=null;
+function albiShow(on){if(on&&!ALBI){const r=makePhotoHuman();scene.add(r.g);ALBI={r,wave:0,head:PI/2};}
+  if(!ALBI)return;ALBI.r.g.visible=on;if(on){ALBI.wave=0;ALBI.head=PI/2;ALBI.r.g.position.set(WALK_ALBI[0],walkGround(WALK_ALBI[0],WALK_ALBI[1]),WALK_ALBI[1]);ALBI.r.g.rotation.y=ALBI.head;}}
+function albiTick(dt){const A=ALBI;if(!A||!A.r.g.visible)return;const r=A.r;r.t+=dt;const dx=WALK.pos.x-r.g.position.x,dz=WALK.pos.z-r.g.position.z,d=Math.hypot(dx,dz);
+  let ang=Math.atan2(dx,dz)-A.head;ang=Math.atan2(Math.sin(ang),Math.cos(ang));
+  if(d<6&&Math.abs(ang)>0.9){A.head+=ang*Math.min(1,dt*2.5);ang=Math.atan2(Math.sin(Math.atan2(dx,dz)-A.head),Math.cos(Math.atan2(dx,dz)-A.head));}   // you're close: he turns round to you
+  r.g.rotation.y=A.head;const T={hy:d<9?clamp(ang,-1.0,1.0):Math.sin(r.t*0.3)*0.4,lean:0.02,y:Math.sin(r.t*1.6)*0.004,l0h:0.04,l1h:-0.03};
+  if(A.wave>0){A.wave-=dt;const w=Math.min(1,A.wave*2,(2.4-A.wave)*4);T.a0x=-2.6*w;T.a0z=(0.35+Math.sin(r.t*11)*0.35)*w;T.e0=-0.5*w;T.mo=0.6*w*(0.5+0.5*Math.sin(r.t*14));}
+  poseHuman(r,T,1-Math.exp(-dt*8));}
+function walkClose(id){if(id==='tv'){$('results').style.display='none';walkSay('');}
+  else if(id==='shop')$('shop').style.display='none';
+  else if(id==='coach'){if($('coachBox').style.display==='block')$('coachClose').onclick();}
+  else if(id==='start')$('walkRace').style.display='none';}
+function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hopFrom=null;
+  if(cer){WALK_RACED=true;try{WALK_V=coachVerdict();}catch(e){WALK_V=null;}document.body.classList.remove('cerwalk');$('ceremony').style.display='none';cerYaw=cerPitch=0;if(confetti){scene.remove(confetti.mesh);confetti=null;}
+    const me=cerObjs.find(o=>o.userData.me);if(RESC){hopFrom=camera.position.clone();hopFrom.y-=0.75;if(RESC.fig)RESC.fig.visible=false;}else if(me&&me.visible){hopFrom=new THREE.Vector3();me.getWorldPosition(hopFrom);me.visible=false;}}
+  else clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';$('menu').style.display='none';
+  riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;player.model.g.visible=false;
+  if(!WALK.r){const c=mkCanvas(64,96),g=c.getContext('2d');RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,34+i*6,64,6);});const tx=new THREE.CanvasTexture(c);
+    WALK.r=makeHuman({top:0xf6f6f4,pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e,chestTex:tx});scene.add(WALK.r.g);   // you: the world champion, rainbow bands on the white jersey
+    const bk=new THREE.Mesh(new THREE.PlaneGeometry(0.3,0.4),new THREE.MeshLambertMaterial({map:tx,transparent:true}));bk.position.set(0,0.3,-0.123);bk.rotation.y=PI;WALK.r.torso.add(bk);}
+  if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
+  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;
+  if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
+  const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
+  if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
+  else{WALK.jx=WALK.jy=0;WALK.joy=WALK.look=null;WALK.k={};WALK.camOk=WALK.lkOk=false;}
+  WALK.r.g.visible=true;COACH.g.visible=true;if(!COACH.home)COACH.home=[COACH.g.position.clone(),COACH.g.rotation.y];
+  {const v=V(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);JUDGES.worldToLocal(v);COACH.g.position.set(v.x,COACH.home[0].y,v.z);COACH.g.rotation.y=Math.atan2(1.5-WALK_COACH[0],1.2-WALK_COACH[1])-JUDGES.rotation.y;}COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
+  phase='walk';albiShow(true);document.body.classList.add('walking');player.model.g.visible=false;$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';if(!WALK.joy)joyHome();walkSay('');initAudio();}
+function walkCerUI(on){document.body.classList.toggle('cerwalk',on);if(phase!=='walk')$('walkUI').style.display=on?'block':'none';if(on){WALK.jx=WALK.jy=0;WALK.joy=null;WALK.k={};joyHome();}}
+function walkStop(){albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
+  $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
+  if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
+// joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
+const JOY_R=56,JOY=$('joy');
+function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
+const wui=$('walkUI');
+wui.addEventListener('pointerdown',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.target.closest('button'))return;e.preventDefault();
+  if(e.clientX<innerWidth*0.45&&!WALK.joy){const j=$('joy');const x=clamp(e.clientX,70,innerWidth-70),y=clamp(e.clientY,70,innerHeight-70);j.style.left=x+'px';j.style.top=y+'px';WALK.joy={id:e.pointerId,x,y};}
+  else if(!WALK.look)WALK.look={id:e.pointerId,x:e.clientX,y:e.clientY};try{wui.setPointerCapture(e.pointerId);}catch(_){}});
+wui.addEventListener('pointermove',e=>{const J=WALK.joy,L=WALK.look;
+  if(J&&J.id===e.pointerId){let dx=e.clientX-J.x,dy=e.clientY-J.y;const d=Math.hypot(dx,dy);if(d>JOY_R){dx*=JOY_R/d;dy*=JOY_R/d;}JOY.firstChild.style.transform='translate('+dx+'px,'+dy+'px)';WALK.jx=dx/JOY_R;WALK.jy=-dy/JOY_R;}
+  else if(L&&L.id===e.pointerId){const k=PI*1.2/Math.max(320,innerWidth);WALK.yaw-=(e.clientX-L.x)*k;WALK.pitch=clamp(WALK.pitch+(e.clientY-L.y)*k,-0.15,0.95);L.x=e.clientX;L.y=e.clientY;}});
+const joyUp=e=>{if(WALK.joy&&WALK.joy.id===e.pointerId){WALK.joy=null;WALK.jx=WALK.jy=0;joyHome();}if(WALK.look&&WALK.look.id===e.pointerId)WALK.look=null;};
+wui.addEventListener('pointerup',joyUp);wui.addEventListener('pointercancel',joyUp);
+const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
+window.__walkKeys=()=>{WALK.k={};};
+addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
+addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
+$('btnWalk').onclick=()=>wipe(walkStart);
+function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
+$('walkMenu').onclick=()=>wipe(()=>{walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
+$('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';};
+$('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b)wipe(()=>{walkStop();beginRace(b.dataset.m);});});
+const _wc=new THREE.Vector3(),_wl=new THREE.Vector3();
+function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.g.visible)animCoach(dt,RCOACH);   // the bunch keeps rolling round the track while you walk
+  const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
+  let ix=WALK.jx+(K.r?1:0)-(K.l?1:0),iy=WALK.jy+(K.f?1:0)-(K.b?1:0);const im=Math.hypot(ix,iy);if(im>1){ix/=im;iy/=im;}const amt=Math.min(1,im);
+  const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
+  const top=amt>0.85||K.run?3.6:1.7*Math.max(amt,0.35),tgt=amt>0.08?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?5:9));
+  if(ml>1e-3){const want=Math.atan2(mx,mz);let d=want-WALK.head;d=Math.atan2(Math.sin(d),Math.cos(d));WALK.head+=d*Math.min(1,dt*10);}
+  if(WALK.hop){const H=WALK.hop;H.t+=dt;const u=Math.min(1,H.t/0.55);WALK.pos.lerpVectors(H.a,H.b,u);WALK.pos.y+=Math.sin(PI*u)*0.45;WALK.spd=0;if(u>=1)WALK.hop=null;}   // jump off the podium / the stretcher
+  else if(WALK.spd>0.02){const ux=ml>1e-3?mx/ml:Math.sin(WALK.head),uz=ml>1e-3?mz/ml:Math.cos(WALK.head),st=WALK.spd*dt,P=WALK.pos;   // slide along walls: try the full step, then each axis on its own
+    if(walkFree(P.x+ux*st,P.z+uz*st)){P.x+=ux*st;P.z+=uz*st;}else if(walkFree(P.x+ux*st,P.z)){P.x+=ux*st;WALK.spd*=0.92;}else if(walkFree(P.x,P.z+uz*st)){P.z+=uz*st;WALK.spd*=0.92;}else WALK.spd=0;}
+  if(!WALK.hop){const gy=walkGround(WALK.pos.x,WALK.pos.z);WALK.pos.y+=(gy-WALK.pos.y)*Math.min(1,dt*9);}
+  const r=WALK.r,a=clamp(WALK.spd/1.7,0,1.25);WALK.ph+=dt*WALK.spd*(WALK.spd>2.4?3.6:4.6);r.t+=dt;const T=walkPose(WALK.T||(WALK.T={}),WALK.ph,Math.min(1,a));if(a>1)T.lean+=(a-1)*0.9;
+  poseHuman(r,T,1-Math.exp(-dt*10));r.g.position.copy(WALK.pos);r.g.rotation.y=WALK.head;
+  // camera behind and above, pulled in when a wall or the banking is in the way
+  const cp=Math.cos(WALK.pitch),sp=Math.sin(WALK.pitch);let D=3.6;for(let q=0;q<10;q++){const x=WALK.pos.x-fx*cp*D,z=WALK.pos.z-fz*cp*D;if(walkFree(x,z)||D<=1.3)break;D-=0.25;}
+  _wc.set(WALK.pos.x-fx*cp*D,WALK.pos.y+1.55+sp*D,WALK.pos.z-fz*cp*D);_wl.set(WALK.pos.x+fx*0.6,WALK.pos.y+1.35,WALK.pos.z+fz*0.6);
+  if(!WALK.camOk){WALK.cam.copy(_wc);WALK.camOk=true;}if(!WALK.lkOk){WALK.lk.copy(_wl);WALK.lkOk=true;}const ck=WALK.hop?dt*3:dt*10;WALK.cam.lerp(_wc,Math.min(1,ck));WALK.lk.lerp(_wl,Math.min(1,ck*1.2));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(WALK.lk);
+  // zones: come up to it and it opens, walk away and it closes
+  const Z=walkZones();let near=null,nd=1e9;for(const z of Z){const d=Math.hypot(z.p.x-WALK.pos.x,z.p.z-WALK.pos.z);if(z.tag)z.tag.position.y+=((z.id==='start'?z.p.y:FLOOR_Y)+z.h+Math.sin(idleT*2.2+z.h)*0.08-z.tag.position.y);if(d<z.r+(z.id===WALK.zone?0.5:0)&&d<nd){near=z.id;nd=d;}}
+  if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
+  if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
+  if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
+if(/#(debug|turbo)/.test(location.hash))window.__WALK=()=>({WALK,walkFree,walkZones,NAV,crash:()=>crashRider(player,'slip')});
 // ---------- menu backdrop: the bunch rolls round in a paceline, camera cuts between shots ----------
 const _mt=new THREE.Vector3(),_ml=new THREE.Vector3();let menuShot=-1;
 function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
@@ -3928,7 +4056,8 @@ let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;if(hasalSrc)hasalMix();
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
-  if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
+  if(phase==='walk'){walkTick(dt);renderer.render(scene,camera);return;}
+  if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);walkCerTick();renderer.render(scene,camera);return;}
   if(phase==='intro'){updateIntro(dt);placeModels(dt);updateBoss(dt);renderer.render(scene,camera);return;}
   if(phase==='countdown'&&mode==='keirin'){if(!paused)keirinPre(dt*TS);}
   else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;if(mode==='kilo'||n>0)beep(n<=0);if(mode==='kilo'){drawKBoard(n);gateLamps(n);}else refCount(n);if(n<=0){if(mode==='sprint')spRelease();else if(mode!=='kilo'){releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&mode==='kilo')GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
