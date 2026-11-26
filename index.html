@@ -3935,7 +3935,8 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
 // ---------- PLOCHA: walk round the velodrome (joystick, camera behind you; TV / shop / coach / start line open by themselves when you come up to them) ----------
 const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false,lk:new THREE.Vector3(),lkOk:false,hop:null};
 const WALK_COACH=[9.05,3.15];   // on the walk the old boss waits by the right-hand booths (spot 1 on the sketch)
-const WALK_BOX=[[-3.75,-11.05,-0.85,-9.75],[WALK_COACH[0]-0.4,WALK_COACH[1]-0.4,WALK_COACH[0]+0.4,WALK_COACH[1]+0.4]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
+const WALK_ALBI=[-10.9,-1.5];   // Albi, our best start holder: off duty he hangs about by the left-hand booths (spot 3 on the sketch)
+const WALK_BOX=[[WALK_ALBI[0]-0.35,WALK_ALBI[1]-0.35,WALK_ALBI[0]+0.35,WALK_ALBI[1]+0.35],[-3.75,-11.05,-0.85,-9.75],[WALK_COACH[0]-0.4,WALK_COACH[1]-0.4,WALK_COACH[0]+0.4,WALK_COACH[1]+0.4]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
 function walkFree(x,z){if(!NAV.grid)buildNav();const R=0.24;
   for(let q=0;q<5;q++){const X=x+(q===1?R:q===2?-R:0),Z=z+(q===3?R:q===4?-R:0),i=Math.floor((X-NAV.x0)/NAV.c),j=Math.floor((Z-NAV.z0)/NAV.c);
     if(i<0||j<0||i>=NAV.nx||j>=NAV.nz||NAV.grid[j*NAV.nx+i])return false;}
@@ -3947,14 +3948,25 @@ function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle=
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));sp.scale.set(0.6,0.6,1);sp.visible=false;scene.add(sp);return sp;}
 function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();const tv=new THREE.Vector3(),co=new THREE.Vector3(),st=new THREE.Vector3();
   TVMESH.getWorldPosition(tv);co.set(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);holderGround(SF-4.8,-BAND-0.55,st);   // start: on the apron at the top of the ramp (spot 2)
-  const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.3},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6}];
+  const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.3},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6},{id:'albi',ic:null,p:V(WALK_ALBI[0],FLOOR_Y,WALK_ALBI[1]),r:2.2}];
   for(const z of Z)if(z.ic){z.tag=walkTag(z.ic);z.tag.position.set(z.p.x,(z.id==='start'?st.y:FLOOR_Y)+z.h,z.p.z);WALK.tags.push(z.tag);}
   return WALK.zones=Z;}
 function walkSay(t,sec){const m=$('walkMsg');m.innerHTML=t;m.style.display=t?'block':'none';WALK.msgT=sec||0;}
 function walkOpen(id){if(id==='tv'){if(WALK_RACED){$('againBtn').style.display='none';$('menuBtn').style.display='none';$('results').style.display='flex';}else walkSay('📺 Zatím žádný závod – výsledky tu uvidíš po první jízdě.',3.5);}
   else if(id==='shop')openShop();
   else if(id==='coach')showCoach();
-  else if(id==='start'){$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}}
+  else if(id==='start'){$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
+  else if(id==='albi'){ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
+    try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Čau Kemi!');u.lang='cs-CZ';u.rate=1.05;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}}
+let ALBI=null;
+function albiShow(on){if(on&&!ALBI){const r=makePhotoHuman();scene.add(r.g);ALBI={r,wave:0,head:PI/2};}
+  if(!ALBI)return;ALBI.r.g.visible=on;if(on){ALBI.wave=0;ALBI.head=PI/2;ALBI.r.g.position.set(WALK_ALBI[0],walkGround(WALK_ALBI[0],WALK_ALBI[1]),WALK_ALBI[1]);ALBI.r.g.rotation.y=ALBI.head;}}
+function albiTick(dt){const A=ALBI;if(!A||!A.r.g.visible)return;const r=A.r;r.t+=dt;const dx=WALK.pos.x-r.g.position.x,dz=WALK.pos.z-r.g.position.z,d=Math.hypot(dx,dz);
+  let ang=Math.atan2(dx,dz)-A.head;ang=Math.atan2(Math.sin(ang),Math.cos(ang));
+  if(d<6&&Math.abs(ang)>0.9){A.head+=ang*Math.min(1,dt*2.5);ang=Math.atan2(Math.sin(Math.atan2(dx,dz)-A.head),Math.cos(Math.atan2(dx,dz)-A.head));}   // you're close: he turns round to you
+  r.g.rotation.y=A.head;const T={hy:d<9?clamp(ang,-1.0,1.0):Math.sin(r.t*0.3)*0.4,lean:0.02,y:Math.sin(r.t*1.6)*0.004,l0h:0.04,l1h:-0.03};
+  if(A.wave>0){A.wave-=dt;const w=Math.min(1,A.wave*2,(2.4-A.wave)*4);T.a0x=-2.6*w;T.a0z=(0.35+Math.sin(r.t*11)*0.35)*w;T.e0=-0.5*w;T.mo=0.6*w*(0.5+0.5*Math.sin(r.t*14));}
+  poseHuman(r,T,1-Math.exp(-dt*8));}
 function walkClose(id){if(id==='tv'){$('results').style.display='none';walkSay('');}
   else if(id==='shop')$('shop').style.display='none';
   else if(id==='coach'){if($('coachBox').style.display==='block')$('coachClose').onclick();}
@@ -3975,9 +3987,9 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   else{WALK.jx=WALK.jy=0;WALK.joy=WALK.look=null;WALK.k={};WALK.camOk=WALK.lkOk=false;}
   WALK.r.g.visible=true;COACH.g.visible=true;if(!COACH.home)COACH.home=[COACH.g.position.clone(),COACH.g.rotation.y];
   {const v=V(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);JUDGES.worldToLocal(v);COACH.g.position.set(v.x,COACH.home[0].y,v.z);COACH.g.rotation.y=Math.atan2(1.5-WALK_COACH[0],1.2-WALK_COACH[1])-JUDGES.rotation.y;}COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
-  phase='walk';document.body.classList.add('walking');player.model.g.visible=false;$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';if(!WALK.joy)joyHome();walkSay('');initAudio();}
+  phase='walk';albiShow(true);document.body.classList.add('walking');player.model.g.visible=false;$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';if(!WALK.joy)joyHome();walkSay('');initAudio();}
 function walkCerUI(on){document.body.classList.toggle('cerwalk',on);if(phase!=='walk')$('walkUI').style.display=on?'block':'none';if(on){WALK.jx=WALK.jy=0;WALK.joy=null;WALK.k={};joyHome();}}
-function walkStop(){document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
+function walkStop(){albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
   $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
   if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
 // joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
@@ -4004,7 +4016,7 @@ $('walkMenu').onclick=()=>wipe(()=>{walkStop();$('menu').style.display='flex';ph
 $('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';};
 $('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b)wipe(()=>{walkStop();beginRace(b.dataset.m);});});
 const _wc=new THREE.Vector3(),_wl=new THREE.Vector3();
-function walkTick(dt){menuTick(dt);animCoach(dt);if(RCOACH&&RCOACH.g.visible)animCoach(dt,RCOACH);   // the bunch keeps rolling round the track while you walk
+function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.g.visible)animCoach(dt,RCOACH);   // the bunch keeps rolling round the track while you walk
   const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
   let ix=WALK.jx+(K.r?1:0)-(K.l?1:0),iy=WALK.jy+(K.f?1:0)-(K.b?1:0);const im=Math.hypot(ix,iy);if(im>1){ix/=im;iy/=im;}const amt=Math.min(1,im);
   const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
