@@ -1034,7 +1034,7 @@ function crRing(R,t){let i=0;while(i<R.length-2&&R[i+1][0]<t)i++;const a=R[Math.
   for(let k=1;k<5;k++){const p0=a[k]||0,p1=b[k]||0,p2=c[k]||0,p3=d[k]||0;o.push(0.5*(2*p1+(-p0+p2)*u+(2*p0-5*p1+4*p2-p3)*u2+(-p0+3*p1-3*p2+p3)*u3));}return o;}
 function loftGeo(key,R,o){if(LOFTS[key])return LOFTS[key];o=o||{};
   const N=o.seg||(LOWEND?12:20),e=2/(o.p||2),sub=o.sub||(LOWEND?2:4),t0=o.t0!=null?o.t0:R[0][0],t1=o.t1!=null?o.t1:R[R.length-1][0];
-  const ts=[t0];for(let i=0;i<R.length-1;i++)for(let k=0;k<sub;k++){const t=R[i][0]+(R[i+1][0]-R[i][0])*k/sub;if(t>t0+1e-4&&t<t1-1e-4)ts.push(t);}ts.push(t1);
+  const ts=[t0];for(let i=0;i<R.length-1;i++){const sb=R[i].c?1:sub;for(let k=0;k<sb;k++){const t=R[i][0]+(R[i+1][0]-R[i][0])*k/sb;if(t>t0+1e-4&&t<t1-1e-4)ts.push(t);}}ts.push(t1);
   const P=[],UV=[],I=[];
   for(const t of ts){const q=crRing(R,t),rx=Math.max(0,q[1]),rf=Math.max(0,q[2]),rb=Math.max(0,q[3]),off=q[4];
     for(let j=0;j<=N;j++){const th=j/N*2*PI,s=Math.sin(th),c=Math.cos(th),ss=Math.sign(s)*Math.pow(Math.abs(s),e),cc=Math.sign(c)*Math.pow(Math.abs(c),e);
@@ -1161,8 +1161,8 @@ const SHG={};function shopHelmGeos(){if(SHG.ok)return SHG;const seg=LOWEND?22:36
   const P={road:[0.316,2.6],aero:[0.319,2.15],shield:[0.31,2.4],tt:[0.451,2.25]};
   // round the closed ends as a quarter ellipse from the ring at tEdge to the tip, so the shell has no pinched dimple where the loft closes
   const cap=(R,front,tEdge)=>{const keep=front?R.filter(r=>r[0]>=tEdge):R.filter(r=>r[0]<=tEdge),base=front?keep[0]:keep[keep.length-1],tip=front?R[0]:R[R.length-1],L=tip[0]-base[0],out=[];
-    for(let k=1;k<=10;k++){const e=k/10,f=Math.sqrt(Math.max(0,1-e*e));out.push([base[0]+L*e,base[1]*f,base[2]*f,base[3]*f,base[4]+(tip[4]-base[4])*e]);}
-    return front?[...out.reverse(),...keep]:[...keep,...out];};
+    const n=LOWEND?10:16;for(let k=1;k<=n;k++){const e=1-(1-k/n)*(1-k/n),f=k===n?0:Math.sqrt(1-e*e),r=[base[0]+L*e,base[1]*f,base[2]*f,base[3]*f,base[4]+(tip[4]-base[4])*e];r.c=1;out.push(r);}   // rows denser towards the tip, taken as they are
+    if(front)return [...out.reverse(),...keep];const b2=keep[keep.length-1].slice();b2.c=1;return [...keep.slice(0,-1),b2,...out];};
   for(const k in D)D[k]=cap(D[k],true,-0.065);D.aero=cap(D.aero,false,0.1);D.shield=cap(D.shield,false,0.105);
   for(const k in D){SHG[k]=loftGeo('sh_'+k,D[k],opt(P[k][0],P[k][1]));SHG[k+'In']=loftGeo('sh_'+k+'In',liner(D[k]),opt(P[k][0],P[k][1]));}
   // road helmet: short peak over the brow
