@@ -296,6 +296,7 @@ tr.me td{color:#ffd166;font-weight:800}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" onload="window.__ld&&__ld(.6)" onerror="window.__ldErr&&__ldErr()"></script>
+<script src="online.js" defer></script>
 <script>
 (function(){
 const $=id=>document.getElementById(id);
@@ -2359,6 +2360,7 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
   if(mode==='elim')me=player.crashed?0:elimStandings().indexOf(player)+1;
   if(mode==='points')me=player.crashed?0:ptsStandings().indexOf(player)+1;
   if(mode==='sprint'&&SP)me=player.crashed?0:SP.winner===player?1:2;
+  try{if(window.Online&&Online.loggedIn()){const T=mode==='madison'?madStandings().find(t=>t.me):null;Online.report({mode:mode,time:mode==='kilo'&&player.finished?player.time:null,points:mode==='points'?player.pts:T?T.pts:null,position:me||null,reward:E.n});}}catch(e){}
   $('cerTitle').textContent=mode==='kilo'?'⏱️ Kilometr · '+fmt(player.time):me===1?'🏆 Vyhrál jsi!':me>0&&me<=3?'🥈 Jsi na bedně – '+me+'. místo':me>0?(mode==='elim'?'❌ Vyřazen – '+me+'. místo':'Dojel jsi '+me+'.'):'🚑 DNF – vyhlášení bez tebe';
   if(player.dsq)$('cerTitle').textContent='🟥 DSQ – předjel jsi dernu';
   if(mode==='sprint'&&SP&&!player.crashed)$('cerTitle').textContent=(me===1?'🏆 Vyhrál jsi sprint ':'🥈 Prohrál jsi sprint ')+SP.score[0]+':'+SP.score[1]+' · soupeř '+SP.opp.name;
@@ -2374,7 +2376,7 @@ const SHOP_ITEMS=[   // price in penízky; soon: not on sale yet
   {id:'disc',ic:'⚫',name:'Karbonové disky',desc:'Plné kolo dozadu i dopředu.',price:900,soon:true}];
 let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0;
 function shopOwned(){try{return JSON.parse(localStorage.getItem('motol_shop')||'{}')||{};}catch(e){return {};}}
-function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||shopOwned()[id]||getVK()<it.price)return;
+function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||shopOwned()[id]||getVK()<it.price)return;if(window.Online&&Online.loggedIn()){Online.buy(id);return;}
   const o=shopOwned();o[id]=1;try{localStorage.setItem('motol_shop',JSON.stringify(o));}catch(e){}addVK(-it.price);tone(880,0.15,0.08,'triangle');renderShop();}
 function renderShop(){const vk=getVK(),own=shopOwned();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
   $('shopList').innerHTML=SHOP_ITEMS.map(it=>{const has=own[it.id],can=!it.soon&&!has&&vk>=it.price;

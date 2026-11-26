@@ -2,6 +2,15 @@
 
 3D simulátor dráhové cyklistiky na Velodromu Praha-Motol. Celá hra je v jednom souboru `index.html` (cca 3 700 řádků, 800 kB, Three.js z CDN). Soubor `stara/index.html` je stará verze, ignoruj ji.
 
+## Online účty a žebříček (Supabase)
+
+- Celé napojení je v samostatném souboru `online.js` (bez knihoven, volá Supabase přes `fetch`). Hra ho načítá přes `<script src="online.js" defer>`. Když selže, hra běží dál jen lokálně.
+- Zásahy do `index.html` jsou jen tři: načtení skriptu, hák `Online.report(...)` v `startCeremony` (po výpočtu `me`) a větev `Online.buy(id)` na začátku `buyItem`.
+- Server (projekt `maiswaiilplgvewuurux`, Frankfurt): tabulky `profiles`, `results`, `purchases`, `shop_items` se zapnutým RLS. Hráč do nich nezapisuje přímo, jen přes funkce `set_nickname`, `submit_result`, `buy_item`, `import_local_progress`, `get_leaderboard`. Odměnu za závod počítá hra, server ji omezí (max 400 za závod, 5000 za 24 h).
+- Přezdívky čekají na schválení majitelem (`profiles.nickname_status`), výsledky jde skrýt (`results.hidden`).
+- Testy: `node --test tests/online.test.js tests/online-ui.test.js` (atrapa serveru, bez sítě).
+- Účty fungují přes e-mail s kódem. Klíč v `online.js` je veřejný (publishable). Tajné klíče do repozitáře nikdy nepatří.
+
 ## Pravidla pro šetření tokeny
 
 - **Nikdy nečti celý `index.html`.** Je příliš velký. Hledej přes Grep a čti jen úseky (Read s offset a limit).
