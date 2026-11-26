@@ -295,10 +295,12 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
   <div class="panel" style="display:none;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
   <div id="cerVK" style="font-size:15px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
 </div>
-<div id="shop" class="pop" style="display:none;position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;overflow:auto;box-sizing:border-box">
+<div id="shop" class="pop" style="display:none;position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);max-width:680px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;overflow:auto;box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod u stolku</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
-  <div style="font-size:13px;opacity:.7;margin-bottom:8px">Platí se penízky, které vyjezdíš v závodech. Koupené kolo ti už zůstane na kole.</div>
-  <div id="shopList"></div>
+  <div id="shopTabs" style="display:flex;gap:6px;margin:4px 0 6px"><button data-tab="kola" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">🛞 Kola</button><button data-tab="helmy" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">🪖 Helmy</button></div>
+  <div id="shopNote" style="font-size:13px;opacity:.7;margin-bottom:6px"></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start"><canvas id="shopPrev" style="flex:1 1 170px;min-width:170px;height:190px;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#fff 0%,#e9e3d3 75%);touch-action:none;cursor:grab"></canvas>
+  <div id="shopList" style="flex:1.6 1 230px;min-width:0"></div></div>
   <button class="go" id="shopClose" style="margin-top:10px;width:100%;min-width:0;padding:10px;font-size:14px">◀ Zpět na vyhlášení</button>
 </div>
 <div id="coachBox" class="pop" style="display:none;position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);box-sizing:border-box;max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.45;overflow:auto">
@@ -1146,6 +1148,105 @@ const AHM={};function aeroHelmetMat(col,acc,tt){const k=col+'_'+acc+'_'+(tt?1:0)
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;
   return AHM[k]=new THREE.MeshPhongMaterial({map:t,specular:0xbfc4cc,shininess:120});}
 const VISORS=[[0x8a929c,0xffffff],[0x2c3038,0xf2f6ff],[0x141a24,0x8fb4ff],[0x2a1606,0xffb347],[0x1b0f2e,0xc58bff],[0x3a3e44,0xffffff]];
+// ---------- shop helmets for the hero (photos): vented road helmet (default), aero road, aero with a magnetic shield, TT helmet with a wrap visor ----------
+// shells are lofts like the aero helmets above (u: 0 top centreline, .25/.75 sides, .5 underneath · v: 0 brow -> 1 tail); vents are real holes (alphaTest) with the dark EPS liner behind them
+const SHG={};function shopHelmGeos(){if(SHG.ok)return SHG;const seg=LOWEND?22:36,sub=LOWEND?3:5;
+  const opt=(len,p)=>({p,rx:-PI/2,seg,sub,v:t=>clamp((t+0.126)/len,0,1)});
+  const liner=R=>R.map(r=>[0.03+(r[0]-0.03)*0.94,r[1]*0.92,r[2]*0.9,r[3]*1.1,r[4]-0.002]);   // foam inside the shell; its underside shows below the shell edge
+  const D={
+    road:[[-0.126,0,0,0,0.074],[-0.12,0.054,0.03,0.024,0.072],[-0.1,0.088,0.064,0.046,0.07],[-0.065,0.104,0.093,0.062,0.064],[-0.015,0.11,0.108,0.074,0.056],[0.045,0.108,0.106,0.08,0.046],[0.1,0.098,0.088,0.074,0.034],[0.145,0.075,0.06,0.052,0.021],[0.175,0.043,0.032,0.03,0.012],[0.19,0,0,0,0.008]],
+    aero:[[-0.126,0,0,0,0.072],[-0.121,0.056,0.03,0.03,0.07],[-0.102,0.092,0.066,0.052,0.067],[-0.065,0.108,0.096,0.07,0.061],[-0.015,0.113,0.11,0.082,0.052],[0.045,0.111,0.107,0.088,0.041],[0.1,0.101,0.09,0.083,0.029],[0.145,0.08,0.064,0.066,0.017],[0.178,0.048,0.036,0.04,0.009],[0.193,0,0,0,0.007]],
+    shield:[[-0.126,0,0,0,0.072],[-0.121,0.056,0.03,0.03,0.07],[-0.102,0.092,0.066,0.052,0.067],[-0.065,0.108,0.097,0.07,0.061],[-0.015,0.113,0.111,0.082,0.052],[0.045,0.111,0.107,0.088,0.041],[0.105,0.1,0.089,0.08,0.03],[0.15,0.083,0.067,0.066,0.022],[0.172,0.071,0.055,0.056,0.02],[0.181,0.046,0.034,0.036,0.02],[0.184,0,0,0,0.02]],
+    tt:[[-0.126,0,0,0,0.075],[-0.12,0.052,0.027,0.026,0.072],[-0.1,0.088,0.064,0.05,0.07],[-0.065,0.105,0.094,0.068,0.064],[-0.015,0.112,0.11,0.083,0.055],[0.045,0.11,0.107,0.09,0.045],[0.11,0.099,0.093,0.081,0.035],[0.18,0.078,0.068,0.058,0.021],[0.25,0.052,0.042,0.036,0.006],[0.305,0.024,0.018,0.016,-0.008],[0.325,0,0,0,-0.011]]};
+  const P={road:[0.316,2.6],aero:[0.319,2.15],shield:[0.31,2.4],tt:[0.451,2.25]};
+  for(const k in D){SHG[k]=loftGeo('sh_'+k,D[k],opt(P[k][0],P[k][1]));SHG[k+'In']=loftGeo('sh_'+k+'In',liner(D[k]),opt(P[k][0],P[k][1]));}
+  // road helmet: short peak over the brow
+  {const g=new THREE.RingGeometry(0.098,0.142,LOWEND?10:18,1,-PI/2-0.72,1.44);g.rotateX(-PI/2);g.scale(1,1,1.06);g.rotateX(0.14);g.translate(0,0.083,0);SHG.peak=g;}
+  // wrap shields: rows of points round the face, u across (temple -> temple), v bottom -> top
+  const shield=(o)=>{const N=LOWEND?18:32,M=LOWEND?4:7,P2=[],UV=[],I=[];
+    for(let i=0;i<=N;i++){const a=-o.a+2*o.a*i/N,c=Math.abs(a)/o.a;
+      for(let j=0;j<=M;j++){const v=j/M,yt=o.yt(c),yb=o.yb(c),y=yb+(yt-yb)*v,rr=o.r*(1+o.bulge*Math.sin(PI*v))+o.lean*(yt-y);
+        P2.push(Math.sin(a)*rr,y,Math.cos(a)*rr*o.zs+o.z0);UV.push(i/N,v);}}
+    for(let i=0;i<N;i++)for(let j=0;j<M;j++){const p=i*(M+1)+j,q=p+M+1;I.push(p,q,p+1,p+1,q,q+1);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P2,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();return g;};
+  SHG.shieldVis=shield({a:1.5,r:0.112,zs:1.06,z0:0,bulge:0.03,lean:0.14,yt:c=>0.063-0.012*c*c,yb:c=>-0.047+0.072*c*c});
+  SHG.ttVis=shield({a:1.62,r:0.116,zs:1.08,z0:0,bulge:0.025,lean:0.12,yt:c=>0.07-0.008*c,yb:c=>-0.078+0.08*c*c});
+  SHG.magnet=new THREE.CylinderGeometry(0.0065,0.0065,0.004,12);SHG.magnet.rotateX(PI/2);
+  SHG.dial=new THREE.CylinderGeometry(0.012,0.012,0.012,14);SHG.dial.rotateX(PI/2);
+  SHG.ok=true;return SHG;}
+// shell paint + alpha (vents) per helmet
+const SHT={};function shopHelmTex(kind){if(SHT[kind])return SHT[kind];const W=512,H=512,c=mkCanvas(W,H),g=c.getContext('2d'),ac=mkCanvas(W,H),ga=ac.getContext('2d');
+  const X=u=>u*W,Y=v=>H-v*H;ga.fillStyle='#fff';ga.fillRect(0,0,W,H);let cut=false;
+  const pth=(ctx,P,mx)=>{ctx.beginPath();P.forEach((p,i)=>{const x=X(mx?1-p[0]:p[0]),y=Y(p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});};
+  const line=(ctx,P,w,col)=>{ctx.strokeStyle=col;ctx.lineWidth=w*W;ctx.lineCap='round';ctx.lineJoin='round';for(const mx of [0,1]){pth(ctx,P,mx);ctx.stroke();}};
+  const fill=(ctx,P,col)=>{ctx.fillStyle=col;for(const mx of [0,1]){pth(ctx,P,mx);ctx.closePath();ctx.fill();}};
+  const slot=(P,w,rim)=>{if(rim)line(g,P,w+0.014,rim);line(g,P,w,'#1c1d20');line(ga,P,w,'#000');cut=true;};          // through-vent with a lit inner wall
+  const hole=(P,rim)=>{if(rim){g.lineWidth=9;g.strokeStyle=rim;g.lineJoin='round';for(const mx of [0,1]){pth(g,P,mx);g.closePath();g.stroke();}}fill(g,P,'#1c1d20');fill(ga,P,'#000');cut=true;};
+  const crown=(hi,lo)=>{const sg=g.createLinearGradient(0,0,W,0);for(const [u,a] of [[0,hi],[0.2,hi*0.3],[0.33,-lo],[0.5,-lo*1.6],[0.67,-lo],[0.8,hi*0.3],[1,hi]])sg.addColorStop(u,a>0?'rgba(255,255,255,'+a+')':'rgba(0,0,0,'+(-a)+')');g.fillStyle=sg;g.fillRect(0,0,W,H);};
+  const speck=(n,a)=>{for(let i=0;i<n;i++){g.fillStyle=Math.random()<0.5?'rgba(255,255,255,'+a+')':'rgba(0,0,0,'+a+')';g.fillRect(Math.random()*W,Math.random()*H,2,2);}};
+  if(kind==='road'){   // photo 1: matte black shell, white lower flanks, long slotted vents, the grey EPS under the edge
+    g.fillStyle='#17181a';g.fillRect(0,0,W,H);speck(5000,0.05);
+    fill(g,[[0.165,0.98],[0.18,0.7],[0.2,0.5],[0.235,0.36],[0.28,0.3],[0.34,0.29],[0.34,0.98]],'#eceeef');      // white flank from the temple to the tail
+    fill(g,[[0.11,0.99],[0.13,0.8],[0.15,0.99]],'#eceeef');                                                         // white flash over the tail
+    line(g,[[0.165,0.98],[0.18,0.7],[0.2,0.5],[0.235,0.36],[0.28,0.3]],0.004,'#8d9196');
+    fill(g,[[0.24,0.06],[0.3,0.05],[0.3,0.22],[0.26,0.24]],'#eceeef');                                              // white strip under the brow vents
+    line(g,[[0.004,0.02],[0.004,0.99]],0.006,'#26272a');                                                            // centre ridge
+    const R='rgba(222,226,230,.55)';
+    slot([[0.03,0.13],[0.026,0.38],[0.03,0.62]],0.021,R);
+    slot([[0.075,0.08],[0.078,0.4],[0.088,0.69]],0.024,R);
+    slot([[0.125,0.12],[0.135,0.42],[0.145,0.66]],0.023,R);
+    slot([[0.178,0.2],[0.19,0.34],[0.205,0.5]],0.02,R);
+    slot([[0.04,0.75],[0.05,0.9]],0.018,R);slot([[0.1,0.77],[0.115,0.9]],0.018,R);slot([[0.165,0.73],[0.185,0.86]],0.015,R);
+    slot([[0.03,0.035],[0.045,0.085]],0.018,R);slot([[0.1,0.045],[0.12,0.09]],0.017,R);slot([[0.17,0.06],[0.2,0.1]],0.014,R);
+    ga.fillStyle='#000';ga.fillRect(X(0.338),0,X(0.662)-X(0.338),H);                                                // no shell underneath: the foam shows below the edge
+    g.fillStyle='#2b2c2f';g.fillRect(X(0.322),0,X(0.338)-X(0.322),H);g.fillRect(X(0.662),0,X(0.678)-X(0.662),H);   // edge trim
+    crown(0.1,0.05);}
+  if(kind==='aero'){   // photo 2: glossy white, smooth crown, brow slots, big temple vent, small exhaust at the back
+    g.fillStyle='#eef0f2';g.fillRect(0,0,W,H);crown(0.12,0.06);
+    for(const [P,w] of [[[[0.06,0.03],[0.066,0.5],[0.085,0.96]],0.004],[[[0.29,0.08],[0.25,0.4],[0.21,0.92]],0.004]]){line(g,P,w,'rgba(118,126,136,.5)');line(g,P.map(p=>[p[0]+0.008,p[1]]),0.003,'rgba(255,255,255,.9)');}
+    hole([[0.165,0.13],[0.232,0.1],[0.258,0.26],[0.205,0.31]],'#c9ced4');
+    slot([[0.25,0.052],[0.312,0.064]],0.012,'#c9ced4');slot([[0.238,0.088],[0.298,0.1]],0.009,'#c9ced4');
+    slot([[0.07,0.905],[0.15,0.87]],0.016,'#c9ced4');
+    fill(g,[[0.3,0.3],[0.34,0.3],[0.34,0.95],[0.3,0.9]],'rgba(150,158,168,.35)');}
+  if(kind==='shield'){   // photo 3: pearl white, central brow intake, rear vents, temple opening, iridescent pinstripes
+    g.fillStyle='#f3f1f7';g.fillRect(0,0,W,H);crown(0.12,0.07);
+    slot([[0.032,0.06],[0.036,0.2]],0.026,'#cfcbd8');slot([[0.05,0.68],[0.062,0.83]],0.022,'#cfcbd8');slot([[0.11,0.72],[0.13,0.84]],0.016,'#cfcbd8');
+    hole([[0.17,0.24],[0.215,0.2],[0.236,0.4],[0.19,0.43]],'#cfcbd8');
+    const rb=g.createLinearGradient(0,Y(0.15),0,Y(0.8));['#ff4d2e','#ffb000','#d9f24a','#33d2c9','#4f7dff','#c25cff'].forEach((col,i,a)=>rb.addColorStop(i/(a.length-1),col));
+    line(g,[[0.205,0.47],[0.2,0.62],[0.19,0.78]],0.006,rb);line(g,[[0.27,0.1],[0.255,0.3]],0.005,rb);
+    line(g,[[0.08,0.25],[0.09,0.55],[0.1,0.9]],0.003,'rgba(140,140,155,.45)');}
+  if(kind==='tt'){   // photos 4+5: satin black teardrop, two slits on the crown, small exhausts on the tail, grey lower flank
+    g.fillStyle='#1b1c1f';g.fillRect(0,0,W,H);speck(3500,0.04);crown(0.13,0.04);
+    for(const P of [[[0.034,0.05],[0.04,0.12]],[[0.034,0.5],[0.04,0.56]]])line(g,P,0.014,'#050506');
+    fill(g,[[0.272,0.0],[0.34,0.0],[0.34,0.3],[0.3,0.26]],'#5e636a');
+    line(g,[[0.3,0.3],[0.24,0.6],[0.16,0.98]],0.005,'rgba(190,196,204,.6)');}
+  const map=new THREE.CanvasTexture(c);map.anisotropy=MAXANI;
+  return SHT[kind]={map,alpha:cut?new THREE.CanvasTexture(ac):null};}
+const SHM={};function shopHelmMats(kind){if(SHM[kind])return SHM[kind];const T=shopHelmTex(kind),gloss=kind==='aero'||kind==='shield';
+  const shell=new THREE.MeshPhongMaterial({map:T.map,alphaMap:T.alpha,alphaTest:T.alpha?0.5:0,side:T.alpha?THREE.DoubleSide:THREE.FrontSide,specular:gloss?0xd4d8de:kind==='tt'?0x50545a:0x2e2f33,shininess:gloss?120:kind==='tt'?55:22});
+  // EPS liner: grey foam, honeycomb mesh behind the front vents
+  const c=mkCanvas(128,128),x=c.getContext('2d');x.fillStyle=kind==='road'?'#45474b':'#2a2b2e';x.fillRect(0,0,128,128);
+  for(let i=0;i<900;i++){x.fillStyle='rgba(0,0,0,'+(0.1+Math.random()*0.15)+')';x.fillRect(Math.random()*128,Math.random()*128,1.5,1.5);}
+  x.strokeStyle='rgba(10,10,12,.6)';x.lineWidth=1;for(let yy=0;yy<128;yy+=6)for(let xx=0;xx<128;xx+=7){x.beginPath();x.arc(xx+(yy/6%2)*3.5,yy,2.4,0,7);x.stroke();}
+  const lt=new THREE.CanvasTexture(c);lt.wrapS=lt.wrapT=THREE.RepeatWrapping;lt.repeat.set(4,2);
+  const liner=new THREE.MeshPhongMaterial({map:lt,specular:0x111111,shininess:8});
+  let vis=null;if(kind==='shield'||kind==='tt'){const v=mkCanvas(256,128),q=v.getContext('2d');
+    if(kind==='shield'){const h=q.createLinearGradient(0,0,256,0);['#ff2f1c','#ff5a12','#ff8a00','#ffb300','#ffd23a','#cfe34a'].forEach((col,i,a)=>h.addColorStop(i/(a.length-1),col));q.fillStyle=h;}
+    else{const h=q.createLinearGradient(0,0,0,128);h.addColorStop(0,'#aeb3b9');h.addColorStop(0.35,'#6b7178');h.addColorStop(1,'#25292e');q.fillStyle=h;}
+    q.fillRect(0,0,256,128);const tb=q.createLinearGradient(0,0,0,128);tb.addColorStop(0,'rgba(0,0,0,.35)');tb.addColorStop(0.25,'rgba(0,0,0,0)');tb.addColorStop(0.8,'rgba(0,0,0,0)');tb.addColorStop(1,'rgba(0,0,0,.25)');q.fillStyle=tb;q.fillRect(0,0,256,128);
+    q.fillStyle='rgba(255,255,255,.22)';q.beginPath();q.moveTo(70,0);q.lineTo(110,0);q.lineTo(78,128);q.lineTo(52,128);q.fill();q.fillStyle='rgba(255,255,255,.12)';q.beginPath();q.moveTo(122,0);q.lineTo(134,0);q.lineTo(100,128);q.lineTo(92,128);q.fill();
+    q.fillStyle='#121314';q.fillRect(0,124,256,4);   // thin dark lower edge
+    vis=new THREE.MeshPhongMaterial({map:new THREE.CanvasTexture(v),specular:0xffffff,shininess:160,transparent:true,opacity:kind==='tt'?0.95:0.9,side:THREE.DoubleSide});}
+  return SHM[kind]={shell,liner,vis,black:new THREE.MeshPhongMaterial({color:0x111214,specular:0x333333,shininess:30,side:THREE.DoubleSide})};}
+// (re)builds the helmet inside the rider's helmet group; road + aero get the rider's usual wrap glasses
+function buildShopHelm(hg,kind,num){while(hg.children.length)hg.remove(hg.children[0]);const G=shopHelmGeos(),Mt=shopHelmMats(kind),B=riderGeos();
+  hg.add(new THREE.Mesh(G[kind],Mt.shell),new THREE.Mesh(G[kind+'In'],Mt.liner));
+  if(kind==='road'){hg.add(new THREE.Mesh(G.peak,Mt.black));const d=new THREE.Mesh(G.dial,Mt.black);d.position.set(0,-0.03,-0.128);hg.add(d);}
+  if(kind==='shield'||kind==='tt')hg.add(new THREE.Mesh(kind==='tt'?G.ttVis:G.shieldVis,Mt.vis));
+  if(kind==='shield')for(const sx of [-1,1]){const a=sx*0.86,m=new THREE.Mesh(G.magnet,Mt.black);m.position.set(Math.sin(a)*0.115,0.05,Math.cos(a)*0.115*1.06+0.002);m.rotation.y=a;hg.add(m);}
+  if(kind==='road'||kind==='aero'){const vc=VISORS[(num||0)%VISORS.length];hg.add(new THREE.Mesh(B.visor,new THREE.MeshPhongMaterial({color:vc[0],specular:vc[1],shininess:140,side:THREE.DoubleSide,transparent:true,opacity:0.94})));}
+  hg.traverse(o=>{if(o.isMesh)o.castShadow=true;});}
+function setRiderHelm(M,kind){if(!M||!M.helmG||M.helmKind===kind)return;buildShopHelm(M.helmG,kind,M.vnum);M.helmKind=kind;}
 // ---------- wolf head (Vojck): grey wolf skull + muzzle that sits inside the aero helmet, ears poking out through two slots, fur shells ----------
 // head-local metres like the human head: centre ≈ ear level, +z = face, +y up
 const WOLF={};
@@ -1265,8 +1366,10 @@ function makeRider(o){const B=riderGeos();
   else{head.add(new THREE.Mesh(B.head,mS));
   const hair=new THREE.Mesh(B.hair,mat(o.hair||0x3b2a1c));hair.scale.set(0.074,0.082,0.083);hair.position.set(0,0.0,-0.014);hair.rotation.x=0.75;head.add(hair);}
   // aero helmet (photos): glossy shell with a tail, mirrored wrap visor, wordmark on the side, stripes over the tail
-  const hel=new THREE.Mesh(o.aero?B.helmTT:B.helmTr,aeroHelmetMat(o.helmet,TEAMS[o.team].accent,o.aero));head.add(hel);
-  const rimH=new THREE.Mesh(o.aero?B.helmTTrim:B.helmTrRim,o.wolf?wolfFurMats().neck:lycraMat(0x141414));head.add(rimH);
+  const hg=new THREE.Group();head.add(hg);   // helmet group: the hero's one is swapped from the shop (setRiderHelm)
+  if(o.helm)buildShopHelm(hg,o.helm,o.num);
+  else{hg.add(new THREE.Mesh(o.aero?B.helmTT:B.helmTr,aeroHelmetMat(o.helmet,TEAMS[o.team].accent,o.aero)));
+  hg.add(new THREE.Mesh(o.aero?B.helmTTrim:B.helmTrRim,o.wolf?wolfFurMats().neck:lycraMat(0x141414)));}
   const strap=new THREE.Mesh(B.strap,mat(0x1a1a1a));head.add(strap);
   if(ears){strap.scale.set(1.14,1.04,1.1);for(const E of ears){const r=new THREE.Mesh(WOLF.slot,lycraMat(0x141414));const a=E.base.clone().addScaledVector(E.dir,0.019);orient(r,a,a.clone().add(E.dir),V(Math.sign(E.base.x)*0.25,0.25,1),1,0.62);head.add(r);}}   // rubber-trimmed slots the ears come through
   if(o.wolf){}   // no visor: the amber eyes stay visible under the brow of the helmet
@@ -1275,7 +1378,7 @@ function makeRider(o){const B=riderGeos();
       const lens=new THREE.Mesh(new THREE.CircleGeometry(0.029,16),lM);lens.position.set(sx*0.038,Y,F+0.002);head.add(lens);
       const arm=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.008,0.1),fM);arm.position.set(sx*0.078,Y+0.005,F-0.05);head.add(arm);}
     const br=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.007,0.007),fM);br.position.set(0,Y+0.008,F);head.add(br);}
-  else{const vc=VISORS[(o.num||0)%VISORS.length];const vis=new THREE.Mesh(B.visor,new THREE.MeshPhongMaterial({color:vc[0],specular:vc[1],shininess:140,side:THREE.DoubleSide,transparent:true,opacity:0.94,reflectivity:1}));head.add(vis);}
+  else if(!o.helm){const vc=VISORS[(o.num||0)%VISORS.length];const vis=new THREE.Mesh(B.visor,new THREE.MeshPhongMaterial({color:vc[0],specular:vc[1],shininess:140,side:THREE.DoubleSide,transparent:true,opacity:0.94,reflectivity:1}));hg.add(vis);}
   // arms: upper arm in body (hidden in first person), forearm + glove stay visible on the bars
   const rig=[];for(const s of [-1,1]){const delt=mk(B.cap,mSl);const ua=LONG?[mk(B.uaL,mSl)]:[mk(B.uaS,mSl),mk(B.uaK,mS)];
     const fa=new THREE.Mesh(B.fa,LONG?KM2.fore:skinMuscle(o.skin||0xe2b48c,'fore'));arms.add(fa);const glove=new THREE.Mesh(B.fist,mGl);arms.add(glove);
@@ -1284,7 +1387,7 @@ function makeRider(o){const B=riderGeos();
   const legs=[];for(const sx of [-1,1]){const L={sx,thS:new THREE.Mesh(B.thS,mSh),thK:new THREE.Mesh(B.thK,skinMuscle(o.skin||0xe2b48c,o.wolf?'thighW':'thigh')),shn:new THREE.Mesh(B.shn,skinMuscle(o.skin||0xe2b48c,'shin')),sock:new THREE.Mesh(B.sock,mat(o.sock||0xf4f4f4)),
       shoe:makeShoe(B,shoeM,soleM,boaM,capM,pedM,sx),kc:new THREE.Mesh(B.delt,mS),cr:new THREE.Mesh(B.crank,crM),ped:new THREE.Mesh(B.pedal,pedM)};
     g.add(L.thS,L.thK,L.shn,L.sock,L.shoe,L.cr,L.ped,L.kc);legs.push(L);}
-  const M={g,body,arms,bike:bike.g,wheels:bike.wheels,legs,rig,torso,neck,head,bw,bl,aero:!!o.aero,tw:o.wolf?1.24:1,tf:o.wolf?1.36:1,nk:o.wolf?1.22:1};
+  const M={g,body,arms,bike:bike.g,wheels:bike.wheels,legs,rig,torso,neck,head,bw,bl,aero:!!o.aero,tw:o.wolf?1.24:1,tf:o.wolf?1.36:1,nk:o.wolf?1.22:1,helmG:hg,helmKind:o.helm||null,vnum:o.num};
   poseRider(M,0.6,0,0,0,0,0,0.7);scene.add(g);return M;}
 // ---------- road/track shoes from the photos: white perforated upper, two BOA dials, black carbon sole, padded heel collar ----------
 const SHOEM={};function shoeTex(c){const W=512,H=512,cv=mkCanvas(W,H),g=cv.getContext('2d');const col=new THREE.Color(c),hex='#'+col.getHexString(),lum=col.r*0.3+col.g*0.59+col.b*0.11;
@@ -1880,7 +1983,7 @@ function drawLapBoard(n){lapCtx.fillStyle='#0b0b0b';lapCtx.fillRect(0,0,256,192)
 
 // ---------- riders roster ----------
 const ROSTER=[
-  {name:'Ty',team:'wc',jersey:0xffffff,ftp:330,player:true,discR:false,discF:false,spokes:24,num:1},   // classic spoked wheels; carbon discs come from the shop (applyGear)
+  {name:'Ty',team:'wc',jersey:0xffffff,ftp:330,player:true,discR:false,discF:false,spokes:24,num:1,helm:'road'},   // classic spoked wheels; carbon discs come from the shop (applyGear)
   {name:'Vojck',team:'pardus',jersey:0xf2c230,discR:true,num:7,hair:0x2a2018,wolf:true,kick:1.6},
   {name:'Sašík',team:'pardus',jersey:0xf2c230,discR:true,num:8,hair:0xc9a86a,shoe:0x2b6fd6},
   {name:'Evenepoel',team:'dukla',jersey:0x222222,discR:true,num:12},
@@ -2495,7 +2598,8 @@ function standings(){const key=r=>r.crashed?2e9+(r.player?1:0):r.dsq?1.9e9:(r.fi
 // podium / stretcher figure: the very same rider model as in the race (kit, helmet, visor, shoes), just standing without the bike
 // +z = face, feet at y=0; rank 1 = both arms up, 0/2/3 = arms down
 const _sF=V(0,0,1),_sHp=V(),_sN=V(),_sD=V(),_sA=V(),_sP=V();
-function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,noBike:true}));const g=M.g;scene.remove(g);
+const HERO_FIGS=[];   // the hero's standing figures (podium, stretcher): applyGear swaps their helmet too
+function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,noBike:true}));const g=M.g;scene.remove(g);if(R.player){HERO_FIGS.push(M);if(HERO_FIGS.length>4)HERO_FIGS.shift();}
   g.children[0].visible=false;for(const L of M.legs){L.cr.visible=false;L.ped.visible=false;}
   const up=rank===1,sway=(((R.num||3)*37)%10)/10-0.5;
   _sHp.set(0,0.965,0);_sN.set(0,1.515,0.025);_sD.subVectors(_sN,_sHp).normalize();
@@ -2552,27 +2656,63 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
 const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,1,1),_pp=new THREE.Vector3(),_e3=new THREE.Euler();
 // ---------- shop: the white table on the infield by the back straight; you get to it only at the ceremony – turn round (drag) and tap it ----------
-const SHOP_ITEMS=[   // price in penízky; w = extra watts on the hero's bike (each disc +20 W); bought discs show on the hero's bike for good
-  {id:'disc_f',ic:'⚫',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +20 W',price:1000,w:20},
-  {id:'disc_r',ic:'⚫',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +20 W',price:1000,w:20}];
-let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0;
+const SHOP_ITEMS=[   // price in penízky; w = extra watts (discs add up, of the helmets only the one you wear counts); tab: kola / helmy
+  {id:'disc_f',tab:'kola',ic:'⚫',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +20 W',price:1000,w:20},
+  {id:'disc_r',tab:'kola',ic:'⚫',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +20 W',price:1000,w:20},
+  {id:'helm_road',tab:'helmy',kind:'road',name:'Silniční helma',desc:'Černobílá, plná větráků. Základ, máš ji vždycky.',price:0,w:0,free:true},
+  {id:'helm_aero',tab:'helmy',kind:'aero',name:'Aero helma',desc:'Hladká bílá skořepina, málo větráků. +10 W',price:1500,w:10},
+  {id:'helm_shield',tab:'helmy',kind:'shield',name:'Aero helma se štítem',desc:'Bílá perleť a duhový štít na magnetech. +20 W',price:2500,w:20},
+  {id:'helm_tt',tab:'helmy',kind:'tt',name:'Časovkářská helma',desc:'Černá kapka s ocasem a velkým štítem. +35 W',price:4000,w:35}];
+const HELM_ICO={road:'<path d="M3 17C3 8 11 4 19 4c7 0 12 4 13 10l-2 4H5z" fill="#17181a"/><path d="M8 7l9-1M7 10l12-1M8 13l11-1M21 6l7 2M21 9l8 3" stroke="#e9ecef" stroke-width="1.6" stroke-linecap="round"/><path d="M22 18h8l2-4c-3 1-6 2-10 4z" fill="#eceeef"/><path d="M3 17l-2 1 4 1z" fill="#17181a"/>',
+  aero:'<path d="M3 18C3 9 10 4 18 4c8 0 14 5 14 12l-2 2H5z" fill="#eef0f2" stroke="#9aa2ac" stroke-width="1"/><path d="M6 14l5-3 2 4-5 2z" fill="#26272a"/><path d="M8 7c6-2 14-1 20 4" stroke="#b5bcc5" stroke-width="1" fill="none"/>',
+  shield:'<path d="M3 18C3 9 10 4 18 4c8 0 13 5 13 11v3H5z" fill="#f3f1f7" stroke="#a49fb2" stroke-width="1"/><path d="M3 15c0 4 1 7 4 8h8c-1-3-1-6-1-8z" fill="url(#ir)"/><circle cx="5" cy="15" r="1.2" fill="#111"/><path d="M15 6l3 4" stroke="#26272a" stroke-width="2.4" stroke-linecap="round"/><defs><linearGradient id="ir"><stop offset="0" stop-color="#ff2f1c"/><stop offset=".6" stop-color="#ffb300"/><stop offset="1" stop-color="#cfe34a"/></linearGradient></defs>',
+  tt:'<path d="M2 17C2 8 8 4 14 4c9 0 15 4 21 13l-2 1H4z" fill="#1b1c1f"/><path d="M2 14c0 5 1 8 4 10h9c-1-3-1-7-1-10z" fill="#7a8088"/><path d="M5 15h8" stroke="#c6ccd3" stroke-width="1"/>'};
+let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0,shopTab='kola',shopEquipNext=null;
 function shopOwned(){try{return JSON.parse(localStorage.getItem('motol_shop')||'{}')||{};}catch(e){return {};}}
-function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||shopOwned()[id]||getVK()<it.price)return;if(window.Online&&Online.loggedIn()){Online.buy(id);return;}
+function helmOwned(id,own){const it=SHOP_ITEMS.find(i=>i.id===id);return !!it&&it.tab==='helmy'&&(it.free||!!(own||shopOwned())[id]);}
+function wornHelm(){let h=null;try{h=localStorage.getItem('motol_helm');}catch(e){}return helmOwned(h)?h:'helm_road';}   // only one helmet on the head; the road one is always there
+function wearHelm(id){if(!helmOwned(id))return;try{localStorage.setItem('motol_helm',id);}catch(e){}tone(740,0.1,0.06,'triangle');renderShop();}
+function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||it.free||shopOwned()[id]||getVK()<it.price)return;if(it.tab==='helmy')shopEquipNext=id;if(window.Online&&Online.loggedIn()){Online.buy(id);return;}
   const o=shopOwned();o[id]=1;try{localStorage.setItem('motol_shop',JSON.stringify(o));}catch(e){}addVK(-it.price);tone(880,0.15,0.08,'triangle');renderShop();}
-// bought gear on the hero: swap the wheel (spoked <-> disc) on both of his bikes and add the watts
-function applyGear(){const own=shopOwned();let w=0;for(const it of SHOP_ITEMS)if(own[it.id])w+=it.w||0;player.gearW=w;
+// bought gear on the hero: swap the wheel (spoked <-> disc) on both of his bikes, put the worn helmet on and add the watts
+function applyGear(){const own=shopOwned();if(shopEquipNext&&helmOwned(shopEquipNext,own)){try{localStorage.setItem('motol_helm',shopEquipNext);}catch(e){}shopEquipNext=null;}   // a helmet you just bought goes straight on
+  const hz=wornHelm(),hk=SHOP_ITEMS.find(i=>i.id===hz).kind;let w=0;for(const it of SHOP_ITEMS)if(it.tab==='helmy'?it.id===hz:own[it.id])w+=it.w||0;player.gearW=w;player.helm=hk;
   const want=[own.disc_r?'disc':'wire',own.disc_f?'disc':'wire'];   // wheels[0] = rear, wheels[1] = front (makeBike)
-  for(const M of [player.mAero,player.mStd]){if(!M||!M.wheels)continue;M.gear=M.gear||['wire','wire'];
+  for(const M of [player.mAero,player.mStd,SPV&&SPV.M,...HERO_FIGS]){if(!M)continue;setRiderHelm(M,hk);if(!M.wheels)continue;M.gear=M.gear||['wire','wire'];
     for(let i=0;i<2;i++){if(M.gear[i]===want[i]||!M.wheels[i])continue;const old=M.wheels[i],nw=makeWheel(want[i]);nw.position.copy(old.position);nw.rotation.x=old.rotation.x;
       nw.traverse(o=>{if(o.isMesh)o.castShadow=true;});old.parent.add(nw);old.parent.remove(old);M.wheels[i]=nw;M.gear[i]=want[i];}}}
 window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js calls this after a purchase or an account sync
-applyGear();
-function renderShop(){applyGear();const vk=getVK(),own=shopOwned();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
-  $('shopList').innerHTML=SHOP_ITEMS.map(it=>{const has=own[it.id],can=!it.soon&&!has&&vk>=it.price;
-    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #0001"><span style="font-size:28px;width:34px;text-align:center">'+it.ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+
-      '<button data-buy="'+it.id+'" '+(can?'':'disabled ')+'style="font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:8px 10px;min-width:86px;cursor:'+(can?'pointer':'default')+';background:'+(can?'#e63946':'#d9d4c7')+';color:'+(can?'#fff':'#5a5648')+'">'+(has?'✔ Máš':it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰')+'</button></div>';}).join('');}
-function openShop(){renderShop();$('shop').style.display='block';$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');}
-$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy]');if(b)buyItem(b.dataset.buy);});
+let SPV=null;applyGear();
+function renderShop(){applyGear();const vk=getVK(),own=shopOwned(),hz=wornHelm();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
+  for(const b of document.querySelectorAll('#shopTabs [data-tab]')){const on=b.dataset.tab===shopTab;b.style.background=on?'#1a1a1a':'#eee6d6';b.style.color=on?'#c6ff1a':'#1a1a1a';}
+  $('shopNote').textContent=shopTab==='kola'?'Koupené kolo ti už zůstane na kole. Watty se sčítají.':'Na hlavě máš vždycky jednu helmu. Watty dává jen ta nasazená.';
+  const btn=(lab,on,attr,bg)=>'<button '+attr+' '+(on?'':'disabled ')+'style="font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:8px 10px;min-width:92px;cursor:'+(on?'pointer':'default')+';background:'+(on?bg:'#d9d4c7')+';color:'+(on?'#fff':'#5a5648')+'">'+lab+'</button>';
+  $('shopList').innerHTML=SHOP_ITEMS.filter(it=>it.tab===shopTab).map(it=>{let b;
+    if(it.tab==='helmy'){const has=helmOwned(it.id,own),worn=it.id===hz;b=worn?btn('✔ Nasazená',false,''):has?btn('Nasadit',true,'data-wear="'+it.id+'"','#2a9d4b'):btn(it.price+' 💰',vk>=it.price,'data-buy="'+it.id+'"','#e63946');}
+    else{const has=own[it.id];b=btn(has?'✔ Máš':it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰',!it.soon&&!has&&vk>=it.price,'data-buy="'+it.id+'"','#e63946');}
+    const ic=it.kind?'<svg viewBox="0 0 36 26" width="34" height="25">'+HELM_ICO[it.kind]+'</svg>':it.ic;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #0001"><span style="font-size:28px;width:34px;text-align:center;line-height:0">'+ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+b+'</div>';}).join('');}
+// 3D preview in the shop: the hero on his bike (wheels tab) or a close-up of the head (helmets tab); own small renderer, runs only while the shop is open
+function shopPreview(){if(SPV)return SPV;const cv=$('shopPrev');const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x9a8f7c,0.7));const d=new THREE.DirectionalLight(0xffffff,0.8);d.position.set(2,4,3);sc.add(d);const d2=new THREE.DirectionalLight(0xcfe0ff,0.45);d2.position.set(-3,2,-2.5);sc.add(d2);
+  const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);sc.add(M.g);M.g.position.set(0,0,0);M.g.rotation.set(0,0,0);M.g.children[0].visible=false;
+  SPV={r,sc,M,cam:new THREE.PerspectiveCamera(28,1,0.03,30),yaw:-0.6,pitch:0.12,tg:V(0,0.75,0),dist:3.1,drag:null,t:0,run:false};
+  cv.addEventListener('pointerdown',e=>{SPV.drag={x:e.clientX,y:e.clientY,yaw:SPV.yaw,pitch:SPV.pitch};SPV.t=performance.now();try{cv.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});
+  cv.addEventListener('pointermove',e=>{const D=SPV.drag;if(!D)return;SPV.yaw=D.yaw-(e.clientX-D.x)*0.012;SPV.pitch=clamp(D.pitch+(e.clientY-D.y)*0.006,-0.3,0.9);});
+  const up=()=>{SPV.drag=null;SPV.t=performance.now();};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  applyGear();return SPV;}
+const _spH=V();
+function shopPrevLoop(){const P=SPV;if(!P||$('shop').style.display==='none'){if(P)P.run=false;return;}
+  const cv=P.r.domElement,w=cv.clientWidth|0,h=cv.clientHeight|0;if(w>0&&h>0&&(cv.width!==Math.round(w*P.r.getPixelRatio())||cv.height!==Math.round(h*P.r.getPixelRatio()))){P.r.setSize(w,h,false);P.cam.aspect=w/h;P.cam.updateProjectionMatrix();}
+  if(!P.drag&&performance.now()-P.t>1500)P.yaw+=0.006;
+  const helm=shopTab==='helmy';P.M.g.updateMatrixWorld(true);P.M.head.getWorldPosition(_spH);
+  const tg=helm?_spH.setY(_spH.y+0.03):V(0,0.72,0.05),dist=helm?0.62:3.0;P.tg.lerp(tg,0.15);P.dist+=(dist-P.dist)*0.15;
+  const cp=Math.cos(P.pitch);P.cam.position.set(P.tg.x+Math.sin(P.yaw)*cp*P.dist,P.tg.y+Math.sin(P.pitch)*P.dist,P.tg.z+Math.cos(P.yaw)*cp*P.dist);P.cam.lookAt(P.tg);
+  P.r.render(P.sc,P.cam);requestAnimationFrame(shopPrevLoop);}
+function openShop(){$('shop').style.display='block';renderShop();$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');
+  try{const P=shopPreview();if(!P.run){P.run=true;requestAnimationFrame(shopPrevLoop);}}catch(e){$('shopPrev').style.display='none';}}
+$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy],[data-wear]');if(!b)return;if(b.dataset.wear)wearHelm(b.dataset.wear);else buyItem(b.dataset.buy);});
+$('shopTabs').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tab]');if(b&&b.dataset.tab!==shopTab){shopTab=b.dataset.tab;tone(660,0.06,0.04,'triangle');renderShop();}});
 $('shopClose').onclick=$('shopX').onclick=()=>{$('shop').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
 function buildShop(){   // the white table already standing on the infield by the back straight (infield layout, item 6) – here just an invisible tap target and the floating cart
   const TX=-2.3,TZ=-10.4,y0=FLOOR_Y,g=new THREE.Group();g.position.set(TX,y0,TZ);scene.add(g);
