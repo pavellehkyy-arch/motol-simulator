@@ -116,6 +116,12 @@ tr.me td{color:#ffd166;font-weight:800}
 @keyframes sweep{0%{transform:translateX(-120%)}30%,100%{transform:translateX(120%)}}
 /* ---- transitions / intro / countdown ---- */
 #wipe{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden;display:none}
+#walkUI{position:fixed;inset:0;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#joy{position:absolute;left:0;top:0;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:rgba(10,20,35,.38);border:2px solid rgba(255,255,255,.45);pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#joy i{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 2px 10px rgba(0,0,0,.45)}
+#walkHint{position:absolute;top:12px;left:12px;font-size:12px;font-weight:700;line-height:1.45;pointer-events:none;max-width:60vw}
+#walkMenu{position:absolute;top:12px;right:12px;padding:9px 14px;font-size:14px}
+#walkMsg{position:absolute;left:50%;top:20%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:15px;font-weight:800;background:rgba(10,20,35,.8);border-radius:12px;padding:10px 16px;pointer-events:none;display:none}
 #wipe i{position:absolute;top:-20%;bottom:-20%;width:60%;left:-80%;transform:skewX(-18deg)}
 #wipe i:nth-child(1){background:#c6ff1a}#wipe i:nth-child(2){background:#e63946}#wipe i:nth-child(3){background:#0d1b33}
 #wipe.go{display:block}#wipe.go i{animation:wipe .9s cubic-bezier(.7,0,.3,1) both}
@@ -260,17 +266,32 @@ tr.me td{color:#ffd166;font-weight:800}
       <button class="mode" id="btnMad" style="--i:5;--c:#2b5fb4"><b>MADISON</b><span>30 kol · dvojice</span></button>
       <button class="mode" id="btnElim" style="--i:6;--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
     </div></div>
+    <button class="mode" id="btnWalk" style="--i:7;--c:#14284a;width:100%;border:2px solid #c6ff1a"><b>🚶 PLOCHA</b><span>projdi si velodrom – televize, obchod, šéf, start</span></button>
   </div>
 </div>
 <div id="wipe"><i></i><i></i><i></i></div>
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
+<div id="walkUI"><div id="joy"><i></i></div><div id="walkHint" class="panel">🕹️ Joystick vlevo = chůze · táhni vpravo = rozhlížení<br>📺 televize · 🛒 obchod · 🧔 šéf · 🏁 start na chodníčku</div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div></div>
+<div id="walkRace" class="screen" style="display:none"><div class="card mcard">
+  <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
+  <div class="modes mgrid" id="walkRaceList">
+    <button class="mode" data-m="sprint" style="--c:#ffd166;--f:#111"><b>SPRINT</b><span>1 na 1</span></button>
+    <button class="mode" data-m="keirin" style="--c:#ff7a00"><b>KEIRIN</b><span>za dernou</span></button>
+    <button class="mode" data-m="kilo" style="--c:#c6ff1a;--f:#111"><b>KILOMETR</b><span>na čas</span></button>
+    <button class="mode" data-m="scratch" style="--c:#e63946"><b>SCRATCH</b><span>13 kol</span></button>
+    <button class="mode" data-m="points" style="--c:#0f9d8a"><b>BODOVAČKA</b><span>40 kol</span></button>
+    <button class="mode" data-m="madison" style="--c:#2b5fb4"><b>MADISON</b><span>dvojice</span></button>
+    <button class="mode" data-m="elim" style="--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
+  </div>
+  <button class="go alt" id="walkRaceBack" style="margin-top:12px">Zpět na plochu</button>
+</div></div>
 
 <div id="ceremony" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:12px 14px 18px;pointer-events:none;text-align:center">
   <div class="panel" style="display:inline-block;margin-bottom:6px;font-size:14px;font-weight:700;pointer-events:none" id="cerTitle">🏆 Vyhlášení</div>
   <div id="cerVK" style="font-size:12.5px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
   <div style="font-size:12px;font-weight:700;margin-bottom:10px;text-shadow:0 1px 4px rgba(0,0,0,.8)">🧔 Ťukni na starého šéfa – zhodnotí tvoji jízdu · 📺 televize = výsledky<br>👆 Táhni prstem po obrazovce a rozhlédni se – za tebou je 🛒 obchod</div>
-  <div class="modes" style="pointer-events:auto;max-width:420px;margin:0 auto"><button class="go" id="cerAgain">Jet znovu</button><button class="go alt" id="cerMenu">Menu</button></div>
+  <div class="modes" style="pointer-events:auto;max-width:420px;margin:0 auto"><button class="go" id="cerAgain">Jet znovu</button><button class="go alt" id="cerMenu">Menu</button><button class="go" id="cerWalk" style="background:#14284a;box-shadow:none;border:2px solid #c6ff1a">🚶 Na plochu</button></div>
 </div>
 <div id="shop" style="display:none;position:fixed;left:12px;right:12px;top:14px;max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;max-height:calc(100vh - 28px);overflow:auto;box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod u stolku</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
@@ -2339,7 +2360,8 @@ function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,n
       for(const [u,v] of [[P0,P1],[P1,P2]]){const r=limb(mat(c),0.011);place(r,u,v);g.add(r);}}}
   g.rotation.set(0,0,0);return g;}
 let cerObjs=[],confetti=null,cerT=0;const _cp=new THREE.Vector3(),_cl=new THREE.Vector3();
-function clearCeremony(){cerYaw=cerPitch=0;cerDrag=null;if(shopTag)shopTag.visible=false;$('shop').style.display='none';if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
+let WALK_V=null,WALK_RACED=false;   // the coach's verdict on the last race, kept for the walk mode (riders get reset after the ceremony)
+function clearCeremony(){if(phase==='ceremony'){WALK_RACED=true;try{WALK_V=coachVerdict();}catch(e){WALK_V=null;}}cerYaw=cerPitch=0;cerDrag=null;if(shopTag)shopTag.visible=false;$('shop').style.display='none';if(PODWALL)PODWALL.visible=false;if(COACH)COACH.g.visible=false;if(RCOACH)RCOACH.g.visible=true;clearRescue();$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}for(const o of cerObjs)o.parent&&o.parent.remove(o);cerObjs=[];if(confetti){scene.remove(confetti.mesh);confetti=null;}$('ceremony').style.display='none';drawTV(null);}
 function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camera.userData.baseFov||62;camera.updateProjectionMatrix();$('sling').style.display='none';$('pBadge').style.display='none';if(slingLine)slingLine.visible=false;
   if(mode==='kilo'){const pb=bestKilo();player.isPB=player.finished&&(!pb||player.time<pb);}
   showResults(false);phase='ceremony';cerT=0;clearCans();$('boss').style.opacity=0;RCOACH.g.visible=false;COACH.g.visible=true;
@@ -3431,7 +3453,7 @@ function coachVerdict(){
   if(S.band>2)m.push('A po modrým pásu se nejezdí, to je tvoje chyba číslo jedna!');
   if(!m.length)m.push('Prostě jsi byl pomalej. Víc kilometrů, míň mobilu!');
   return {mood:'angry',lines:b.concat(m.slice(0,3),[pick(['Zítra v sedm na dráze, a ne abys přišel pozdě!','Teď mi zmiz z očí a jdi si to rozjet!','Přemejšlej o tom!'])])};}
-function showCoach(){const v=coachVerdict();COACH.mood=v.mood;COACH.t=0;
+function showCoach(){const v=phase==='walk'?(WALK_V||{mood:'happy',lines:['Nazdar! Nejdřív něco odjeď, pak ti řeknu, co si o tom myslím.','Start je na chodníčku u cílové čáry – tam si vybereš závod.']}):coachVerdict();COACH.mood=v.mood;COACH.t=0;
   $('coachText').innerHTML=v.lines.filter(Boolean).map(l=>'<p style="margin:0 0 7px">'+l+'</p>').join('');
   $('coachFace').textContent=v.mood==='happy'?'😄':'😡';const md=$('coachMood');md.textContent=v.mood==='happy'?'SPOKOJENÝ':'NAŠTVANÝ';md.style.background=v.mood==='happy'?'#c6ff1a':'#ff5a5f';md.style.color=v.mood==='happy'?'#111':'#fff';
   $('coachBox').style.display='block';$('ceremony').style.display='none';
@@ -3907,6 +3929,83 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
     R.pPrev=R.s;}
   if(al.length&&!isNeutral()){const ld=al.reduce((a,b)=>effS(a)>effS(b)?a:b),nl=nextSprintLine(effS(ld));
     if(nl-effS(ld)<L0&&PR.whistle!==nl&&nl<FIN-1){PR.whistle=nl;bell();if(phase==='race'&&!player.finished)showMsg('🔔<small>Sprint o body za 1 kolo · 5-3-2-1</small>',1.8);}}}
+// ---------- PLOCHA: walk round the velodrome (joystick, camera behind you; TV / shop / coach / start line open by themselves when you come up to them) ----------
+const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false};
+const WALK_BOX=[[-3.75,-11.05,-0.85,-9.75]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
+function walkFree(x,z){if(!NAV.grid)buildNav();const R=0.24;
+  for(let q=0;q<5;q++){const X=x+(q===1?R:q===2?-R:0),Z=z+(q===3?R:q===4?-R:0),i=Math.floor((X-NAV.x0)/NAV.c),j=Math.floor((Z-NAV.z0)/NAV.c);
+    if(i<0||j<0||i>=NAV.nx||j>=NAV.nz||NAV.grid[j*NAV.nx+i])return false;}
+  for(const b of WALK_BOX)if(x>b[0]-R&&x<b[2]+R&&z>b[1]-R&&z<b[3]+R)return false;return true;}
+function walkGround(x,z){return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
+function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText(ic,64,70);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));sp.scale.set(0.6,0.6,1);sp.visible=false;scene.add(sp);return sp;}
+function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();const tv=new THREE.Vector3(),co=new THREE.Vector3(),st=new THREE.Vector3();
+  TVMESH.getWorldPosition(tv);co.set(PODX,0,2.9);JUDGES.localToWorld(co);holderGround(SF,-BAND-0.55,st);
+  const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.3},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6}];
+  for(const z of Z)if(z.ic){z.tag=walkTag(z.ic);z.tag.position.set(z.p.x,(z.id==='start'?st.y:FLOOR_Y)+z.h,z.p.z);WALK.tags.push(z.tag);}
+  return WALK.zones=Z;}
+function walkSay(t,sec){const m=$('walkMsg');m.innerHTML=t;m.style.display=t?'block':'none';WALK.msgT=sec||0;}
+function walkOpen(id){if(id==='tv'){if(WALK_RACED){$('againBtn').style.display='none';$('menuBtn').style.display='none';$('results').style.display='flex';}else walkSay('📺 Zatím žádný závod – výsledky tu uvidíš po první jízdě.',3.5);}
+  else if(id==='shop')openShop();
+  else if(id==='coach')showCoach();
+  else if(id==='start'){$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}}
+function walkClose(id){if(id==='tv'){$('results').style.display='none';walkSay('');}
+  else if(id==='shop')$('shop').style.display='none';
+  else if(id==='coach'){if($('coachBox').style.display==='block')$('coachClose').onclick();}
+  else if(id==='start')$('walkRace').style.display='none';}
+function walkStart(){clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';$('menu').style.display='none';
+  riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;player.model.g.visible=false;
+  if(!WALK.r){WALK.r=makeHuman({top:player.jersey||0xffffff,pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});scene.add(WALK.r.g);}
+  if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(PODX+3.2,0,0);JUDGES.localToWorld(p);let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
+  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);
+  const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.jx=WALK.jy=0;WALK.joy=WALK.look=null;WALK.zone=null;WALK.k={};WALK.camOk=false;
+  WALK.r.g.visible=true;COACH.g.visible=true;COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
+  phase='walk';$('walkUI').style.display='block';joyHome();walkSay('');initAudio();}
+function walkStop(){if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
+  $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
+  if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
+// joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
+const JOY_R=56;
+function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
+const wui=$('walkUI');
+wui.addEventListener('pointerdown',e=>{if(phase!=='walk'||e.target.closest('button'))return;e.preventDefault();
+  if(e.clientX<innerWidth*0.45&&!WALK.joy){const j=$('joy');const x=clamp(e.clientX,70,innerWidth-70),y=clamp(e.clientY,70,innerHeight-70);j.style.left=x+'px';j.style.top=y+'px';WALK.joy={id:e.pointerId,x,y};}
+  else if(!WALK.look)WALK.look={id:e.pointerId,x:e.clientX,y:e.clientY};try{wui.setPointerCapture(e.pointerId);}catch(_){}});
+wui.addEventListener('pointermove',e=>{const J=WALK.joy,L=WALK.look;
+  if(J&&J.id===e.pointerId){let dx=e.clientX-J.x,dy=e.clientY-J.y;const d=Math.hypot(dx,dy);if(d>JOY_R){dx*=JOY_R/d;dy*=JOY_R/d;}$('joy').firstChild.style.transform='translate('+dx+'px,'+dy+'px)';WALK.jx=dx/JOY_R;WALK.jy=-dy/JOY_R;}
+  else if(L&&L.id===e.pointerId){const k=PI*1.2/Math.max(320,innerWidth);WALK.yaw-=(e.clientX-L.x)*k;WALK.pitch=clamp(WALK.pitch+(e.clientY-L.y)*k,-0.15,0.95);L.x=e.clientX;L.y=e.clientY;}});
+const joyUp=e=>{if(WALK.joy&&WALK.joy.id===e.pointerId){WALK.joy=null;WALK.jx=WALK.jy=0;joyHome();}if(WALK.look&&WALK.look.id===e.pointerId)WALK.look=null;};
+wui.addEventListener('pointerup',joyUp);wui.addEventListener('pointercancel',joyUp);
+const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
+addEventListener('keydown',e=>{if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keyup',e=>{if(phase!=='walk')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
+$('btnWalk').onclick=()=>wipe(walkStart);
+$('cerWalk').onclick=()=>wipe(walkStart);
+$('walkMenu').onclick=()=>wipe(()=>{walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
+$('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';};
+$('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b)wipe(()=>{walkStop();beginRace(b.dataset.m);});});
+const _wc=new THREE.Vector3(),_wl=new THREE.Vector3();
+function walkTick(dt){menuTick(dt);JUDGES.updateMatrixWorld();animCoach(dt);   // the bunch keeps rolling round the track while you walk
+  const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
+  let ix=WALK.jx+(K.r?1:0)-(K.l?1:0),iy=WALK.jy+(K.f?1:0)-(K.b?1:0);const im=Math.hypot(ix,iy);if(im>1){ix/=im;iy/=im;}const amt=Math.min(1,im);
+  const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
+  const top=amt>0.85||K.run?3.6:1.7*Math.max(amt,0.35),tgt=amt>0.08?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?5:9));
+  if(ml>1e-3){const want=Math.atan2(mx,mz);let d=want-WALK.head;d=Math.atan2(Math.sin(d),Math.cos(d));WALK.head+=d*Math.min(1,dt*10);}
+  if(WALK.spd>0.02){const ux=ml>1e-3?mx/ml:Math.sin(WALK.head),uz=ml>1e-3?mz/ml:Math.cos(WALK.head),st=WALK.spd*dt,P=WALK.pos;   // slide along walls: try the full step, then each axis on its own
+    if(walkFree(P.x+ux*st,P.z+uz*st)){P.x+=ux*st;P.z+=uz*st;}else if(walkFree(P.x+ux*st,P.z)){P.x+=ux*st;WALK.spd*=0.92;}else if(walkFree(P.x,P.z+uz*st)){P.z+=uz*st;WALK.spd*=0.92;}else WALK.spd=0;}
+  const gy=walkGround(WALK.pos.x,WALK.pos.z);WALK.pos.y+=(gy-WALK.pos.y)*Math.min(1,dt*9);
+  const r=WALK.r,a=clamp(WALK.spd/1.7,0,1.25);WALK.ph+=dt*WALK.spd*(WALK.spd>2.4?3.6:4.6);r.t+=dt;const T=walkPose({},WALK.ph,Math.min(1,a));if(a>1)T.lean=0.06+(a-1)*0.9;
+  poseHuman(r,T,1-Math.exp(-dt*10));r.g.position.copy(WALK.pos);r.g.rotation.y=WALK.head;
+  // camera behind and above, pulled in when a wall or the banking is in the way
+  const cp=Math.cos(WALK.pitch),sp=Math.sin(WALK.pitch);let D=3.6;for(let q=0;q<10;q++){const x=WALK.pos.x-fx*cp*D,z=WALK.pos.z-fz*cp*D;if(walkFree(x,z)||D<=1.3)break;D-=0.25;}
+  _wc.set(WALK.pos.x-fx*cp*D,WALK.pos.y+1.55+sp*D,WALK.pos.z-fz*cp*D);_wl.set(WALK.pos.x+fx*0.6,WALK.pos.y+1.35,WALK.pos.z+fz*0.6);
+  if(!WALK.camOk){WALK.cam.copy(_wc);WALK.camOk=true;}WALK.cam.lerp(_wc,Math.min(1,dt*10));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(_wl);
+  // zones: come up to it and it opens, walk away and it closes
+  const Z=walkZones();let near=null,nd=1e9;for(const z of Z){const d=Math.hypot(z.p.x-WALK.pos.x,z.p.z-WALK.pos.z);if(z.tag)z.tag.position.y+=((z.id==='start'?z.p.y:FLOOR_Y)+z.h+Math.sin(idleT*2.2+z.h)*0.08-z.tag.position.y);if(d<z.r+(z.id===WALK.zone?0.5:0)&&d<nd){near=z.id;nd=d;}}
+  if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
+  if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
+  if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
+if(location.hash==='#debug')window.__WALK=()=>({WALK,walkFree,walkZones,NAV});
 // ---------- menu backdrop: the bunch rolls round in a paceline, camera cuts between shots ----------
 const _mt=new THREE.Vector3(),_ml=new THREE.Vector3();let menuShot=-1;
 function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
@@ -3928,6 +4027,7 @@ let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;if(hasalSrc)hasalMix();
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
+  if(phase==='walk'){walkTick(dt);renderer.render(scene,camera);return;}
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);renderer.render(scene,camera);return;}
   if(phase==='intro'){updateIntro(dt);placeModels(dt);updateBoss(dt);renderer.render(scene,camera);return;}
   if(phase==='countdown'&&mode==='keirin'){if(!paused)keirinPre(dt*TS);}
