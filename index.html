@@ -2461,7 +2461,7 @@ function playerControl(dt){
     if(ah){R.follow=ah;const vT=ah.v+(gap-(ah===DERNY?2.2:mode==='teamsprint'?2.05:1.9))*0.5;const cda=R.cda*(1-R.draft);
       const brake=vT<R.v-0.3;const Pt=clamp((0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT+(brake?900:260)*(vT-R.v)*(brake?R.v/6:1),-2600,raceTime<6&&mode!=='teamsprint'?480:1150);R.fP=(R.fP==null?Pt:R.fP+(Pt-R.fP)*Math.min(1,dt*6));R.power=R.fP;}
     else R.fP=null;
-    if(!ah){const cruise=mode==='sprint'&&e<0.8;R.gearAdd=!cruise&&e>=0.12?(R.gearW||0):0;   // shop discs: +20 W each on top of the power you ask for
+    if(!ah){const cruise=mode==='sprint'&&e<0.8;R.gearAdd=!cruise&&e>=0.12?(R.gearW||0):0;   // shop gear (wheels + helmet) on top of the power you ask for
       R.power=(cruise?spCruise(R,e):effortPower(e))+R.gearAdd;}}
   let sd=0;if(keys.left)sd-=1;if(keys.right)sd+=1;
   // slot into the slipstream: when you close on a rider and aren't steering, line up behind his wheel
@@ -2697,9 +2697,13 @@ function startCeremony(){if(OMNI&&OMNI.ev<OM_EV.length-1){omniBreak();return;}
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
 const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,1,1),_pp=new THREE.Vector3(),_e3=new THREE.Euler();
 // ---------- shop: the white table on the infield by the back straight; you get to it only at the ceremony – turn round (drag) and tap it ----------
-const SHOP_ITEMS=[   // price in penízky; w = extra watts (discs add up, of the helmets only the one you wear counts); tab: kola / helmy
-  {id:'disc_f',tab:'kola',ic:'⚫',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +20 W',price:1000,w:20},
-  {id:'disc_r',tab:'kola',ic:'⚫',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +20 W',price:1000,w:20},
+const SHOP_ITEMS=[   // price in penízky; w = extra watts (only what you wear counts: one front wheel, one rear wheel, one helmet); tab: kola / helmy; slot f/r + wk = makeWheel kind
+  {id:'wire_f',tab:'kola',slot:'f',wk:'wire',name:'Přední výplet',desc:'Klasické kolo s dráty. Základ, máš ho vždycky.',price:0,w:0,free:true},
+  {id:'wire_r',tab:'kola',slot:'r',wk:'wire',name:'Zadní výplet',desc:'Klasické kolo s dráty. Základ, máš ho vždycky.',price:0,w:0,free:true},
+  {id:'spoke5_f',tab:'kola',slot:'f',wk:5,name:'Přední loukoťák',desc:'Karbonové kolo s pěti loukotěmi dopředu. +15 W',price:500,w:15},
+  {id:'spoke5_r',tab:'kola',slot:'r',wk:5,name:'Zadní loukoťák',desc:'Karbonové kolo s pěti loukotěmi dozadu. +15 W',price:500,w:15},
+  {id:'disc_f',tab:'kola',slot:'f',wk:'disc',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +25 W',price:1000,w:25},
+  {id:'disc_r',tab:'kola',slot:'r',wk:'disc',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +25 W',price:1000,w:25},
   {id:'helm_road',tab:'helmy',kind:'road',name:'Silniční helma',desc:'Černobílá, plná větráků. Základ, máš ji vždycky.',price:0,w:0,free:true},
   {id:'helm_aero',tab:'helmy',kind:'aero',name:'Aero helma',desc:'Hladká bílá skořepina, málo větráků. +10 W',price:1500,w:10},
   {id:'helm_shield',tab:'helmy',kind:'shield',name:'Aero helma se štítem',desc:'Bílá perleť a duhový štít na magnetech. +20 W',price:2500,w:20},
@@ -2708,30 +2712,37 @@ const HELM_ICO={road:'<path d="M3 17C3 8 11 4 19 4c7 0 12 4 13 10l-2 4H5z" fill=
   aero:'<path d="M3 18C3 9 10 4 18 4c8 0 14 5 14 12l-2 2H5z" fill="#eef0f2" stroke="#9aa2ac" stroke-width="1"/><path d="M6 14l5-3 2 4-5 2z" fill="#26272a"/><path d="M8 7c6-2 14-1 20 4" stroke="#b5bcc5" stroke-width="1" fill="none"/>',
   shield:'<path d="M3 18C3 9 10 4 18 4c8 0 13 5 13 11v3H5z" fill="#f3f1f7" stroke="#a49fb2" stroke-width="1"/><path d="M3 15c0 4 1 7 4 8h8c-1-3-1-6-1-8z" fill="url(#ir)"/><circle cx="5" cy="15" r="1.2" fill="#111"/><path d="M15 6l3 4" stroke="#26272a" stroke-width="2.4" stroke-linecap="round"/><defs><linearGradient id="ir"><stop offset="0" stop-color="#ff2f1c"/><stop offset=".6" stop-color="#ffb300"/><stop offset="1" stop-color="#cfe34a"/></linearGradient></defs>',
   tt:'<path d="M2 17C2 8 8 4 14 4c9 0 15 4 21 13l-2 1H4z" fill="#1b1c1f"/><path d="M2 14c0 5 1 8 4 10h9c-1-3-1-7-1-10z" fill="#7a8088"/><path d="M5 15h8" stroke="#c6ccd3" stroke-width="1"/>'};
+const WHEEL_ICO=k=>'<circle cx="18" cy="13" r="11.5" fill="'+(k==='disc'?'#1b1c1f':'none')+'" stroke="#1b1c1f" stroke-width="2.2"/>'+(k==='wire'?Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return '<path d="M18 13L'+(18+Math.cos(a)*10.5).toFixed(1)+' '+(13+Math.sin(a)*10.5).toFixed(1)+'" stroke="#55585d" stroke-width=".7"/>';}).join(''):k===5?Array.from({length:5},(_,i)=>{const a=i*2*Math.PI/5-Math.PI/2;return '<path d="M18 13L'+(18+Math.cos(a)*10.5).toFixed(1)+' '+(13+Math.sin(a)*10.5).toFixed(1)+'" stroke="#1b1c1f" stroke-width="2.6" stroke-linecap="round"/>';}).join(''):'')+'<circle cx="18" cy="13" r="2.2" fill="#8d9196"/>';
 let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0,shopTab='kola',shopEquipNext=null;
 function shopOwned(){try{return JSON.parse(localStorage.getItem('motol_shop')||'{}')||{};}catch(e){return {};}}
 function helmOwned(id,own){const it=SHOP_ITEMS.find(i=>i.id===id);return !!it&&it.tab==='helmy'&&(it.free||!!(own||shopOwned())[id]);}
+function wheelOwned(id,slot,own){const it=SHOP_ITEMS.find(i=>i.id===id);return !!it&&it.slot===slot&&(it.free||!!(own||shopOwned())[id]);}
+// one wheel per slot (f/r); nothing chosen yet = the best one you own (players who bought a disc before keep riding it)
+function wornWheel(slot,own){own=own||shopOwned();let h=null;try{h=localStorage.getItem('motol_wheel_'+slot);}catch(e){}if(wheelOwned(h,slot,own))return h;
+  let b='wire_'+slot;for(const it of SHOP_ITEMS)if(it.slot===slot&&own[it.id]&&it.w>SHOP_ITEMS.find(i=>i.id===b).w)b=it.id;return b;}
+function wearItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it)return;if(it.slot){if(!wheelOwned(id,it.slot))return;try{localStorage.setItem('motol_wheel_'+it.slot,id);}catch(e){}}else{if(!helmOwned(id))return;try{localStorage.setItem('motol_helm',id);}catch(e){}}
+  shopEquipNext=null;tone(740,0.1,0.06,'triangle');renderShop();}
 function wornHelm(){let h=null;try{h=localStorage.getItem('motol_helm');}catch(e){}return helmOwned(h)?h:'helm_road';}   // only one helmet on the head; the road one is always there
-function wearHelm(id){if(!helmOwned(id))return;shopEquipNext=null;try{localStorage.setItem('motol_helm',id);}catch(e){}tone(740,0.1,0.06,'triangle');renderShop();}
-function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||it.free||shopOwned()[id]||getVK()<it.price)return;if(it.tab==='helmy')shopEquipNext=id;if(window.Online&&Online.loggedIn()){Online.buy(id);return;}
+function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||it.free||shopOwned()[id]||getVK()<it.price)return;shopEquipNext=id;if(window.Online&&Online.loggedIn()){Online.buy(id);return;}
   const o=shopOwned();o[id]=1;try{localStorage.setItem('motol_shop',JSON.stringify(o));}catch(e){}addVK(-it.price);tone(880,0.15,0.08,'triangle');renderShop();}
-// bought gear on the hero: swap the wheel (spoked <-> disc) on both of his bikes, put the worn helmet on and add the watts
-function applyGear(){const own=shopOwned();if(shopEquipNext&&helmOwned(shopEquipNext,own)){try{localStorage.setItem('motol_helm',shopEquipNext);}catch(e){}shopEquipNext=null;}   // a helmet you just bought goes straight on
-  const hz=wornHelm(),hk=SHOP_ITEMS.find(i=>i.id===hz).kind;let w=0;for(const it of SHOP_ITEMS)if(it.tab==='helmy'?it.id===hz:own[it.id])w+=it.w||0;player.gearW=w;player.helm=hk;
-  const want=[own.disc_r?'disc':'wire',own.disc_f?'disc':'wire'];   // wheels[0] = rear, wheels[1] = front (makeBike)
+// worn gear on the hero: swap the wheels (spoked / 5-spoke / disc) on both of his bikes, put the worn helmet on and add the watts
+function applyGear(){const own=shopOwned();const ne=shopEquipNext&&SHOP_ITEMS.find(i=>i.id===shopEquipNext);   // what you just bought goes straight on
+  if(ne&&(ne.slot?wheelOwned(ne.id,ne.slot,own):helmOwned(ne.id,own))){try{localStorage.setItem(ne.slot?'motol_wheel_'+ne.slot:'motol_helm',ne.id);}catch(e){}shopEquipNext=null;}
+  const hz=wornHelm(),hk=SHOP_ITEMS.find(i=>i.id===hz).kind,wr=wornWheel('r',own),wf=wornWheel('f',own);let w=0;for(const it of SHOP_ITEMS)if(it.id===hz||it.id===wr||it.id===wf)w+=it.w||0;player.gearW=w;player.helm=hk;
+  const want=[wr,wf].map(id=>SHOP_ITEMS.find(i=>i.id===id).wk);   // wheels[0] = rear, wheels[1] = front (makeBike)
   for(const M of [player.mAero,player.mStd,SPV&&SPV.M,...HERO_FIGS]){if(!M)continue;setRiderHelm(M,hk);if(!M.wheels)continue;M.gear=M.gear||['wire','wire'];
     for(let i=0;i<2;i++){if(M.gear[i]===want[i]||!M.wheels[i])continue;const old=M.wheels[i],nw=makeWheel(want[i]);nw.position.copy(old.position);nw.rotation.x=old.rotation.x;
       nw.traverse(o=>{if(o.isMesh)o.castShadow=true;});old.parent.add(nw);old.parent.remove(old);M.wheels[i]=nw;M.gear[i]=want[i];}}}
 window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js calls this after a purchase or an account sync
 let SPV=null;applyGear();
-function renderShop(){applyGear();const vk=getVK(),own=shopOwned(),hz=wornHelm();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
+function renderShop(){applyGear();const vk=getVK(),own=shopOwned(),hz=wornHelm(),wz={f:wornWheel('f',own),r:wornWheel('r',own)};$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
   for(const b of document.querySelectorAll('#shopTabs [data-tab]')){const on=b.dataset.tab===shopTab;b.style.background=on?'#1a1a1a':'#eee6d6';b.style.color=on?'#c6ff1a':'#1a1a1a';}
-  $('shopNote').textContent=shopTab==='kola'?'Koupené kolo ti už zůstane na kole. Watty se sčítají.':'Na hlavě máš vždycky jednu helmu. Watty dává jen ta nasazená.';
+  $('shopNote').textContent=shopTab==='kola'?'Vepředu i vzadu máš vždycky jedno kolo. Watty dávají jen ta nasazená a sčítají se.':'Na hlavě máš vždycky jednu helmu. Watty dává jen ta nasazená.';
   const btn=(lab,on,attr,bg)=>'<button '+attr+' '+(on?'':'disabled ')+'style="font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:8px 10px;min-width:92px;cursor:'+(on?'pointer':'default')+';background:'+(on?bg:'#d9d4c7')+';color:'+(on?'#fff':'#5a5648')+'">'+lab+'</button>';
   $('shopList').innerHTML=SHOP_ITEMS.filter(it=>it.tab===shopTab).map(it=>{let b;
-    if(it.tab==='helmy'){const has=helmOwned(it.id,own),worn=it.id===hz;b=worn?btn('✔ Nasazená',false,''):has?btn('Nasadit',true,'data-wear="'+it.id+'"','#2a9d4b'):btn(it.price+' 💰',vk>=it.price,'data-buy="'+it.id+'"','#e63946');}
-    else{const has=own[it.id];b=btn(has?'✔ Máš':it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰',!it.soon&&!has&&vk>=it.price,'data-buy="'+it.id+'"','#e63946');}
-    const ic=it.kind?'<svg viewBox="0 0 36 26" width="34" height="25">'+HELM_ICO[it.kind]+'</svg>':it.ic;
+    const has=it.slot?wheelOwned(it.id,it.slot,own):helmOwned(it.id,own),worn=it.slot?wz[it.slot]===it.id:it.id===hz;
+    b=worn?btn(it.slot?'✔ Nasazené':'✔ Nasazená',false,''):has?btn('Nasadit',true,'data-wear="'+it.id+'"','#2a9d4b'):btn(it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰',!it.soon&&vk>=it.price,'data-buy="'+it.id+'"','#e63946');
+    const ic=it.kind?'<svg viewBox="0 0 36 26" width="34" height="25">'+HELM_ICO[it.kind]+'</svg>':it.wk?'<svg viewBox="0 0 36 26" width="34" height="25">'+WHEEL_ICO(it.wk)+'</svg>':it.ic;
     return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #0001"><span style="font-size:28px;width:34px;text-align:center;line-height:0">'+ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+b+'</div>';}).join('');}
 // 3D preview in the shop: the hero on his bike (wheels tab) or a close-up of the head (helmets tab); own small renderer, runs only while the shop is open
 function shopPreview(){if(SPV)return SPV;const cv=$('shopPrev');const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
@@ -2752,7 +2763,7 @@ function shopPrevLoop(){const P=SPV;if(!P||$('shop').style.display==='none'){if(
   P.r.render(P.sc,P.cam);requestAnimationFrame(shopPrevLoop);}
 function openShop(){$('shop').style.display='block';renderShop();$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');
   try{const P=shopPreview();if(!P.run){P.run=true;requestAnimationFrame(shopPrevLoop);}}catch(e){$('shopPrev').style.display='none';}}
-$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy],[data-wear]');if(!b)return;if(b.dataset.wear)wearHelm(b.dataset.wear);else buyItem(b.dataset.buy);});
+$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy],[data-wear]');if(!b)return;if(b.dataset.wear)wearItem(b.dataset.wear);else buyItem(b.dataset.buy);});
 $('shopTabs').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tab]');if(b&&b.dataset.tab!==shopTab){shopTab=b.dataset.tab;tone(660,0.06,0.04,'triangle');renderShop();}});
 $('shopClose').onclick=$('shopX').onclick=()=>{$('shop').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
 function buildShop(){   // the white table already standing on the infield by the back straight (infield layout, item 6) – here just an invisible tap target and the floating cart
