@@ -297,7 +297,7 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 </div>
 <div id="shop" class="pop" style="display:none;position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;overflow:auto;box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod u stolku</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
-  <div style="font-size:13px;opacity:.7;margin-bottom:8px">Platí se penízky, které vyjezdíš v závodech. Zboží je zatím na cestě – brzy tu bude co kupovat.</div>
+  <div style="font-size:13px;opacity:.7;margin-bottom:8px">Platí se penízky, které vyjezdíš v závodech. Koupené kolo ti už zůstane na kole.</div>
   <div id="shopList"></div>
   <button class="go" id="shopClose" style="margin-top:10px;width:100%;min-width:0;padding:10px;font-size:14px">◀ Zpět na vyhlášení</button>
 </div>
@@ -1726,7 +1726,7 @@ function drawLapBoard(n){lapCtx.fillStyle='#0b0b0b';lapCtx.fillRect(0,0,256,192)
 
 // ---------- riders roster ----------
 const ROSTER=[
-  {name:'Ty',team:'wc',jersey:0xffffff,ftp:330,player:true,discR:true,discF:true,num:1},
+  {name:'Ty',team:'wc',jersey:0xffffff,ftp:330,player:true,discR:false,discF:false,spokes:24,num:1},   // classic spoked wheels; carbon discs come from the shop (applyGear)
   {name:'Vojck',team:'pardus',jersey:0xf2c230,discR:true,num:7,hair:0x2a2018,wolf:true,kick:1.6},
   {name:'Sašík',team:'pardus',jersey:0xf2c230,discR:true,num:8,hair:0xc9a86a,shoe:0x2b6fd6},
   {name:'Evenepoel',team:'dukla',jersey:0x222222,discR:true,num:12},
@@ -1958,6 +1958,7 @@ function physics(R,dt){
   if(R.draft>0.1&&Pe<R.ftp*1.1&&!R.resting)dE+=R.draft*3.2*(1-Math.max(0,Pe-0.8*R.ftp)/(0.3*R.ftp));   // sitting on a wheel really refills the tank
   R.eRate+=(dE-R.eRate)*Math.min(1,dt*2);R.energy=clamp(R.energy+dE*dt,0,100);
   if(R.kick&&P>1.4*R.ftp)P=1.4*R.ftp+(P-1.4*R.ftp)*(mode==='sprint'?1+(R.kick-1)*0.35:R.kick);   // (1 on 1 only a touch: otherwise nobody could ever beat him)   // a pure sprinter (Vojck): the kick hits much harder and costs him no more than the others
+  if(R.player&&R.gearW&&P>0)P+=R.gearW;   // shop discs: +20 W each
   R.realP=P;
   let draft=0;
   if(mode!=='kilo'){let n=0,nA=0;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible||(o.out&&o.outT>1))continue;const gap=gapTo(R,o),dd=Math.abs(o.w-R.w);if(gap>0.3&&gap<(mode==='sprint'?14:6)&&dd<0.9)draft=Math.max(draft,(mode==='sprint'?0.47*Math.exp(-(gap-0.3)/6):0.45*(1-(gap-0.3)/5.7))*(1-dd/0.9*0.5));if(gap>0.3&&gap<16&&dd<1.3)n++;if(gap>0.3&&gap<12&&dd<1.7)nA++;}
@@ -2397,16 +2398,22 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
 const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,1,1),_pp=new THREE.Vector3(),_e3=new THREE.Euler();
 // ---------- shop: the white table on the infield by the back straight; you get to it only at the ceremony – turn round (drag) and tap it ----------
-const SHOP_ITEMS=[   // price in penízky; soon: not on sale yet
-  {id:'cap',ic:'🧢',name:'Cyklistická čepička',desc:'Pod helmu, v barvách klubu.',price:150,soon:true},
-  {id:'bidon',ic:'🥤',name:'Bidon Motol',desc:'Na rozjížďky i na válce.',price:80,soon:true},
-  {id:'socks',ic:'🧦',name:'Závodní ponožky',desc:'Vysoké, aero, do sprintu.',price:120,soon:true},
-  {id:'disc',ic:'⚫',name:'Karbonové disky',desc:'Plné kolo dozadu i dopředu.',price:900,soon:true}];
+const SHOP_ITEMS=[   // price in penízky; w = extra watts on the hero's bike (each disc +20 W); bought discs show on the hero's bike for good
+  {id:'disc_f',ic:'⚫',name:'Přední disk',desc:'Plné karbonové kolo dopředu. +20 W',price:1000,w:20},
+  {id:'disc_r',ic:'⚫',name:'Zadní disk',desc:'Plné karbonové kolo dozadu. +20 W',price:1000,w:20}];
 let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0;
 function shopOwned(){try{return JSON.parse(localStorage.getItem('motol_shop')||'{}')||{};}catch(e){return {};}}
 function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||shopOwned()[id]||getVK()<it.price)return;if(window.Online&&Online.loggedIn()){Online.buy(id);return;}
   const o=shopOwned();o[id]=1;try{localStorage.setItem('motol_shop',JSON.stringify(o));}catch(e){}addVK(-it.price);tone(880,0.15,0.08,'triangle');renderShop();}
-function renderShop(){const vk=getVK(),own=shopOwned();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
+// bought gear on the hero: swap the wheel (spoked <-> disc) on both of his bikes and add the watts
+function applyGear(){const own=shopOwned();let w=0;for(const it of SHOP_ITEMS)if(own[it.id])w+=it.w||0;player.gearW=w;
+  const want=[own.disc_r?'disc':'wire',own.disc_f?'disc':'wire'];   // wheels[0] = rear, wheels[1] = front (makeBike)
+  for(const M of [player.mAero,player.mStd]){if(!M||!M.wheels)continue;M.gear=M.gear||['wire','wire'];
+    for(let i=0;i<2;i++){if(M.gear[i]===want[i]||!M.wheels[i])continue;const old=M.wheels[i],nw=makeWheel(want[i]);nw.position.copy(old.position);nw.rotation.x=old.rotation.x;
+      nw.traverse(o=>{if(o.isMesh)o.castShadow=true;});old.parent.add(nw);old.parent.remove(old);M.wheels[i]=nw;M.gear[i]=want[i];}}}
+window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js calls this after a purchase or an account sync
+applyGear();
+function renderShop(){applyGear();const vk=getVK(),own=shopOwned();$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
   $('shopList').innerHTML=SHOP_ITEMS.map(it=>{const has=own[it.id],can=!it.soon&&!has&&vk>=it.price;
     return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #0001"><span style="font-size:28px;width:34px;text-align:center">'+it.ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+
       '<button data-buy="'+it.id+'" '+(can?'':'disabled ')+'style="font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:8px 10px;min-width:86px;cursor:'+(can?'pointer':'default')+';background:'+(can?'#e63946':'#d9d4c7')+';color:'+(can?'#fff':'#5a5648')+'">'+(has?'✔ Máš':it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰')+'</button></div>';}).join('');}
@@ -3148,6 +3155,7 @@ let raceBonus=0,lastEarned=0;
 function getVK(){try{return parseInt(localStorage.getItem('motol_vk')||'0',10)||0;}catch(e){return 0;}}
 function addVK(n){const t=getVK()+n;try{localStorage.setItem('motol_vk',String(t));}catch(e){}updateVKBadge();return t;}
 function updateVKBadge(){$('vkTotal').textContent=getVK().toLocaleString('cs-CZ');}
+window.updateVKBadge=updateVKBadge;   // online.js refreshes the badge when the account's money changes
 function earnedCredits(){let n=0,why=[];const R=player;
   if(mode==='kilo'){if(!R.finished)return {n:0,why:['nedokončeno']};n=20;why.push('dokončený kilometr +20');const sp=1000/R.time*3.6;const b=Math.max(0,Math.round((sp-48)*4));if(b){n+=b;why.push('rychlost '+sp.toFixed(1)+' km/h +'+b);}
     if(R.isPB){n+=50;why.push('osobní rekord +50');}}

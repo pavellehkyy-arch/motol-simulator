@@ -40,7 +40,10 @@
     if (typeof G.updateVKBadge === 'function') { try { G.updateVKBadge(); } catch (e) {} }
   }
   function localOwned() { try { return JSON.parse(LS.get('motol_shop') || '{}') || {}; } catch (e) { return {}; } }
-  function setLocalOwned(o) { LS.set('motol_shop', JSON.stringify(o)); }
+  function setLocalOwned(o) {
+    LS.set('motol_shop', JSON.stringify(o));
+    if (typeof G.renderShop === 'function') { try { G.renderShop(); } catch (e) {} }   // hra překreslí obchod a nasadí koupené disky
+  }
   function saveSess() { if (S) LS.set('motol_session', JSON.stringify(S)); else LS.del('motol_session'); }
   function loadSess() {
     try { S = JSON.parse(LS.get('motol_session') || 'null'); } catch (e) { S = null; }
