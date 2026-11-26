@@ -1619,7 +1619,7 @@ function buildInfield(){
       bk.g.position.set(0,-0.935,0.115);piv.add(bk.g);                                    // the point just under the saddle nose sits on the bar
       for(const lz of [-0.7,0,0.7]){const w=new THREE.Vector3(x,0,lz);g.updateMatrixWorld();g.localToWorld(w);OBST.hangs.push([w.x,w.z]);}}}
   hanger(12.2,-7.85,7,3);hanger(-19.2,7.35,5,1);hanger(11.2,10.0,5,5);
-  // 6: small table on the back straight side – the shop will be here later
+  // 6: small table on the back straight side – the shop (see buildShop)
   {const tw=mat(0xf4f4f2),tl=mat(0x8a8d90),TX=-2.3,TZ=-10.4,TL=2.4,TD=0.8,TH=0.76;
    box(TL,0.04,TD,TX,y0+TH,TZ,tw);box(TL-0.04,0.06,0.04,TX,y0+TH-0.05,TZ-TD/2+0.03,tl);box(TL-0.04,0.06,0.04,TX,y0+TH-0.05,TZ+TD/2-0.03,tl);
    for(const sx of [-1,1])for(const sz of [-1,1])box(0.035,TH-0.02,0.035,TX+sx*(TL/2-0.12),y0+(TH-0.02)/2,TZ+sz*(TD/2-0.08),tl);
@@ -1938,7 +1938,7 @@ function physics(R,dt){
     if(mode==='keirin'&&dernyOn()){const gap=gapTo(R,DERNY),dd=Math.abs(DERNY.w-R.w);if(gap>0.3&&gap<7&&dd<0.9)draft=Math.max(draft,0.55*(1-(gap-1.6)/5.4)*(1-dd/0.9*0.5));}}   // deeper in the bunch = more shelter; the derny + its upright pilot = a big hole in the air
   R.draft=draft;if(mode==='sprint')hookSling(R,dt);
   const m=80,v=R.v;const onBand=R.w<-0.05;
-  const Fp=(P>0?Math.min(P/Math.max(v,0.6),420):Math.max(P/Math.max(v,2),-160))+(R.hkT>0&&P>0.9*R.ftp?HK_F*R.hkK*Math.min(1,R.hkT/0.4):0);   // + the slingshot out of the hook
+  const Fp=(P>0?Math.min(P/Math.max(v,0.6),420):Math.max(P/Math.max(v,2),-160))+(mode==='sprint'&&R.hkT>0&&P>0.9*R.ftp?HK_F*R.hkK*Math.min(1,R.hkT/0.4):0);   // + the slingshot out of the hook
   const Fr=v>0.05?m*9.81*(onBand?0.03:0.0025):0;
   const Fa=0.5*1.2*R.cda*(1-draft)*v*v;
   R.v=Math.max(0,v+(Fp-Fr-Fa)/m*dt);
@@ -2174,7 +2174,7 @@ function resolveContacts(dt){
       const rel=Math.abs(A.dw-B.dw),pl=A===player||B===player;
       const aInto=A.dw*Math.sign(B.w-A.w||1);   // rider behind steering into the wheel in front
       if(rel>(pl?0.35:0.7)&&aInto>0.3&&(Math.sign(B.w-A.w)===Math.sign(A.dw-B.dw)||adw<0.12)){
-        if(mode==='sprint'&&!A.player){if(B.player&&Math.abs(B.dw)>0.5){A.hookBy=B;crashRider(A,'hook');}else{A.v=Math.max(0,A.v-1.2);A.w+=Math.sign(A.w-B.w||1)*0.12;}continue;}   // sprint: the bot rides his own wheel carefully – only your swerve can take him down
+        if(mode==='sprint'&&!A.player){if(B.player&&Math.abs(B.dw)>0.5){A.hookBy=B;crashRider(A,'hook');}else{A.v=Math.max(0,A.v-6*dt);A.w=clamp(A.w+Math.sign(A.w-B.w||1)*0.8*dt,0.2,TW-0.8);}continue;}   // sprint: the bot rides his own wheel carefully – only your swerve can take him down
         crashRider(A,'hook');continue;}}
     if(ds>=1.2){                                                    // rear contact
       const closing=A.v-B.v;
@@ -2210,7 +2210,7 @@ function crashRider(R,cause){if(R.crashed||R.finished||!R.model.g.visible)return
   else if(slip){tone(1500,0.5,0.06,'sawtooth');tone(900,0.4,0.05,'sawtooth',0.12);tone(70,0.5,0.32,'square',0.3);}   // tyre squeal, then the thump on the boards
   else tone(85+Math.random()*30,0.45,0.3,'sawtooth');
   if(R===player){crashT=0;showMsg('PÁD! 🚑<small>'+(CAUSE[cause]||'')+' – závod pro tebe skončil</small>',3.2);}
-  else if(mode==='sprint'&&SP&&SP.cur&&R===SP.opp&&!SP.cur.decided&&!player.crashed&&(R.hookBy===player||(R.lastShover===player&&R.pushedT>0&&(cause==='band'||cause==='barrier')))){spFoul(player,'crash');spDecide(SP.opp);return;}
+  else if(mode==='sprint'&&SP&&SP.cur&&R===SP.opp&&!SP.cur.decided&&!SP.cur.foul&&!player.crashed&&(R.hookBy===player||(R.lastShover===player&&R.pushedT>0&&(cause==='band'||cause==='barrier')))){spFoul(player,'crash');spDecide(SP.opp);return;}
   else if(!player.crashed&&phase==='race')showMsg('<small>💥 '+R.name+(R.clumsy?' zase padá! 🤦':' padá!')+'</small>',1.6);}
 function crashUpdate(R,dt){const C=R.crash;C.t+=dt;C.v=Math.max(0,C.v-(C.slip?3.2:5.5)*dt);R.v=C.v;R.s+=C.v*dt;
   const f=frameAt(R.s);const b=R.w>=0?f.b:8*deg;C.vw-=9.81*Math.sin(b)*(C.slip?0.55:0.4)*dt;C.vw*=Math.exp(-(C.slip?(R.w<0?2.5:0.45):1.3)*dt);   // sliding on the side down the steep boards, the band stops it
@@ -2366,7 +2366,7 @@ function startCeremony(){$('count').style.display='none';fovK=0;camera.fov=camer
   $('hud').style.display='none';$('ctl').style.display='none';$('ceremony').style.display='block';
   tone(523,0.25,0.12,'triangle');tone(659,0.25,0.12,'triangle',0.18);tone(784,0.5,0.14,'triangle',0.36);}
 const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(1,1,1),_pp=new THREE.Vector3(),_e3=new THREE.Euler();
-// ---------- shop: a table on the infield by the back straight; you get to it only at the ceremony – turn round (drag) and tap it ----------
+// ---------- shop: the white table on the infield by the back straight; you get to it only at the ceremony – turn round (drag) and tap it ----------
 const SHOP_ITEMS=[   // price in penízky; soon: not on sale yet
   {id:'cap',ic:'🧢',name:'Cyklistická čepička',desc:'Pod helmu, v barvách klubu.',price:150,soon:true},
   {id:'bidon',ic:'🥤',name:'Bidon Motol',desc:'Na rozjížďky i na válce.',price:80,soon:true},
@@ -2383,30 +2383,16 @@ function renderShop(){const vk=getVK(),own=shopOwned();$('shopVK').textContent='
 function openShop(){renderShop();$('shop').style.display='block';$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');}
 $('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy]');if(b)buyItem(b.dataset.buy);});
 $('shopClose').onclick=$('shopX').onclick=()=>{$('shop').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
-function buildShop(){const f=frameAt(SF+L0/2),px=f.px,pz=f.pz,nx=f.nx,nz=f.nz,fx=f.fx,fz=f.fz,o=BAND*Math.cos(8*deg)+2.7;
-  const g=new THREE.Group();g.position.set(px-nx*o+fx*1.2,INF_Y,pz-nz*o+fz*1.2);g.rotation.y=Math.atan2(-nx,-nz);scene.add(g);   // front (+z) faces the infield
-  const wood=mat(0x9a6a3e),dark=mat(0x3a3a40);
-  const top=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.05,0.8),wood);top.position.y=0.78;g.add(top);
-  for(const sx of [-0.82,0.82])for(const sz of [-0.33,0.33]){const l=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.76,0.05),dark);l.position.set(sx,0.38,sz);g.add(l);}
-  const cc=mkCanvas(256,64),q=cc.getContext('2d');for(let i=0;i<8;i++){q.fillStyle=i%2?'#ffffff':'#d62828';q.fillRect(i*32,0,32,64);}q.fillStyle='rgba(0,0,0,.18)';q.fillRect(0,0,256,5);
-  const cloth=new THREE.Mesh(new THREE.PlaneGeometry(1.84,0.62),new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(cc),side:THREE.DoubleSide}));cloth.position.set(0,0.5,0.41);g.add(cloth);
-  // goods on the table: a helmet, two bottles, a folded jersey
-  const hel=new THREE.Mesh(new THREE.SphereGeometry(0.15,14,8,0,2*PI,0,PI/2),mat(0x1e6fd9));hel.position.set(-0.5,0.8,0.05);hel.scale.set(1,0.8,1.35);g.add(hel);
-  for(const [x,c] of [[0.05,0xffd166],[0.2,0x4dde88]]){const b=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.2,10),mat(c));b.position.set(x,0.905,0.1);g.add(b);}
-  const jer=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.05,0.26),mat(0xe63946));jer.position.set(0.55,0.83,0.02);g.add(jer);
-  // sign on two posts behind the table
-  const sc=mkCanvas(256,96),w=sc.getContext('2d');w.fillStyle='#14284a';w.fillRect(0,0,256,96);w.fillStyle='#c6ff1a';w.fillRect(0,0,256,6);w.fillRect(0,90,256,6);
-  w.fillStyle='#fff';w.font='900 46px system-ui';w.textAlign='center';w.textBaseline='middle';w.fillText('OBCHOD',128,42);w.fillStyle='#ffd166';w.font='700 18px system-ui';w.fillText('za penízky',128,76);
-  for(const sx of [-0.7,0.7]){const pst=new THREE.Mesh(new THREE.BoxGeometry(0.04,1.9,0.04),dark);pst.position.set(sx,0.95,-0.42);g.add(pst);}
-  const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.56),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),side:THREE.DoubleSide}));sign.position.set(0,1.62,-0.4);g.add(sign);
-  // a floating cart over it, only at the ceremony, so you notice it when you turn round
+function buildShop(){   // the white table already standing on the infield by the back straight (infield layout, item 6) – here just an invisible tap target and the floating cart
+  const TX=-2.3,TZ=-10.4,y0=FLOOR_Y,g=new THREE.Group();g.position.set(TX,y0,TZ);scene.add(g);
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(2.6,1.1,1.0),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));hit.position.y=0.55;g.add(hit);
   const tc=mkCanvas(128,128),t=tc.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText('🛒',64,70);
-  shopTag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(tc),depthTest:false}));shopTag.scale.set(0.6,0.6,1);shopTag.position.set(0,2.35,-0.4);shopTag.visible=false;g.add(shopTag);
-  g.updateMatrixWorld(true);OBST.rollers.push([g.position.x,g.position.z]);   // walkers go round it
+  shopTag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(tc),depthTest:false}));shopTag.scale.set(0.6,0.6,1);shopTag.position.set(0,1.45,0);shopTag.visible=false;g.add(shopTag);   // only at the ceremony, so you notice it when you turn round
   SHOP=g;}
 buildShop();
 // look round at the ceremony: drag anywhere on the picture (a tap still picks the coach, the TV or the shop)
-function cerDragStart(id,x,y){if(phase!=='ceremony')return false;cerDrag={id,x,y,yaw:cerYaw,pitch:cerPitch,moved:false};return true;}
+const cerPanel=()=>$('shop').style.display==='block'||$('coachBox').style.display==='block'||$('results').style.display==='flex';
+function cerDragStart(id,x,y){if(phase!=='ceremony'||cerPanel())return false;cerDrag={id,x,y,yaw:cerYaw,pitch:cerPitch,moved:false};return true;}
 function cerDragMove(id,x,y){if(!cerDrag||cerDrag.id!==id)return;const dx=x-cerDrag.x,dy=y-cerDrag.y;if(Math.abs(dx)+Math.abs(dy)>8)cerDrag.moved=true;
   const k=PI*1.25/Math.max(320,innerWidth);cerYaw=cerDrag.yaw+dx*k;cerPitch=clamp(cerDrag.pitch+dy*k,-0.55,0.7);}
 function cerDragEnd(id){if(!cerDrag||cerDrag.id!==id)return;if(cerDrag.moved)cerDragT=performance.now();cerDrag=null;}
@@ -2416,7 +2402,7 @@ function updateCeremony(dt){cerT+=dt;JUDGES.updateMatrixWorld();animCoach(dt);
   else{_cp.set(PODX+10.8,2.3,0.05+Math.sin(cerT*0.25)*0.3);JUDGES.localToWorld(_cp);_cl.set(PODX,1.45,0.1);JUDGES.localToWorld(_cl);camera.position.lerp(_cp,Math.min(1,dt*3));}
   if(cerYaw||cerPitch){_lk.subVectors(_cl,camera.position);const yw=Math.atan2(_lk.x,_lk.z)+cerYaw,pt=Math.atan2(_lk.y,Math.hypot(_lk.x,_lk.z))+cerPitch,cp=Math.cos(pt);
     _cl.set(camera.position.x+Math.sin(yw)*cp*10,camera.position.y+Math.sin(pt)*10,camera.position.z+Math.cos(yw)*cp*10);}
-  if(shopTag){shopTag.visible=true;shopTag.position.y=2.35+Math.sin(cerT*2.2)*0.08;}
+  if(shopTag){shopTag.visible=true;shopTag.position.y=1.45+Math.sin(cerT*2.2)*0.08;}
   camera.up.set(0,1,0);camera.lookAt(_cl);
   if(confetti){const {mesh,parts}=confetti;parts.forEach((p,i)=>{p.y-=p.vy*dt;p.r+=p.vr*dt;if(p.y<0.05)p.y=4+Math.random()*2.5;_pp.set(p.x+Math.sin(cerT+i)*0.2,p.y,p.z);JUDGES.localToWorld(_pp);_e3.set(p.r,p.r*0.7,0);_q.setFromEuler(_e3);_m4.compose(_pp,_q,_sc);mesh.setMatrixAt(i,_m4);});mesh.instanceMatrix.needsUpdate=true;}}
 // ---------- "Starej šéf": cartoon coach next to the podium ----------
@@ -3452,7 +3438,7 @@ function showCoach(){const v=coachVerdict();COACH.mood=v.mood;COACH.t=0;
 $('coachClose').onclick=()=>{$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}if(phase==='ceremony')$('ceremony').style.display='block';};
 const ray=new THREE.Raycaster(),_ndc=new THREE.Vector2();
 $('c').addEventListener('click',e=>{if(phase!=='ceremony'||!TVMESH)return;const r=$('c').getBoundingClientRect();_ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(_ndc,camera);
-  if(performance.now()-cerDragT<250)return;   // that was a look-round drag, not a tap
+  if(performance.now()-cerDragT<250||cerPanel())return;   // a look-round drag, not a tap / a panel is open
   if(COACH&&ray.intersectObject(COACH.g,true).length){showCoach();return;}
   if(SHOP&&ray.intersectObject(SHOP,true).length){openShop();return;}
   if(ray.intersectObject(TVMESH).length){$('results').style.display='flex';$('ceremony').style.display='none';}});
@@ -3757,7 +3743,8 @@ function hookSling(R,dt){if(R.hkT>0){R.hkT-=dt;return;}
   if(H&&!H.crashed&&R.hk>=0.3&&g>-0.6&&g<4.5&&Math.abs(H.w-R.w)>=0.6&&R.v>=H.v-0.4){R.hkT=0.7+1.1*R.hk;R.hkK=R.hk;R.hk=0;
     if(R===player&&phase==='race'){showMsg('🚀<small>Vystřelil ses z háku!</small>',1.0);tone(520,0.25,0.06,'triangle');tone(780,0.3,0.05,'triangle',0.08);}}
   else R.hk=Math.max(0,R.hk-dt*0.6);}
-function spWarn(){const C=SP&&SP.cur;if(!C||C.decided||C.foul||C.phase1||player.v<6)return;   // a bump at walking pace off the start is nothingif((C.warnT||0)>raceTime)return;C.warnT=raceTime+2.5;C.warn=(C.warn||0)+1;
+function spWarn(){const C=SP&&SP.cur;if(!C||C.decided||C.foul||C.phase1||player.v<6)return;   // a bump at walking pace off the start is nothing
+ if((C.warnT||0)>raceTime)return;C.warnT=raceTime+2.5;C.warn=(C.warn||0)+1;
   if(C.warn>=2)spFoul(player,'elbow');else{showMsg('🟨 VAROVÁNÍ<small>Strkání do soupeře – příště tě rozhodčí přeřadí</small>',2.6);tone(330,0.25,0.12,'square');}}
 function spNewMatch(){const bots=riders.filter(r=>!r.player&&!r.partner);const opp=bots[Math.floor(Math.random()*bots.length)];
   SP={opp,heat:1,score:[0,0],heats:[],drawP:Math.random()<0.5?1:2,over:false,winner:null,cur:null,busy:false,
@@ -3810,7 +3797,7 @@ function sprintAI(R,dt){const P=player,C=SP&&SP.cur;if(R.crashed)return;
     vT=24;cap=R.ftp*3.45;force=true;
     if(lead){const w=-g;tw=toGo<230||w>4?0.45:R.w;   // dive into the sprinters' lane
       if(w<3.2&&P.w<SP_LANE+0.2&&R.w>=SP_LANE)tw=Math.max(tw,SP_LANE+0.2);   // he's in the lane next to me: no entry without a clear lead
-      if(w<2.2&&P.w<R.w-0.1)tw=Math.max(tw,R.w);   // no moving down on him
+      if(w<3.3&&P.w<R.w-0.1)tw=Math.max(tw,R.w);   // no moving down on him (nor shutting the door)
       if(R.spLaneIn)tw=Math.min(tw,0.6);}   // in the lane after the 200 m line -> stay there
     else spComeRound(R,P,g,toGo,dt,o=>{tw=o.tw;if(o.vT!=null)vT=o.vT;});}
   R.targetW=clamp(tw,0.2,TW-0.8);spPower(R,vT,cap);steerBot(R,dt,force,R.spJump||R.spChase?1.75:1.1);}
