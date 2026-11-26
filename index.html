@@ -146,6 +146,10 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 #flash.on{animation:flash .5s ease-out}
 @keyframes flash{from{opacity:.75}to{opacity:0}}
 /* ---- big screens / mouse ---- */
+/* start-line picker on a phone held sideways: sprint 3 in a row, endurance 4 in a row, so it fits the low screen */
+@media (orientation:landscape) and (max-height:520px){#walkRace{padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left))}#walkRace .mcard{max-width:880px}#walkRace h1{font-size:20px!important}#walkRace .sub{margin-bottom:6px!important}
+  #walkRace .mgroup{margin:0 0 8px}#walkRace .mhead{margin-bottom:6px}#walkRace .mgrid{grid-template-columns:repeat(4,1fr);gap:8px}#walkRace .mgrid.m3{grid-template-columns:repeat(3,1fr);max-width:75%;margin-right:auto}
+  #walkRace .mode{padding:12px 6px 10px}#walkRace .mode b{font-size:15px}#walkRace #walkRaceBack{margin-top:4px!important;padding-top:8px;padding-bottom:8px}}
 @media (min-width:900px) and (hover:hover){
   .big{font-size:34px}.mid{font-size:17px}.small{font-size:12px}
   #tl,#tr{min-width:150px;padding:10px 14px}#tl{top:14px;left:14px}#tr{top:14px;right:14px}
@@ -269,14 +273,20 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 <div id="walkUI"><div id="joy"><i></i></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div></div>
 <div id="walkRace" class="screen" style="display:none"><div class="card mcard">
   <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
-  <div class="modes mgrid" id="walkRaceList">
+  <div id="walkRaceList">
+  <div class="mgroup"><div class="mhead">⚡ SPRINTERSKÉ DISCIPLÍNY</div>
+  <div class="modes mgrid m3">
     <button class="mode" data-m="sprint" style="--c:#ffd166;--f:#111"><b>SPRINT</b><span>1 na 1</span></button>
     <button class="mode" data-m="keirin" style="--c:#ff7a00"><b>KEIRIN</b><span>za dernou</span></button>
     <button class="mode" data-m="kilo" style="--c:#c6ff1a;--f:#111"><b>KILOMETR</b><span>na čas</span></button>
+  </div></div>
+  <div class="mgroup"><div class="mhead e">🫁 VYTRVALOSTNÍ DISCIPLÍNY</div>
+  <div class="modes mgrid">
     <button class="mode" data-m="scratch" style="--c:#e63946"><b>SCRATCH</b><span>13 kol</span></button>
     <button class="mode" data-m="points" style="--c:#0f9d8a"><b>BODOVAČKA</b><span>40 kol</span></button>
     <button class="mode" data-m="madison" style="--c:#2b5fb4"><b>MADISON</b><span>dvojice</span></button>
     <button class="mode" data-m="elim" style="--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
+  </div></div>
   </div>
   <button class="go alt" id="walkRaceBack" style="margin-top:12px">Zpět na plochu</button>
 </div></div>
