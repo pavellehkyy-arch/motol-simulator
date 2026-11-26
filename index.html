@@ -468,6 +468,7 @@ function inPoly(x,z,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;
 const INF_Y=surfY(0,-BAND);
 // the wooden apron ("chodníček") is level with the bottom of the blue band; the green infield floor is 20 cm lower,
 // the step is a dark-brown bevelled edge all the way round
+let RAMP=null;   // the ramp up onto the apron, for the walk mode's floor height
 const APRON_O1=BAND*Math.cos(8*deg)-0.02,APRON_O2=APRON_O1+1.1,BEVEL_W=0.32,FLOOR_Y=INF_Y-0.2;
 let _infEdge=null;function groundAt(x,z){if(!_infEdge)_infEdge=infieldPoly(APRON_O2+BEVEL_W-BAND*Math.cos(8*deg));return inPoly(x,z,_infEdge)?FLOOR_Y:INF_Y;}
 // underpass stairwell in the infield of the 1st turn (just after the start)
@@ -517,17 +518,17 @@ const holePath=()=>new THREE.Path(STAIR.corners.map(([x,z])=>new THREE.Vector2(x
   const bt=new THREE.CanvasTexture(bc);bt.wrapT=THREE.RepeatWrapping;
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));geo.setIndex(I);geo.computeVertexNormals();
   const em=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({map:bt,side:THREE.DoubleSide,specular:0x3a3028,shininess:45}));em.receiveShadow=true;scene.add(em);}
- // ramp up onto the apron next to the judges (dark plywood board), red tape on the floor in front of it
- {const sR=SF-3.5,HWr=1.6,LEN=2.6,P=[],I=[];const pt=(s,o,y)=>{const f=frameAt(s);P.push(f.px-f.nx*o,y,f.pz-f.nz*o);};
-  const yT=INF_Y+0.035,yB=FLOOR_Y+0.004,oT=o2-0.05,oB=o2+LEN;
+ // ramp up onto the apron left of the judges (dark plywood board), red tape on the floor between it and the judges' booth
+ {const sR=SF-5.8,HWr=1.6,LEN=2.6,P=[],I=[];const pt=(s,o,y)=>{const f=frameAt(s);P.push(f.px-f.nx*o,y,f.pz-f.nz*o);};
+  const yT=INF_Y+0.035,yB=FLOOR_Y+0.004,oT=o2-0.05,oB=o2+LEN;RAMP={sR,HWr,oT,oB,yT,yB};
   for(const ds of [-HWr,HWr]){pt(sR+ds,oT,yT);pt(sR+ds,oB,yB);pt(sR+ds,oT,FLOOR_Y);pt(sR+ds,oT,yT-0.03);}
   // 0..3 left, 4..7 right
   I.push(0,4,1,1,4,5, 0,3,4,3,7,4, 3,2,7,2,6,7, 0,1,2,0,2,3, 4,6,5,4,7,6, 1,5,2,2,5,6);
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3));geo.setIndex(I);geo.computeVertexNormals();
   const rc=mkCanvas(128,128),rg=rc.getContext('2d');rg.fillStyle='#2e2622';rg.fillRect(0,0,128,128);for(let i=0;i<400;i++){rg.fillStyle='rgba(255,255,255,'+Math.random()*0.05+')';rg.fillRect(Math.random()*128,Math.random()*128,2,2);}
   const ramp=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({color:0x3a302a,specular:0x222222,shininess:20,side:THREE.DoubleSide,flatShading:true}));ramp.receiveShadow=true;ramp.castShadow=true;scene.add(ramp);
-  const f=frameAt(sR-HWr+0.15),o0=oB,o1=oB+6;const tg=new THREE.PlaneGeometry(0.06,o1-o0);tg.rotateX(-PI/2);const tape=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({color:0xd8222a}));
-  tape.position.set(f.px-f.nx*(o0+o1)/2,FLOOR_Y+0.016,f.pz-f.nz*(o0+o1)/2);tape.rotation.y=Math.atan2(f.nx,f.nz);scene.add(tape);}}
+  const tA=SF-3.4,tB=SF-1.1,oL=o2+1.8,f=frameAt((tA+tB)/2);const tg=new THREE.PlaneGeometry(0.06,tB-tA);tg.rotateX(-PI/2);const tape=new THREE.Mesh(tg,new THREE.MeshLambertMaterial({color:0xd8222a}));
+  tape.position.set(f.px-f.nx*oL,FLOOR_Y+0.016,f.pz-f.nz*oL);tape.rotation.y=Math.atan2(f.fx,f.fz);scene.add(tape);}}
 
 // ---------- hall: arched steel trusses, membrane roof, lights ----------
 const HW=20.5,HL=72,WALLH=3,RISE=10.5;
@@ -3932,16 +3933,19 @@ function pointsUpdate(dt){if(!PR)return;const al=riders.filter(r=>r.model.g.visi
     if(nl-effS(ld)<L0&&PR.whistle!==nl&&nl<FIN-1){PR.whistle=nl;bell();if(phase==='race'&&!player.finished)showMsg('🔔<small>Sprint o body za 1 kolo · 5-3-2-1</small>',1.8);}}}
 // ---------- PLOCHA: walk round the velodrome (joystick, camera behind you; TV / shop / coach / start line open by themselves when you come up to them) ----------
 const WALK={r:null,pos:new THREE.Vector3(),head:0,yaw:0,pitch:0.32,ph:0,spd:0,jx:0,jy:0,joy:null,look:null,zone:null,zones:null,tags:[],k:{},cam:new THREE.Vector3(),camOk:false};
-const WALK_BOX=[[-3.75,-11.05,-0.85,-9.75]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
+const WALK_COACH=[9.05,3.15];   // on the walk the old boss waits by the right-hand booths (spot 1 on the sketch)
+const WALK_BOX=[[-3.75,-11.05,-0.85,-9.75],[WALK_COACH[0]-0.4,WALK_COACH[1]-0.4,WALK_COACH[0]+0.4,WALK_COACH[1]+0.4]];   // [x0,z0,x1,z1] extra solid things not in the nav grid: the shop table
 function walkFree(x,z){if(!NAV.grid)buildNav();const R=0.24;
   for(let q=0;q<5;q++){const X=x+(q===1?R:q===2?-R:0),Z=z+(q===3?R:q===4?-R:0),i=Math.floor((X-NAV.x0)/NAV.c),j=Math.floor((Z-NAV.z0)/NAV.c);
     if(i<0||j<0||i>=NAV.nx||j>=NAV.nz||NAV.grid[j*NAV.nx+i])return false;}
   for(const b of WALK_BOX)if(x>b[0]-R&&x<b[2]+R&&z>b[1]-R&&z<b[3]+R)return false;return true;}
-function walkGround(x,z){return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
+function walkGround(x,z){if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.pz,a=dx*f.fx+dz*f.fz,o=-(dx*f.nx+dz*f.nz);   // walking up the ramp onto the apron
+    if(Math.abs(a)<R.HWr&&o>R.oT&&o<R.oB)return R.yT+(R.yB-R.yT)*(o-R.oT)/(R.oB-R.oT);}
+  return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
 function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText(ic,64,70);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));sp.scale.set(0.6,0.6,1);sp.visible=false;scene.add(sp);return sp;}
 function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();const tv=new THREE.Vector3(),co=new THREE.Vector3(),st=new THREE.Vector3();
-  TVMESH.getWorldPosition(tv);co.set(PODX,0,2.9);JUDGES.localToWorld(co);holderGround(SF,-BAND-0.55,st);
+  TVMESH.getWorldPosition(tv);co.set(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);holderGround(SF-4.8,-BAND-0.55,st);   // start: on the apron at the top of the ramp (spot 2)
   const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.3},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6}];
   for(const z of Z)if(z.ic){z.tag=walkTag(z.ic);z.tag.position.set(z.p.x,(z.id==='start'?st.y:FLOOR_Y)+z.h,z.p.z);WALK.tags.push(z.tag);}
   return WALK.zones=Z;}
@@ -3960,11 +3964,12 @@ function walkStart(){clearCeremony();$('intro').style.display='none';clearCans()
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(PODX+3.2,0,0);JUDGES.localToWorld(p);let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
   WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.jx=WALK.jy=0;WALK.joy=WALK.look=null;WALK.zone=null;WALK.k={};WALK.camOk=false;
-  WALK.r.g.visible=true;COACH.g.visible=true;COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
+  WALK.r.g.visible=true;COACH.g.visible=true;if(!COACH.home)COACH.home=[COACH.g.position.clone(),COACH.g.rotation.y];
+  {const v=V(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);JUDGES.worldToLocal(v);COACH.g.position.set(v.x,COACH.home[0].y,v.z);COACH.g.rotation.y=Math.atan2(1.5-WALK_COACH[0],1.2-WALK_COACH[1])-JUDGES.rotation.y;}COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
   phase='walk';document.body.classList.add('walking');$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';joyHome();walkSay('');initAudio();}
 function walkStop(){document.body.classList.remove('walking');$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
   $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
-  if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
+  if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
 // joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
 const JOY_R=56,JOY=$('joy');
 function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
