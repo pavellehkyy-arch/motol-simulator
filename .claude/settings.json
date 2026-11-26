@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./stara/**)",
+      "Read(./og.jpg)",
+      "Read(./icon-512.png)",
+      "Read(./favicon.png)"
+    ]
+  }
+}
