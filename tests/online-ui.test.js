@@ -89,3 +89,16 @@ test('žebříček: chyba sítě ukáže hlášku, prázdný žebříček vyzve 
   await new Promise((r) => setTimeout(r, 30));
   assert.match(texts(box), /Buď první/);
 });
+
+test('žebříček: zlatá přezdívka dostane třídu gold, ostatní ne (a cizí hodnoty se ignorují)', async () => {
+  const { O, box } = setup();
+  O._fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify([
+    { place: 1, nickname: 'Zlatý', best_time_s: '60', best_points: null, wins: 0, badge: 'gold' },
+    { place: 2, nickname: 'Obyč', best_time_s: '61', best_points: null, wins: 0, badge: null },
+    { place: 3, nickname: 'Hacker', best_time_s: '62', best_points: null, wins: 0, badge: 'x" onclick="y' }]) });
+  O._ui.open('board');
+  await new Promise((r) => setTimeout(r, 30));
+  const gold = box.find((e) => e.tag === 'td' && e.className === 'gold');
+  assert.strictEqual(gold.length, 1);
+  assert.match(gold[0].textContent, /Zlatý/);
+});
