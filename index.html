@@ -258,7 +258,7 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">Velodrom Praha-Motol · v0.9</div>
+    <div class="sub">Velodrom Praha-Motol · v0.10</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -417,17 +417,25 @@ buildTrack();
 
 // barrier with banners along the top of the track
 function barrierTex(){
-  const W=2048,H=128,c=mkCanvas(W,H),g=c.getContext('2d');
-  g.fillStyle='#8a5a33';g.fillRect(0,0,W,H);
-  for(let x=0;x<W;x+=8){g.fillStyle='rgba(80,45,15,'+(0.08+Math.random()*0.12)+')';g.fillRect(x,0,1,H);}
-  for(let x=0;x<W;x+=46){g.fillStyle='rgba(60,32,10,.35)';g.fillRect(x,0,2,H);}
-  const ads=[['VELODROM MOTOL','#38c4de','#0d2a3a'],['DRÁHOVÁ CYKLISTIKA','#1d2b55','#ffffff'],['TRACK CUP','#8fdcc9','#0f3a33'],['153,846 m','#ffffff','#1d3557'],['MOTOL SIMULATOR','#ffffff','#d7263d'],['JEĎ NAPLNO','#f2c230','#1d2b55']];
-  let x=40;let i=0;
-  while(x<W-300){const a=ads[i%ads.length];g.fillStyle=a[1];g.fillRect(x,8,320,112);
-    g.fillStyle=a[2];g.font='900 '+(a[0].length>14?30:40)+'px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText(a[0],x+160,66);
-    if(a[1]==='#ffffff'){g.fillStyle='#2b5fb4';g.fillRect(x,14,22,100);g.fillStyle='#d62828';g.fillRect(x+22,14,10,100);}
-    x+=320+90+Math.random()*60;i++;}
+  // one canvas = a third of a lap (~51 m) x 1.15 m; sx squashes drawing so letters keep their real proportions on the wall
+  const W=4096,H=128,c=mkCanvas(W,H),g=c.getContext('2d'),pxm=W/(L0/3),sx=pxm/(H/1.15);
+  g.fillStyle='#14284a';g.fillRect(0,0,W,H);
+  g.fillStyle='#c6ff1a';g.fillRect(0,H-6,W,6);g.fillStyle='rgba(255,255,255,.08)';g.fillRect(0,0,W,4);
+  const ads=[['VELODROM','PRAHA-MOTOL','#ffffff','#14284a','#d62828'],['DRÁHOVÁ','CYKLISTIKA','#c6ff1a','#14284a','#14284a'],['MOTOL','SIMULATOR','#0b1730','#ffffff','#c6ff1a'],['JEĎ','NAPLNO','#ffffff','#14284a','#2b5fb4'],['153,846 m','6,5 KOLA / KM','#2b5fb4','#ffffff','#c6ff1a'],['TRACK','CUP','#f2c230','#14284a','#14284a'],['ČESKÝ POHÁR','NA DRÁZE','#ffffff','#14284a','#d62828']];
+  const n=ads.length,slot=W/n,pw=Math.round(slot-1.0*pxm);
+  for(let i=0;i<n;i++){const [t1,t2,bg,fg,ac]=ads[i],x=Math.round(i*slot+(slot-pw)/2);
+    g.fillStyle=bg;g.fillRect(x,12,pw,H-30);g.fillStyle=ac;g.fillRect(x,12,Math.round(0.12*pxm),H-30);
+    g.save();g.translate(x+pw/2,0);g.scale(sx,1);g.fillStyle=fg;g.textAlign='center';g.textBaseline='alphabetic';
+    g.font='900 46px system-ui,Arial,sans-serif';g.fillText(t1,0,60);
+    g.font='600 28px system-ui,Arial,sans-serif';if('letterSpacing' in g)g.letterSpacing='6px';g.fillText(t2,0,96);g.restore();}
   const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.anisotropy=MAXANI;return t;}
+// Varna Studio logo on the barrier: middle of the home straight (finish) and of the back straight
+function buildLogoBanners(){
+  const tex=new THREE.TextureLoader().load('varna-studio.png');tex.anisotropy=MAXANI;
+  const geo=new THREE.PlaneGeometry(4.0,1.0),mat=new THREE.MeshLambertMaterial({map:tex}),p=new THREE.Vector3();
+  for(const s of [SF,L0/2]){const f=frameAt(s);surf(s,TW,p);
+    const m=new THREE.Mesh(geo,mat);m.position.set(p.x-f.nx*0.03,p.y+0.57,p.z-f.nz*0.03);m.rotation.y=Math.atan2(-f.nx,-f.nz);scene.add(m);}
+}
 function buildBarrier(){
   const pos=[],uv=[],idx=[],p=new THREE.Vector3(),period=L0/3;let n=0;
   const pos2=[],idx2=[];
@@ -444,7 +452,7 @@ function buildBarrier(){
   const curve=new THREE.CatmullRomCurve3(pts,true);
   scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,400,0.04,5,true),new THREE.MeshLambertMaterial({color:0x5c3b1e})));
 }
-buildBarrier();
+buildBarrier();buildLogoBanners();
 function buildNet(){const c=mkCanvas(64,64),g=c.getContext('2d');g.strokeStyle='rgba(235,235,235,.75)';g.lineWidth=2;g.strokeRect(1,1,62,62);
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;
   const pos=[],uv=[],idx=[],p=new THREE.Vector3();let n=0;const NH=1.6;
