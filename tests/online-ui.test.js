@@ -101,4 +101,7 @@ test('žebříček: zlatá přezdívka dostane třídu gold, ostatní ne (a ciz�
   const gold = box.find((e) => e.tag === 'span' && e.className === 'gold');
   assert.strictEqual(gold.length, 1);
   assert.match(gold[0].textContent, /Zlatý/);
+  const gb = box.find((e) => e.tag === 'span' && e.className === 'gb');
+  assert.strictEqual(gb.length, 1);
+  assert.strictEqual(gb[0].textContent, 'GOLD');
 });
