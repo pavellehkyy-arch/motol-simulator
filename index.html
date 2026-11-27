@@ -4706,7 +4706,8 @@ let ADV=null;
 function buildAdvisor(){if(ADV)return;walkCols();const B=BOOTHS.find(b=>Math.abs((b.xb+b.xf)/2-17.05)<0.1&&Math.abs(b.zc+3.4)<0.2);if(!B)return;
   const r=makeHuman({skin:0xd9a882,top:0x2f4a3a,collar:0x2f4a3a,pants:0x2b2f3a,shoes:0x3a2a1e,hair:0x8a8680,hairStyle:'short',mustache:true});
   const face=B.open>0?PI/2:-PI/2,z=B.zc;r.g.position.set(B.xb+B.open*0.3,walkGround(B.xb+B.open*0.3,z),z);r.g.rotation.y=face;scene.add(r.g);
-  ADV={r,B,face,T:{},look:0,said:0,t:Math.random()*5};}
+  ADV={r,B,face,T:{},look:0,said:0,t:Math.random()*5};
+  const tag=walkTag('💡');tag.position.set(r.g.position.x,FLOOR_Y+1.85,z);tag.visible=phase==='walk';WALK.tags.push(tag);}   // green ring like the ladder / TV: here you can talk
 function advNear(P){if(!ADV)return false;const B=ADV.B,inX=(P.x-B.xb)*B.open;return inX>0.2&&inX<2.6&&Math.abs(P.z-B.zc)<B.bl/2+0.3&&Math.hypot(P.x-ADV.r.g.position.x,P.z-ADV.r.g.position.z)<2.4;}
 function advTick(dt,P){if(!ADV)return;const A=ADV,g=A.r.g,T=A.T;A.t+=dt;for(const k in T)delete T[k];
   const near=advNear(P),dx=P.x-g.position.x,dz=P.z-g.position.z;let want=0;
