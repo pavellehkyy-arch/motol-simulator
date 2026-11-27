@@ -275,7 +275,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.14</div>
+    <div class="sub">v1.15</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -981,10 +981,10 @@ const _decals={};function bikeDecal(c){if(_decals[c])return _decals[c];const cv=
 // ---------- team kits (club colours + team names; no sponsor logos) ----------
 const TEAMS={
   wc:{name:'Mistr světa',short:'MS',base:'#f6f6f4',helmet:0xf4f4f4,frame:0x111111,accent:0xc6ff1a,shorts:'#111'},
-  favorit:{name:'Favorit Brno',short:'FAV',base:'#151515',helmet:0xd62828,frame:0x151515,accent:0xd62828,shorts:'#111'},
-  pardus:{name:'Tufo Pardus Prostějov',short:'TPP',base:'#1b1f29',helmet:0xf4f4f4,frame:0x16224a,accent:0xc8f03c,shorts:'#111318',long:false,spokes:4},
-  dukla:{name:'Dukla Praha',short:'DUK',base:'#141414',helmet:0x141414,frame:0x141414,accent:0xf2c230,shorts:'#111'},
-  sparta:{name:'Sparta Praha',short:'SPA',base:'#7a1f2b',helmet:0x7a1f2b,frame:0x7a1f2b,accent:0xf2c230,shorts:'#1a1a1a'},
+  favorit:{name:'Brno',short:'BRN',base:'#151515',helmet:0xd62828,frame:0x151515,accent:0xd62828,shorts:'#111'},
+  pardus:{name:'Prostějov',short:'PRO',base:'#1b1f29',helmet:0xf4f4f4,frame:0x16224a,accent:0xc8f03c,shorts:'#111318',long:false,spokes:4},
+  dukla:{name:'Praha',short:'PRA',base:'#141414',helmet:0x141414,frame:0x141414,accent:0xf2c230,shorts:'#111'},
+  sparta:{name:'Praha 2',short:'PR2',base:'#7a1f2b',helmet:0x7a1f2b,frame:0x7a1f2b,accent:0xf2c230,shorts:'#1a1a1a'},
   germany:{name:'Německá reprezentace',short:'GER',base:'#f7f7f5',helmet:0xf4f4f4,frame:0x111111,accent:0xffce00,shorts:'#111'},
 };
 const RAINBOW=['#1f5fbf','#d62828','#111111','#f2c230','#2e9e4a'];
@@ -995,26 +995,21 @@ function kitTex(id,num){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');c
   if(id==='wc'){RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,92+i*17,W,17);});}
   if(id==='favorit'){g.fillStyle='#d62828';g.beginPath();g.moveTo(0,40);g.lineTo(150,40);g.lineTo(110,H);g.lineTo(0,H);g.fill();g.beginPath();g.moveTo(W,40);g.lineTo(W-150,40);g.lineTo(W-110,H);g.lineTo(W,H);g.fill();
     g.fillStyle='#d62828';g.fillRect(180,30,152,60);
-    both(x=>{txt('FAVORIT',x,110,34,'#fff');txt('BRNO',x,148,38,'#fff');});txt('FAVORIT BRNO',256,60,28,'#fff');}
-  if(id==='pardus'){   // Tufo Pardus jersey from the photo: navy-black, yellow TUFO band, PARDUS, blue stripes, MOTOR TEC, ATEX
+    both(x=>{txt('BRNO',x,128,40,'#fff');});txt('BRNO',256,60,30,'#fff');}
+  if(id==='pardus'){   // Prostějov: navy-black, yellow band, blue stripes – city name only, no club or sponsor names
     const BL='#3b8fd8',YE='#f5c518';
     both(x=>{
       g.fillStyle=YE;g.fillRect(x-112,40,224,40);                                    // yellow chest band
-      g.save();g.translate(x,57);g.transform(1,0,-0.25,1,0,0);g.fillStyle='#14161c';g.font='italic 900 34px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('TUFO',0,0);g.restore();
-      txt('BICYCLE TYRE COMPANY',x,74,9,'#14161c','800 ');
-      g.fillStyle='#0d0f14';g.fillRect(x-112,80,224,26);txt('PARDUS',x,94,24,'#fff','italic 900 ');   // black band
+      g.save();g.translate(x,61);g.transform(1,0,-0.25,1,0,0);g.fillStyle='#14161c';g.font='italic 900 26px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('PROSTĚJOV',0,0);g.restore();
+      g.fillStyle='#0d0f14';g.fillRect(x-112,80,224,26);   // black band
       g.fillStyle=BL;g.fillRect(x-112,108,224,6);g.fillRect(x-112,118,224,2);            // blue stripes
-      txt('MOTOR',x-22,137,22,'#fff','italic 900 ');txt('TEC',x+46,141,18,'#cfd6e0','italic 900 ');
       g.fillStyle=BL;g.fillRect(x-112,154,224,2);
-      txt('ATEX',x+40,180,20,'#fff','italic 900 ');txt('VIF',x+40,200,14,'#fff','italic 900 ');
-      g.fillStyle='#e7e9ee';g.fillRect(x-1,0,2,H);                                       // zip
-      txt('ATEX',x-70,18,10,'#cfd6e0','italic 800 ');txt('ATEX',x+70,18,10,'#cfd6e0','italic 800 ');});
-    for(const x of [128,384]){g.save();g.translate(x,0);g.fillStyle=BL;for(let k=0;k<3;k++){g.beginPath();const y=96+k*14;g.moveTo(-30,y+10);g.lineTo(30,y-10);g.lineTo(30,y-5);g.lineTo(-30,y+15);g.fill();}g.restore();
-      txt('MOTO',x,60,10,'#9aa4b4','italic 800 ');}
-    g.fillStyle=YE;g.fillRect(256-90,22,180,30);txt('TUFO',256,38,24,'#14161c','italic 900 ');   // back
-    g.fillStyle=BL;g.fillRect(256-90,56,180,4);txt('PARDUS PROSTĚJOV',256,196,16,'#fff','italic 900 ');}
-  if(id==='dukla'){both(x=>{g.strokeStyle='#f2c230';g.lineWidth=5;g.beginPath();g.ellipse(x+50,70,46,22,0,0,7);g.stroke();txt('DUKLA',x+50,71,22,'#f2c230');});
-    txt('DUKLA PRAHA',256,40,26,'#5a5a5a');g.fillStyle='#f2c230';g.fillRect(0,0,W,6);g.fillStyle='#d62828';g.fillRect(0,6,W,4);}
+      g.fillStyle='#e7e9ee';g.fillRect(x-1,0,2,H);});                                    // zip
+    for(const x of [128,384]){g.save();g.translate(x,0);g.fillStyle=BL;for(let k=0;k<3;k++){g.beginPath();const y=96+k*14;g.moveTo(-30,y+10);g.lineTo(30,y-10);g.lineTo(30,y-5);g.lineTo(-30,y+15);g.fill();}g.restore();}
+    g.fillStyle=YE;g.fillRect(256-90,22,180,30);txt('PROSTĚJOV',256,38,20,'#14161c','italic 900 ');   // back
+    g.fillStyle=BL;g.fillRect(256-90,56,180,4);}
+  if(id==='dukla'){both(x=>{g.strokeStyle='#f2c230';g.lineWidth=5;g.beginPath();g.ellipse(x+50,70,46,22,0,0,7);g.stroke();txt('PRAHA',x+50,71,20,'#f2c230');});
+    txt('PRAHA',256,40,26,'#5a5a5a');g.fillStyle='#f2c230';g.fillRect(0,0,W,6);g.fillStyle='#d62828';g.fillRect(0,6,W,4);}
   if(id==='germany'){   // German national team jersey from the photo: white, grey stripe pattern, black-red-gold chest swoosh, eagle, "german cycling"
     g.save();g.strokeStyle='rgba(150,155,160,.22)';g.lineWidth=3;
     for(let i=0;i<14;i++){const cx=(i*97)%W,cy=(i*61)%H,a=(i%4)*0.8;g.save();g.translate(cx,cy);g.rotate(a);for(let k=-5;k<=5;k++){g.beginPath();g.moveTo(-60,k*9);g.lineTo(60,k*9);g.stroke();}g.restore();}
@@ -1031,7 +1026,7 @@ function kitTex(id,num){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');c
     txt('GERMANY',256,40,30,'#111');g.fillStyle='#111';g.fillRect(186,60,140,4);g.fillStyle='#dd0000';g.fillRect(186,64,140,4);g.fillStyle='#ffce00';g.fillRect(186,68,140,4);
     txt('BIKE INDUSTRIES',128,40,12,'#111','italic 900 ');txt('BIKE INDUSTRIES',384,40,12,'#111','italic 900 ');}
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,96,W,58);g.fillRect(118,0,20,H);g.fillRect(374,0,20,H);
-    both(x=>txt('SPARTA',x,126,40,'#7a1f2b'));txt('SPARTA PRAHA',256,40,30,'#f2c230');}
+    both(x=>txt('PRAHA 2',x,126,36,'#7a1f2b'));txt('PRAHA 2',256,40,30,'#f2c230');}
   // soft shading: darker towards the sides, waist shadow
   const sg=g.createLinearGradient(0,0,W,0);for(const [u,a] of [[0,0],[0.25,0.22],[0.5,0.05],[0.75,0.22],[1,0]])sg.addColorStop(u,'rgba(0,0,0,'+a+')');g.fillStyle=sg;g.fillRect(0,0,W,H);
   const wg=g.createLinearGradient(0,H-50,0,H);wg.addColorStop(0,'rgba(0,0,0,0)');wg.addColorStop(1,'rgba(0,0,0,.35)');g.fillStyle=wg;g.fillRect(0,H-50,W,50);
@@ -1044,7 +1039,7 @@ function sleeveTex(id,fore){const c=mkCanvas(64,128),g=c.getContext('2d');const 
   if(id==='wc')RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,4+i*5,64,5);});
   if(id==='dukla'){g.fillStyle='#f2c230';g.fillRect(0,4,64,12);g.fillStyle='#d62828';g.fillRect(0,16,64,10);}
   if(id==='favorit'){g.fillStyle='#d62828';g.fillRect(0,0,64,128);g.fillStyle='#151515';g.fillRect(0,0,64,14);}
-  if(id==='pardus'){g.fillStyle='#3b8fd8';g.fillRect(0,6,64,6);g.fillRect(0,16,64,6);g.fillRect(0,26,64,6);g.fillStyle='#9aa4b4';g.font='italic 900 11px system-ui,Arial';g.textAlign='center';g.fillText('TUFO',32,60);}
+  if(id==='pardus'){g.fillStyle='#3b8fd8';g.fillRect(0,6,64,6);g.fillRect(0,16,64,6);g.fillRect(0,26,64,6);}
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,4,64,10);}
   if(id==='germany'){[['#111',4],['#dd0000',12],['#ffce00',20]].forEach(([c,y])=>{g.fillStyle=c;g.fillRect(0,y,64,7);});g.fillStyle='#111';g.font='900 9px system-ui,Arial';g.textAlign='center';g.fillText('BIORACER',32,44);}
   return new THREE.CanvasTexture(c);}
@@ -2108,7 +2103,7 @@ const TS_LAPS=5,TS_CUM=[0,1,3,5];let TSP=null,TS_POS=3;
 let phase='menu',raceTime=0,countT=0,msgT=0,resultsShown=false,finishWait=0,doneS=0,bellRung=false,lastBoard=-1,splits=[];
 function active(){return mode==='kilo'?[player]:riders.filter(r=>r.model.g.visible);}
 const PARTNER=()=>riders.find(r=>r.partner);
-// team strength: Tufo strongest & ride at the front, Favorit weakest
+// team strength: Prostějov strongest & ride at the front, Brno weakest
 const TSTAT={wc:{ftp:[326,334],str:[0.97,1.03],aggr:[0.3,0.5],lane:0.6,front:0},pardus:{ftp:[326,334],str:[0.97,1.03],aggr:[0.55,0.9],lane:0.4,front:0.15},dukla:{ftp:[326,334],str:[0.97,1.03],aggr:[0.35,0.7],lane:0.5,front:0},
   sparta:{ftp:[326,334],str:[0.97,1.03],aggr:[0.35,0.7],lane:0.6,front:0},favorit:{ftp:[326,334],str:[0.97,1.03],aggr:[0.15,0.45],lane:0.7,front:-0.1},
   germany:{ftp:[326,334],str:[1.0,1.08],aggr:[0.92,1.0],lane:0.5,front:0.1}};   // everybody about as strong as you – the race is won by tactics
