@@ -103,7 +103,7 @@ tr.me td{color:#ffd166;font-weight:800}
 .mcard .sub{animation:fadeUp .5s .3s both;margin-bottom:10px}
 .vk{display:inline-flex;align-items:center;gap:6px;background:rgba(198,255,26,.14);border:1px solid rgba(198,255,26,.6);border-radius:20px;padding:4px 12px;margin-bottom:16px;font-weight:900;font-size:16px;color:#c6ff1a;animation:fadeUp .5s .4s both}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.mgroup{margin:0 0 14px}.mgrid.m2b{grid-template-columns:1fr 1fr}.m2b .mode b{font-size:1.35em}.mhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;letter-spacing:.16em;color:#c6ff1a;margin:0 2px 8px;animation:fadeUp .5s .4s both}.mhead::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,rgba(198,255,26,.6),rgba(198,255,26,0))}.mhead.e{color:#7fd3ff}.mhead.e::after{background:linear-gradient(90deg,rgba(127,211,255,.6),rgba(127,211,255,0))}
+.mgroup{margin:0 0 14px}.mgrid.m2b{grid-template-columns:1fr 1fr}.m2b .mode b{font-size:1.35em}.mgrid.m3b{grid-template-columns:1fr 1fr 1fr}.m3b .mode b{font-size:1.2em}@media (max-height:520px){.m3b .mode{padding-top:14px!important;padding-bottom:12px!important}.m3b .mode b{font-size:1.02em;white-space:nowrap}.m3b .mode span{font-size:11px}}.mhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;letter-spacing:.16em;color:#c6ff1a;margin:0 2px 8px;animation:fadeUp .5s .4s both}.mhead::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,rgba(198,255,26,.6),rgba(198,255,26,0))}.mhead.e{color:#7fd3ff}.mhead.e::after{background:linear-gradient(90deg,rgba(127,211,255,.6),rgba(127,211,255,0))}
 .mode{pointer-events:auto;font:inherit;border:0;cursor:pointer;color:var(--f,#fff);background:var(--c);border-radius:16px;padding:18px 10px 16px;text-align:center;position:relative;overflow:hidden;
   box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 -4px 0 rgba(0,0,0,.18);animation:cardIn .55s calc(.45s + var(--i)*.09s) cubic-bezier(.2,1.3,.4,1) both;transition:transform .15s}
 .mode b{display:block;font-size:clamp(16px,4.4vw,21px);font-weight:900;letter-spacing:.03em}
@@ -135,7 +135,7 @@ tr.me td{color:#ffd166;font-weight:800}
 body.walking #results{background:none;pointer-events:none;align-items:center;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom))}body.walking #results .card{pointer-events:auto;background:rgba(8,20,40,.88);border-radius:16px;padding:10px 14px;max-height:78vh}
 body.cerwalk #againBtn,body.cerwalk #menuBtn{display:none}
 body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,body.cerwalk #walkMsg{display:none}
-#walkMenu{position:absolute;top:12px;right:12px;padding:9px 14px;font-size:14px}
+#walkMenu{position:absolute;top:12px;right:12px;padding:9px 14px;font-size:14px}#mpBadge{position:absolute;top:12px;left:12px;padding:8px 12px;font-size:13px;font-weight:800;background:rgba(10,20,35,.75);border:1px solid rgba(198,255,26,.5);border-radius:10px;pointer-events:none;display:none}body.cerwalk #mpBadge{display:none}
 #walkAct{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));padding:13px 20px;font-size:16px;min-width:0;box-shadow:0 4px 18px rgba(0,0,0,.4)}
 #rideUI{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));pointer-events:none}#rideUI>*{pointer-events:auto}
 #rideCnt{min-width:64px;text-align:center;font-size:14px;font-weight:800;background:rgba(10,20,35,.75);border-radius:10px;padding:7px 10px}#rideEff{flex:1;min-width:120px;max-width:520px;height:36px;accent-color:#c6ff1a;touch-action:none}#rideOff{padding:11px 16px;font-size:15px;min-width:0}body.riding #joy{display:none}
@@ -276,19 +276,20 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.20</div>
+    <div class="sub">v2.0</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
-    <div class="modes mgrid m2b">
+    <div class="modes mgrid m3b">
       <button class="mode" id="btnStart" style="--i:0;--c:#e63946"><b>🏁 START</b><span>vyber si závod a jeď</span></button>
-      <button class="mode" id="btnWalk" style="--i:1;--c:#14284a;border:2px solid #c6ff1a"><b>🚶 PLOCHA</b><span>projdi si velodrom – televize, obchod, šéf, start</span></button>
+      <button class="mode" id="btnWalk" style="--i:1;--c:#14284a;border:2px solid #c6ff1a"><b>🚶 PLOCHA</b><span>sám – televize, obchod, šéf, start</span></button>
+      <button class="mode" id="btnWalkMp" style="--i:2;--c:#0f3b3a;border:2px solid #7fd3ff"><b>👥 PLOCHA ONLINE</b><span>potkej ostatní přihlášené hráče</span></button>
     </div>
   </div>
 </div>
 <div id="wipe"><i></i><i></i><i></i></div>
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
-<div id="walkUI"><div id="joy"><i></i></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div><button class="go" id="walkAct" style="display:none"></button><div id="bikePick" style="display:none"><b>Vyber si kolo</b><div id="bikeSw"></div><button class="go alt" id="bikePickX">Zavřít</button></div><div id="rideUI" style="display:none"><span id="rideCnt"></span><input type="range" id="rideEff" min="0" max="100" value="45" aria-label="Šlapání"><button class="go alt" id="rideOff">Sesednout</button></div></div>
+<div id="walkUI"><div id="joy"><i></i></div><div id="mpBadge"></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div><button class="go" id="walkAct" style="display:none"></button><div id="bikePick" style="display:none"><b>Vyber si kolo</b><div id="bikeSw"></div><button class="go alt" id="bikePickX">Zavřít</button></div><div id="rideUI" style="display:none"><span id="rideCnt"></span><input type="range" id="rideEff" min="0" max="100" value="45" aria-label="Šlapání"><button class="go alt" id="rideOff">Sesednout</button></div></div>
 <div id="walkRace" class="screen" style="display:none"><div class="card mcard">
   <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
   <div id="walkRaceList">
@@ -351,6 +352,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" onload="window.__ld&&__ld(.6)" onerror="window.__ldErr&&__ldErr()"></script>
 <script src="online.js" defer></script>
+<script src="multi.js" defer></script>
 <script>
 (function(){
 const $=id=>document.getElementById(id);
@@ -4058,7 +4060,7 @@ function startGun(){const f=$('flash');f.classList.remove('on');void f.offsetWid
 let shake=0;
 $('btnStart').onclick=()=>{$('menu').style.display='none';$('walkRaceBack').textContent='Zpět do menu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');};$('againBtn').onclick=()=>startRace();
 
-$('menuBtn').onclick=()=>wipe(()=>{OMNI=null;TEMPO=false;$('omniNext').style.display='none';$('againBtn').style.display='';$('resClose').style.display='';clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;});
+$('menuBtn').onclick=()=>wipe(()=>{WALK.mp=false;OMNI=null;TEMPO=false;$('omniNext').style.display='none';$('againBtn').style.display='';$('resClose').style.display='';clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;});
 
 if(/Instagram|FBAN|FBAV/i.test(navigator.userAgent))$('iabHint').style.display='block';
 if(!('ontouchstart' in window)&&innerWidth>760)$('keyHelp').style.display='block';
@@ -4637,12 +4639,55 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
   else{WALK.jx=WALK.jy=0;WALK.joy=WALK.look=null;WALK.k={};WALK.camOk=WALK.lkOk=false;}
-  WALK.r.g.visible=true;COACH.g.visible=true;coachToWalkSpot();COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
+  if(WALK.mp)mpJoin();WALK.r.g.visible=true;COACH.g.visible=true;coachToWalkSpot();COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
   phase='walk';albiShow(true);document.body.classList.add('walking');player.model.g.visible=false;$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';if(!WALK.joy)joyHome();walkSay('');initAudio();}
 function walkCerUI(on){document.body.classList.toggle('cerwalk',on);if(phase!=='walk')$('walkUI').style.display=on?'block':'none';if(on){WALK.jx=WALK.jy=0;WALK.joy=null;WALK.k={};joyHome();}}
-function walkStop(){bikePickClose();if(WALK.ride)rideStop();if(WALK.act){WALK.act=null;snackShow();}$('walkAct').style.display='none';$('walkAct').dataset.k='';if(WALK.r&&WALK.r.g.parent!==scene){scene.add(WALK.r.g);WALK.r.g.rotation.set(0,0,0);}if(RESC&&RESC.onWalk)clearRescue();WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
+function walkStop(){mpLeave();bikePickClose();if(WALK.ride)rideStop();if(WALK.act){WALK.act=null;snackShow();}$('walkAct').style.display='none';$('walkAct').dataset.k='';if(WALK.r&&WALK.r.g.parent!==scene){scene.add(WALK.r.g);WALK.r.g.rotation.set(0,0,0);}if(RESC&&RESC.onWalk)clearRescue();WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
   $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
   if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
+// ---------- PLOCHA ONLINE: the other logged-in players on the floor (multi.js, Supabase Realtime; online.js lets in only logged-in players with a nickname) ----------
+// we send our position 3x a second while moving (every 3 s standing still), the others are drawn as plain figures with their nickname over the head; they walk through you (no collisions)
+const MP={figs:{},seen:{},sendT:0,keepT:0,badgeT:0,last:null},MP_MAX=7;
+const MP_TOPS=[0xe63946,0x2a9df4,0xf4a261,0x2ec4b6,0x9b5de5,0xffd166,0x06d6a0,0xef476f,0x118ab2,0xf15bb5],MP_HAIR=[0x3b2a1e,0x161616,0x8a5a2b,0xd8b26a];
+function mpHash(s){let h=7;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
+function mpTagTex(sp,nick,gold){const c=mkCanvas(256,64),g=c.getContext('2d');g.font='800 30px system-ui';const tw=g.measureText(nick).width+(gold?66:0),w=Math.min(252,tw+28),x0=128-w/2;
+  g.fillStyle='rgba(10,20,35,.8)';g.fillRect(x0,8,w,48);g.strokeStyle=gold?'#ffd34d':'#7fd3ff';g.lineWidth=3;g.strokeRect(x0+1.5,9.5,w-3,45);g.textBaseline='middle';g.textAlign='left';
+  g.fillStyle=gold?'#ffd34d':'#ffffff';g.fillText(nick,x0+14,33,w-28-(gold?66:0));if(gold){g.font='900 16px system-ui';g.fillStyle='#1a1200';g.fillRect(x0+w-72,20,58,26);g.fillStyle='#ffd34d';g.fillRect(x0+w-70,22,54,22);g.fillStyle='#1a1200';g.textAlign='center';g.fillText('GOLD',x0+w-43,34);}
+  if(sp.material.map)sp.material.map.dispose();sp.material.map=new THREE.CanvasTexture(c);sp.material.needsUpdate=true;}
+function mpFig(id){const k=mpHash(id),r=makeHuman({top:MP_TOPS[k%MP_TOPS.length],pants:0x111111,shoes:0xf0f0f0,hair:MP_HAIR[(k>>4)%MP_HAIR.length],skin:SKINS[(k>>8)%SKINS.length]});
+  r.t=r.t||0;scene.add(r.g);const tag=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true}));tag.scale.set(1.3,0.325,1);scene.add(tag);mpTagTex(tag,'Hráč',false);
+  return {r,T:{},tag,nick:'Hráč',ph:0,spd:0,x:0,y:0,z:0,h:0};}
+function mpDrop(id){const F=MP.figs[id];if(!F)return;scene.remove(F.r.g);F.r.g.traverse(o=>{if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==F.tag.material.map)m.map.dispose();m.dispose();});});scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();delete MP.figs[id];}
+function mpJoin(){if(!window.Multi)return;Multi.start();MP.last=null;MP.sendT=MP.keepT=0;$('mpBadge').style.display='block';mpBadge();}
+function mpLeave(){if(window.Multi)Multi.stop();for(const id in MP.figs)mpDrop(id);$('mpBadge').style.display='none';}
+function mpBadge(){const M=window.Multi,st=M?M.status:'off';
+  $('mpBadge').textContent=st==='on'?'👥 Na ploše: '+M.count():st==='connecting'?'👥 Připojuji…':st==='error'?'👥 Spojení vypadlo, zkouším znovu…':st==='full'?'👥 Plocha je plná, zkus to později':'👥 Online plocha teď nejde';}
+function mpState(){return WALK.ride?5:(WALK.down||WALK.onSt)?3:WALK.climb!=null?2:(WALK.sit||(WALK.act&&WALK.act.sit))?1:WALK.air?4:0;}
+function mpTick(dt){const M=window.Multi;if(!M)return;
+  MP.sendT-=dt;MP.keepT-=dt;
+  if(M.status==='on'&&MP.sendT<=0){MP.sendT=0.33;const P=WALK.pos,st=mpState(),L=MP.last;
+    const moved=!L||Math.hypot(P.x-L.x,P.z-L.z)>0.03||Math.abs(P.y-L.y)>0.03||Math.abs(_angTo(L.h,WALK.head))>0.05||L.st!==st;
+    if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+WALK.spd.toFixed(2),st};if(M.send(s)){MP.last=s;MP.keepT=3;}}}
+  if(M.prune)M.prune();
+  const seen=MP.seen,now=Date.now();for(const q in seen)delete seen[q];let n=0;
+  for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id];let F=MP.figs[id];if(!F){F=MP.figs[id]=mpFig(id);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}
+    const nm=M.name(id),nk=nm?nm.nick+(nm.gold?'★':''):'Hráč';if(F.nick!==nk){F.nick=nk;mpTagTex(F.tag,nm?nm.nick:'Hráč',!!(nm&&nm.gold));}
+    // between messages: glide towards the last position, a little ahead along the way they were walking
+    const mv=p.st===0||p.st===4,ex=mv?p.v*Math.min(0.3,(now-p.t)/1000):0,tx=p.x+Math.sin(p.h)*ex,tz=p.z+Math.cos(p.h)*ex,k=1-Math.exp(-dt*10),dy=p.y-F.y;
+    if(Math.hypot(tx-F.x,tz-F.z)>4){F.x=tx;F.z=tz;F.y=p.y;}else{F.x+=(tx-F.x)*k;F.z+=(tz-F.z)*k;F.y+=dy*k;}
+    F.h+=_angTo(F.h,p.h)*k;F.spd+=((mv?p.v:0)-F.spd)*k;
+    const r=F.r,T=F.T;r.t+=dt;for(const q in T)delete T[q];
+    const a=clamp(F.spd/1.2,0,1),run=_sm((F.spd-2.1)/1.6),stride=1.3+1.4*run;F.ph+=dt*F.spd*2*PI/stride;
+    if(p.st===3)downPose(T,r.t);
+    else if(p.st===2){F.ph+=Math.abs(dy)*k*9;climbPose(T,F.ph,Math.abs(dy)>0.02?1:0);}
+    else if(p.st===1){heroGait(T,0,0,0,r.t,0);sitPose(T,1,r.t);}
+    else heroGait(T,F.ph,a,run,r.t,0);
+    poseHuman(r,T,1-Math.exp(-dt*12));const lie=p.st===3;
+    r.g.visible=F.tag.visible=p.st!==5;   // on the rollers: hidden for now
+    r.g.position.set(F.x,F.y+(lie?0.1:0),F.z);r.g.rotation.order='YXZ';r.g.rotation.y=F.h;r.g.rotation.x=lie?-PI/2:0;
+    F.tag.position.set(F.x,F.y+(lie?0.6:p.st===1?1.75:2.2),F.z);}
+  for(const id in MP.figs)if(!seen[id])mpDrop(id);
+  MP.badgeT-=dt;if(MP.badgeT<=0){MP.badgeT=0.5;mpBadge();}}
 // joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
 const JOY_R=56,JOY=$('joy');
 function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
@@ -4667,10 +4712,11 @@ window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
 addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
-$('btnWalk').onclick=()=>wipe(walkStart);
+$('btnWalk').onclick=()=>{WALK.mp=false;wipe(walkStart);};
+$('btnWalkMp').onclick=()=>{if(!(window.Online&&Online.multi&&window.Multi)){const b=$('btnWalkMp').querySelector('span');b.textContent='online teď nejde, zkus to později';setTimeout(()=>{b.textContent='potkej ostatní přihlášené hráče';},3000);return;}Online.multi(()=>{WALK.mp=true;wipe(walkStart);});};
 $('walkAct').onclick=walkAction;$('rideOff').onclick=()=>rideStop();$('rideEff').addEventListener('input',e=>{RIDE.eff=e.target.value/100;});
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
-$('walkMenu').onclick=()=>wipe(()=>{walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
+$('walkMenu').onclick=()=>wipe(()=>{WALK.mp=false;walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
 $('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';if(phase==='menu')$('menu').style.display='flex';};
 $('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;if(b.dataset.m==='tspick'){const p=$('tsPick');p.style.display=p.style.display==='none'?'block':'none';tone(660,0.08,0.05,'triangle');return;}if(b.dataset.p)TS_POS=+b.dataset.p;if(phase==='walk')wipe(()=>{walkStop();beginRace(b.dataset.m);});else{$('walkRace').style.display='none';startRace(b.dataset.m);}});
 const _wc=new THREE.Vector3(),_wl=new THREE.Vector3();
@@ -4830,7 +4876,7 @@ function snackPose(T,t,kind){const D=SN_DUR[kind],k1=_sm(t/0.45),k2=_sm((t-0.55)
   T.hx=0.3*reach-0.45*tip;T.mo=0.5*tip;
   if(kind==='gel'){const tear=_sm((t-0.75)/0.25)*(1-_sm((t-1.15)/0.25));T.a1x=-0.85*tear-0.2*mouth;T.e1=-1.5*tear-0.3*mouth;T.a1z=0.1;}   // tear the top off with the other hand
   return T;}
-function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch keeps rolling round the track while you walk
+function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(WALK.mp)mpTick(dt);   // the bunch keeps rolling round the track while you walk
   const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
   let ix=WALK.jx+(K.r?1:0)-(K.l?1:0),iy=WALK.jy+(K.f?1:0)-(K.b?1:0);const im=Math.hypot(ix,iy);if(im>1){ix/=im;iy/=im;}const amt=Math.min(1,im);
   const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
