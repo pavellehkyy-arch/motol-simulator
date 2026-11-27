@@ -60,6 +60,16 @@
     try { S = JSON.parse(LS.get('motol_session') || 'null'); } catch (e) { S = null; }
     if (S && !(S.access && S.refresh)) S = null;
   }
+  /* přihlášení uložené jinou kartou / novější verzí stránky (Supabase obnovovací klíč použije jen jednou) */
+  function storedSess() {
+    var x = null; try { x = JSON.parse(LS.get('motol_session') || 'null'); } catch (e) {}
+    return x && x.access && x.refresh ? x : null;
+  }
+  function adoptStored() {   // jiná karta už klíč obnovila: vezmi si její
+    var x = storedSess();
+    if (x && S && x.refresh !== S.refresh) { S = x; return true; }
+    return false;
+  }
 
   /* ---------- síť ---------- */
   function F() { return O._fetch || G.fetch.bind(G); }
@@ -96,14 +106,24 @@
   }
   function token(minLeft) {
     if (!S) return Promise.resolve(null);
+    adoptStored();
     if (S.exp - (minLeft || 60) > now()) return Promise.resolve(S.access);
     if (refreshing) return refreshing;
-    refreshing = http('/auth/v1/token?grant_type=refresh_token', { refresh_token: S.refresh }).then(function (r) {
-      refreshing = null;
-      if (r.ok && r.data && r.data.access_token) { setSess(r.data); return S.access; }
-      if (r.status === 400 || r.status === 401 || r.status === 403) { S = null; P = null; saveSess(); ui(); }
-      return null;
-    });
+    var used = S.refresh;
+    var ask = function (tries) {
+      return http('/auth/v1/token?grant_type=refresh_token', { refresh_token: S.refresh }).then(function (r) {
+        if (r.ok && r.data && r.data.access_token) { setSess(r.data); return S.access; }
+        if (!S) return null;
+        if (adoptStored()) return S.exp - 30 > now() ? S.access : (tries > 0 ? ask(tries - 1) : null);   // mezitím obnovila jiná karta
+        if ((r.status === 400 || r.status === 401 || r.status === 403) && S.refresh === used) {
+          if (tries > 0) return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return adoptStored() ? token(minLeft) : ask(tries - 1); });
+          var x = storedSess();   // odhlásit jen, když úložiště drží pořád ten neplatný klíč
+          S = null; P = null; if (!x || x.refresh === used) LS.del('motol_session'); ui();
+        }
+        return null;   // výpadek sítě: přihlášení zůstává, zkusí se to příště
+      });
+    };
+    refreshing = ask(1).then(function (t) { refreshing = null; return t; }, function () { refreshing = null; return null; });
     return refreshing;
   }
   function rpc(name, args, authed) {
@@ -757,6 +777,11 @@
       if (S) O.sync();
     } catch (e) {}
   };
+  /* jiná karta obnovila přihlášení (nový obnovovací klíč): převezmi ho, ať se karty navzájem neodhlásí */
+  if (G.addEventListener) G.addEventListener('storage', function (e) {
+    if (e.key !== 'motol_session' || !S) return;
+    var x = storedSess(); if (x && x.refresh !== S.refresh) S = x;
+  });
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', O.init);
     else O.init();

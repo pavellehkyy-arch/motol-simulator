@@ -36,6 +36,7 @@ function makeEnv() {
         ? json(200, { access_token: 'A1', refresh_token: 'R1', expires_in: 3600, user: { id: 'u1', email: body.email } })
         : json(403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
     }
+    if (path.startsWith('/auth/v1/token') && srv.tokenFail) { if (srv.onTokenFail) srv.onTokenFail(); return json(400, { error_code: 'refresh_token_already_used', msg: 'Invalid Refresh Token: Already Used' }); }
     if (path.startsWith('/auth/v1/token')) return json(200, { access_token: 'A2', refresh_token: 'R2', expires_in: 3600, user: { id: 'u1', email: srv.email } });
     if (path === '/auth/v1/logout') return json(204);
     if (path.startsWith('/rest/v1/profiles')) return authed ? json(200, [srv.profile]) : json(401, { message: 'JWT' });
@@ -311,4 +312,47 @@ test('vlastní trenér: bez přihlášení nic, kontrola délek, nová žádost 
   assert.strictEqual(seen[seen.length - 1], null);           // po odhlášení zase Starej šéf
   assert.strictEqual(O.coach(), null);
   delete global.applyCoach;
+});
+
+test('dvě karty: když druhá obnoví přihlášení dřív, první se neodhlásí', async () => {
+  const { O, srv, store } = makeEnv();
+  await O.verify('a@b.cz', '123456');
+  const s = JSON.parse(store.motol_session); s.exp = 1; store.motol_session = JSON.stringify(s);
+  delete require.cache[require.resolve('../online.js')];
+  const O2 = require('../online.js'); O2._fetch = O._fetch;
+  srv.tokenFail = true;
+  // jiná karta mezitím uložila nový klíč
+  srv.onTokenFail = () => { store.motol_session = JSON.stringify({ access: 'A9', refresh: 'R9', exp: Math.floor(Date.now() / 1000) + 3600, email: 'a@b.cz' }); };
+  O2.init();
+  assert.ok(await until(() => srv.calls.includes('/auth/v1/token?grant_type=refresh_token')));
+  assert.strictEqual(await O2.accessToken(60), 'A9');
+  assert.strictEqual(O2.loggedIn(), true);
+  assert.strictEqual(JSON.parse(store.motol_session).refresh, 'R9');
+});
+
+test('opravdu neplatný obnovovací klíč: po druhém pokusu odhlásí', async () => {
+  const { O, srv, store } = makeEnv();
+  await O.verify('a@b.cz', '123456');
+  const s = JSON.parse(store.motol_session); s.exp = 1; store.motol_session = JSON.stringify(s);
+  delete require.cache[require.resolve('../online.js')];
+  const O2 = require('../online.js'); O2._fetch = O._fetch;
+  srv.tokenFail = true;
+  O2.init();
+  assert.ok(await until(() => !O2.loggedIn(), 4000));
+  assert.strictEqual(srv.calls.filter((c) => c.startsWith('/auth/v1/token')).length, 2);
+  assert.strictEqual(store.motol_session, undefined);
+});
+
+test('výpadek sítě při obnově přihlášení neodhlásí', async () => {
+  const { O, srv, store } = makeEnv();
+  await O.verify('a@b.cz', '123456');
+  const s = JSON.parse(store.motol_session); s.exp = 1; store.motol_session = JSON.stringify(s);
+  delete require.cache[require.resolve('../online.js')];
+  const O2 = require('../online.js'); O2._fetch = O._fetch;
+  srv.online = false;
+  O2.init();
+  await wait(100);
+  assert.strictEqual(await O2.accessToken(60), null);
+  assert.strictEqual(O2.loggedIn(), true);
+  assert.ok(store.motol_session);
 });
