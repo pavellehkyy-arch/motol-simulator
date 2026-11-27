@@ -2831,7 +2831,8 @@ let SPV=null;applyGear();
 // play as Albi (switched by Albi on the floor, remembered in localStorage motol_albi): on the floor his photo-scan body, in the race his name and skin
 let ALBI_ME=false;try{ALBI_ME=localStorage.getItem('motol_albi')==='1';}catch(e){}
 const ALBI_SKIN=0xe2b896;let PL_SKIN=null;
-function riderSkin(M,from,to){if(!M||from===to)return;const a=skinMat(from),b=skinMat(to);M.g.traverse(o=>{if(o.material===a)o.material=b;else if(Array.isArray(o.material))o.material=o.material.map(m=>m===a?b:m);});}
+function riderSkin(M,from,to){if(!M||from===to)return;const sw=new Map([[skinMat(from),skinMat(to)]]);for(const k in SKINMM)if(k.startsWith(String(from))&&isNaN(+k.charAt(String(from).length)))sw.set(SKINMM[k],skinMuscle(to,k.slice(String(from).length)));   // plain skin and the muscle-textured limbs
+  M.g.traverse(o=>{if(sw.has(o.material))o.material=sw.get(o.material);else if(Array.isArray(o.material))o.material=o.material.map(m=>sw.get(m)||m);});}
 function albiRace(){if(PL_SKIN==null)PL_SKIN=player.skin;const to=ALBI_ME?ALBI_SKIN:PL_SKIN;player.name=ALBI_ME?'Albi':'Ty';
   for(const M of [player.mAero,player.mStd,RIDE.M,SPV&&SPV.M].concat(HERO_FIGS))riderSkin(M,player.skin,to);player.skin=to;}
 if(ALBI_ME)albiRace();
@@ -4673,22 +4674,22 @@ function mpTagTex(sp,nick,gold){const c=mkCanvas(256,64),g=c.getContext('2d');g.
   g.fillStyle=gold?'#ffd34d':'#ffffff';g.fillText(nick,x0+14,33,w-28-(gold?66:0));if(gold){g.font='900 16px system-ui';g.fillStyle='#1a1200';g.fillRect(x0+w-72,20,58,26);g.fillStyle='#ffd34d';g.fillRect(x0+w-70,22,54,22);g.fillStyle='#1a1200';g.textAlign='center';g.fillText('GOLD',x0+w-43,34);}
   if(sp.material.map)sp.material.map.dispose();sp.material.map=new THREE.CanvasTexture(c);sp.material.needsUpdate=true;}
 function mpBody(id,albi){const k=mpHash(id);return albi?makePhotoHuman():makeHuman({top:MP_TOPS[k%MP_TOPS.length],pants:0x111111,shoes:0xf0f0f0,hair:MP_HAIR[(k>>4)%MP_HAIR.length],skin:SKINS[(k>>8)%SKINS.length]});}
-function mpFreeBody(r){scene.remove(r.g);r.g.traverse(o=>{if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==PHOTO_TEX)m.map.dispose();m.dispose();});});}
+function mpFreeBody(r){scene.remove(r.g);r.g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==PHOTO_TEX)m.map.dispose();m.dispose();});});}
 function mpFig(id,albi){const r=mpBody(id,albi);
   r.t=r.t||0;scene.add(r.g);const tag=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true}));tag.scale.set(1.3,0.325,1);scene.add(tag);mpTagTex(tag,'Hráč',false);
   return {r,T:{},tag,nick:'Hráč',ph:0,spd:0,x:0,y:0,z:0,h:0,albi:!!albi,bub:null,bubT:0,ride:null,crank:0};}
-function mpDrop(id){const F=MP.figs[id];if(!F)return;mpRideOff(F);mpFreeBody(F.r);scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();mpBubble(F,null);delete MP.figs[id];}
+function mpDrop(id){const F=MP.figs[id];if(!F)return;mpRideOff(F);if(F.rideM)F.rideM.g.children[0].geometry.dispose();mpFreeBody(F.r);scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();mpBubble(F,null);delete MP.figs[id];}
 // on the rollers: a rider on his own bike sits on the nearest rollers (the rider model is shared geometry and kit materials: just taken off, not disposed)
-function mpRideOn(F,id,p){let R=null,bd=0.6;for(const Q of ROLLERS){const d=Math.hypot(Q.x-p.x,Q.z-p.z);if(d<bd){bd=d;R=Q;}}if(!R||(WALK.ride&&WALK.ride.R===R)||(R.mp&&R.mp!==F))return false;
+function mpRideOn(F,id,p){let R=null,bd=0.6;for(const Q of ROLLERS){const d=Math.hypot(Q.x-p.x,Q.z-p.z);if(d<bd){bd=d;R=Q;}}if(!R||(WALK.ride&&WALK.ride.R===R)||(R.mp&&R.mp!==F))return false;if(RIDE.last===R)RIDE.last=null;
   if(!F.rideM){const k=mpHash(id);F.rideM=makeRider({team:MP_TEAMS[k%MP_TEAMS.length],num:0,aero:false,spokes:24,helm:'road',shoe:0xffffff,skin:SKINS[(k>>8)%SKINS.length],hair:MP_HAIR[(k>>4)%MP_HAIR.length]});scene.remove(F.rideM.g);F.rideM.g.children[0].visible=false;}
   const M=F.rideM;R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;R.bike.g.visible=false;rideHideBaked(R,true);R.mp=F;F.ride=R;return true;}
-function mpRideOff(F){const R=F.ride;if(!R)return;if(F.rideM)R.g.remove(F.rideM.g);R.mp=null;F.ride=null;R.v=0;if(!(WALK.ride&&WALK.ride.R===R)){R.bike.g.visible=true;rideHideBaked(R,false);}}
+function mpRideOff(F){const R=F.ride;if(!R)return;if(F.rideM)R.g.remove(F.rideM.g);R.mp=null;F.ride=null;if(!WALK.ride)RIDE.last=R;if(!(WALK.ride&&WALK.ride.R===R)){R.bike.g.visible=true;rideHideBaked(R,false);}}
 // they are solid: walkMove pushes you out of them (circles, so you slide round)
 function mpPush(x,z,o){let px=0,pz=0,hit=false;if(!WALK.mp)return false;for(const id in MP.figs){const F=MP.figs[id];if(!F.r.g.visible||F.ride||F.st===3)continue;if(Math.abs(F.y-WALK.pos.y)>1.2)continue;
     const dx=x-F.x,dz=z-F.z,d=Math.hypot(dx,dz),R=MP_R+WR;if(d>=R)continue;const pen=R-d;if(d>1e-4){px+=dx/d*pen;pz+=dz/d*pen;}else{px+=pen;}hit=true;}
   if(hit){o[0]=px;o[1]=pz;}return hit;}
 // chat bubble over the head (5 s)
-function mpBubbleTex(text){const c=mkCanvas(512,128),g=c.getContext('2d');g.font='700 30px system-ui';const words=text.split(' '),L=[];let cur='';
+function mpBubbleTex(text){const c=mkCanvas(512,128),g=c.getContext('2d');g.font='700 30px system-ui';const words=[].concat(...text.split(' ').map(w=>{const o=[];while(g.measureText(w).width>440&&w.length>1){let n=w.length;while(n>1&&g.measureText(w.slice(0,n)).width>440)n--;o.push(w.slice(0,n));w=w.slice(n);}o.push(w);return o;})),L=[];let cur='';
   for(const w of words){const t=cur?cur+' '+w:w;if(g.measureText(t).width>440&&cur){L.push(cur);cur=w;}else cur=t;if(L.length>=2)break;}if(L.length<2&&cur)L.push(cur);if(L.length===2&&words.join(' ').length>L.join(' ').length+1)L[1]=L[1].replace(/.?$/,'…');
   const w=Math.min(500,Math.max(...L.map(l=>g.measureText(l).width))+40),x0=256-w/2,h=L.length*36+26;
   g.fillStyle='rgba(255,255,255,.95)';g.beginPath();g.moveTo(x0+14,4);g.arcTo(x0+w,4,x0+w,4+h,14);g.arcTo(x0+w,4+h,x0,4+h,14);g.arcTo(x0,4+h,x0,4,14);g.arcTo(x0,4,x0+w,4,14);g.fill();
@@ -4700,8 +4701,8 @@ function mpChatMsg(c){const box=$('mpLog');if(!box)return;const M=window.Multi,n
   const d=document.createElement('div');const b=document.createElement('b');b.textContent=who+': ';if(nm&&nm.gold)b.className='gold';d.appendChild(b);d.appendChild(document.createTextNode(c.text));box.appendChild(d);
   while(box.children.length>6)box.removeChild(box.firstChild);d.dataset.t=Date.now();box.style.display='block';
   if(!c.me){const F=MP.figs[c.u];if(F)mpBubble(F,c.text);}tone(c.me?660:880,0.05,0.03,'triangle');}
-function mpChatOpen(on){const f=$('mpChatF');if(on){f.style.display='flex';const i=$('mpChatIn');i.value='';i.focus();WALK.k={};}else{f.style.display='none';$('mpChatIn').blur();}}
-function mpChatSend(){const i=$('mpChatIn'),t=i.value;if(!t.trim()){mpChatOpen(false);return;}if(window.Multi&&Multi.say(t))mpChatOpen(false);else{i.classList.add('bad');setTimeout(()=>i.classList.remove('bad'),400);}}
+function mpChatOpen(on){const f=$('mpChatF');if(on){const i=$('mpChatIn');if(f.style.display!=='flex')i.value='';f.style.display='flex';i.focus();WALK.k={};}else{f.style.display='none';$('mpChatIn').blur();}}
+function mpChatSend(){const i=$('mpChatIn'),t=i.value;if(!t.trim()){mpChatOpen(false);return;}if(window.Multi&&Multi.say(t))mpChatOpen(false);else{walkSay(window.Multi&&Multi.status==='on'?'⏱ Počkej chvilku, zprávy jdou nejvýš jedna za 2 s.':'👥 Nejsi připojený, zprávu teď nejde poslat.',2.5);i.classList.add('bad');setTimeout(()=>i.classList.remove('bad'),400);}}
 function mpJoin(){if(!window.Multi)return;Multi.onChat=mpChatMsg;Multi.start();MP.last=null;MP.sendT=MP.keepT=0;$('mpBadge').style.display='block';$('mpChatBtn').style.display='block';$('mpLog').innerHTML='';mpBadge();}
 function mpLeave(){if(window.Multi)Multi.stop();for(const id in MP.figs)mpDrop(id);mpChatOpen(false);$('mpBadge').style.display='none';$('mpChatBtn').style.display='none';$('mpLog').style.display='none';}
 function mpWho(n){return n<1?'👥 Na ploše jen ty':'👥 Ty + '+n+(n===1?' další hráč':n<5?' další hráči':' dalších hráčů');}
@@ -4734,7 +4735,7 @@ function mpTick(dt){const M=window.Multi;if(!M)return;
       poseRider(M,F.crank,e>0.92?1:0,0,0,Math.sin(r.t*(1.5+2.5*e)),0,0.4+e*1.2,0.15);F.x=R.x;F.z=R.z;F.y=FLOOR_Y;}
     r.g.position.set(F.x,F.y+(lie?0.1:0),F.z);r.g.rotation.order='YXZ';r.g.rotation.y=F.h;r.g.rotation.x=lie?-PI/2:0;
     const ty=F.y+(lie?0.6:onR?2.15:p.st===1?1.75:2.2);F.tag.position.set(F.x,ty,F.z);
-    if(F.bub){F.bubT-=dt;if(F.bubT<=0)mpBubble(F,null);else{F.bub.position.set(F.x,ty+0.45,F.z);F.bub.material.opacity=Math.min(1,F.bubT);}}}
+    if(F.bub){F.bubT-=dt;if(F.bubT<=0)mpBubble(F,null);else{F.bub.visible=F.tag.visible;F.bub.position.set(F.x,ty+0.45,F.z);F.bub.material.opacity=Math.min(1,F.bubT);}}}
   for(const id in MP.figs)if(!seen[id])mpDrop(id);
   const lg=$('mpLog');if(lg.style.display!=='none'&&lg.lastChild&&now-lg.lastChild.dataset.t>20000&&$('mpChatF').style.display==='none')lg.style.display='none';
   MP.badgeT-=dt;if(MP.badgeT<=0){MP.badgeT=0.5;mpBadge();}}
@@ -4845,7 +4846,7 @@ function bikePickOpen(K){WALK.pick=K;const cur=wornBike(),box=$('bikeSw');box.in
   $('bikePick').style.display='block';$('walkAct').style.display='none';$('walkAct').dataset.k='';tone(660,0.08,0.05,'triangle');}
 function bikePickClose(){WALK.pick=null;$('bikePick').style.display='none';}
 $('bikePickX').onclick=()=>bikePickClose();
-function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;rideHideBaked(R,true);
+function rideStart(R){if(WALK.mp)mpChatOpen(false);const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;rideHideBaked(R,true);
   WALK.ride={R,t:0,x0:WALK.pos.x,z0:WALK.pos.z};RIDE.v=R.v||0;RIDE.t=0;WALK.spd=0;WALK.r.g.visible=false;
   const fw=R.rot;WALK.pos.set(R.x,FLOOR_Y,R.z);WALK.head=fw;WALK.yaw=fw+0.9;WALK.pitch=0.22;   // camera from behind-side, so you see the legs and the drums
   $('rideEff').value=Math.round(RIDE.eff*100);$('rideUI').style.display='flex';document.body.classList.add('riding');rideCount();tone(520,0.08,0.04,'triangle');}
