@@ -279,7 +279,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v2.5</div>
+    <div class="sub">v2.6</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -2985,7 +2985,7 @@ function buildCoach(){COACH=makeCoach();COACH.g.position.set(PODX,0,2.9);COACH.g
   const sC=LSTR/2+LT+LA/2+L0/2,f=frameAt(sC),p=new THREE.Vector3();surf(sC,TW,p);const top=p.y+0.75;
   const ox=p.x+f.nx*0.9,oz=p.z+f.nz*0.9;
   const box=new THREE.Mesh(new THREE.BoxGeometry(1.8,top+0.5,1.4),mat(0x6e4826));box.position.set(ox,(top-0.5)/2,oz);box.rotation.y=Math.atan2(f.fx,f.fz);scene.add(box);
-  RCOACH=makeCoach();RCOACH.g.position.set(ox,top,oz);RCOACH.baseY=top;RCOACH.g.rotation.y=Math.atan2(-f.nx,-f.nz);RCOACH.s=sC;RCOACH.mood='watch';scene.add(RCOACH.g);
+  RCOACH=makeCoach();RCOACH.g.position.set(ox,top,oz);RCOACH.baseY=top;RCOACH.g.rotation.y=Math.atan2(-f.nx,-f.nz);RCOACH.s=sC;RCOACH.mood='watch';RCOACH.g.userData.keep=true;scene.add(RCOACH.g);
   // wooden walkway behind the barrier in the OTHER banked turn (opposite the boss) – the start holders come up here to watch once they're done
   {const deck=mat(0x7a5230),side=mat(0x5e3d22),s0=sC+L0/2+5.2,s1=s0-10.4,q=new THREE.Vector3(),topAt=s=>surfY(s,TW)+0.18;
    for(let s=s1;s<=s0+0.01;s+=0.9){const fq=frameAt(s);surf(s,TW,q);const tp=topAt(s),x=q.x+fq.nx*0.78,z=q.z+fq.nz*0.78;
@@ -4590,7 +4590,7 @@ function updRescueCols(){if(!RESC||WALK.onSt){RCOLS=NO_COLS;return;}const c=RESC
 const _pv=[0,0];
 function walkMove(P,dx,dz,y){const C=walkCols(),RC=rescueCols(),stuck=!walkFree(P.x,P.z,y);let x=P.x+dx,z=P.z+dz;
   for(let it=0;it<4;it++){let hit=false;for(const b of C)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}for(const b of RC)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(mpPush(x,z,_pv)){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(!hit)break;}
-  if((walkFree(x,z,y)||(stuck&&walkInside(x,z)))&&Math.hypot(x-P.x,z-P.z)<=Math.hypot(dx,dz)*1.5+0.03){const m=Math.hypot(x-P.x,z-P.z);P.x=x;P.z=z;return m;}
+  if((walkFree(x,z,y)&&Math.hypot(x-P.x,z-P.z)<=Math.hypot(dx,dz)*1.5+0.03)||(stuck&&walkInside(x,z)&&Math.hypot(x-P.x,z-P.z)<0.8)){const m=Math.hypot(x-P.x,z-P.z);P.x=x;P.z=z;return m;}
   if(walkFree(P.x+dx,P.z,y)){P.x+=dx;return Math.abs(dx);}if(walkFree(P.x,P.z+dz,y)){P.z+=dz;return Math.abs(dz);}return 0;}
 // stairwell: local coords (lz runs from the infield entrance +2.55 down the 12 steps to the landing; lx across, ±1.1 between the walls)
 const STAIR_D=2.6,STAIR_RUN=3.4,STAIR_HL=2.55;
@@ -4645,6 +4645,7 @@ function walkClose(id){if(id==='tv'){$('results').style.display='none';tvReset()
   else if(id==='shop')$('shop').style.display='none';
   else if(id==='coach'){if($('coachBox').style.display==='block')$('coachClose').onclick();}
   else if(id==='start')$('walkRace').style.display='none';}
+function walkUnstick(P){if(walkFree(P.x,P.z))return;for(let r=0.3;r<4;r+=0.25)for(let i=0;i<16;i++){const a=i/16*2*PI,x=P.x+Math.sin(a)*r,z=P.z+Math.cos(a)*r;if(walkFree(x,z)){P.x=x;P.z=z;P.y=walkGround(x,z);return;}}}
 function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hopFrom=null;
   if(cer){WALK_RACED=true;try{WALK_V=coachVerdict();}catch(e){WALK_V=null;}document.body.classList.remove('cerwalk');$('ceremony').style.display='none';cerYaw=cerPitch=0;if(confetti){scene.remove(confetti.mesh);confetti=null;}
     const me=cerObjs.find(o=>o.userData.me);if(RESC){hopFrom=camera.position.clone();hopFrom.y-=0.75;if(RESC.fig)RESC.fig.visible=false;}else if(me&&me.visible){hopFrom=new THREE.Vector3();me.getWorldPosition(hopFrom);me.visible=false;}}
@@ -4653,6 +4654,7 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   heroSet();
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
   WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.jumpT=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();buildAdvisor();
+  if(RESC){updRescueCols();walkUnstick(WALK.pos);}   // after a crash the stretcher stands there: land next to it, not inside it
   if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
