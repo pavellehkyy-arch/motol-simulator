@@ -61,6 +61,14 @@ test('připojení: soukromý kanál plocha:1 s tokenem, presence a příjem polo
   ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'p', payload: { u: A, x: 'NaN', y: 2, z: 3, h: 0 } } });
   assert.deepStrictEqual(Object.keys(M.peers), [A]);
   assert.strictEqual(M.peers[A].x, 1);
+  assert.strictEqual(M.peers[A].r, null);
+  // záchranka po pádu ze žebříku: r = [x, z, natočení, fáze 0–4, čas]; nesmysl se zahodí
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'p', payload: { u: A, x: 1, y: 2, z: 3, h: 0, st: 3, r: [4, 5, 0.5, 2, 1.25] } } });
+  assert.deepStrictEqual(M.peers[A].r, [4, 5, 0.5, 2, 1.25]);
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'p', payload: { u: A, x: 1, y: 2, z: 3, h: 0, st: 3, r: [4, 'x', 0.5, 2, 1] } } });
+  assert.strictEqual(M.peers[A].r, null);
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'p', payload: { u: A, x: 1, y: 2, z: 3, h: 0, st: 3, r: [4, 5, 0.5, 9, 1] } } });
+  assert.strictEqual(M.peers[A].r, null);
   // odeslání vlastní polohy
   assert.ok(M.send({ x: 5, y: 0, z: 1, h: 0, v: 0, st: 0 }));
   const b = ws.out.filter((m) => m.event === 'broadcast').pop();

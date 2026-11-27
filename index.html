@@ -279,7 +279,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v2.8</div>
+    <div class="sub">v2.9</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -1518,7 +1518,8 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
     _qt1.subVectors(_qak,_qkn);_qt2.crossVectors(_qt1,_qXA);orient(L.shn,_qkn,_qak,_qt2,M.bl,M.bl);L.kc.position.copy(_qkn).addScaledVector(_qt2.normalize(),0.008);L.kc.scale.setScalar(0.047*M.bl);orient(L.sock,_qkn,_qak,_qt2,M.bl*1.07,M.bl*1.07);
     _qfx.crossVectors(_quv,_qfv);_qom.makeBasis(_qfx,_quv,_qfv);L.shoe.quaternion.setFromRotationMatrix(_qom);L.shoe.position.copy(_qpd);
     L.ped.quaternion.copy(L.shoe.quaternion);L.ped.position.copy(_qpd).addScaledVector(_quv,0.004);
-    _qt1.set(sx*0.085,0.32,-0.04);rollP(_qt1);_qt2.set(sx*0.085,_qpd.y,_qpd.z);_qt2.x=_qpd.x-sx*0.04;_qXA.set(1,0,0);orient(L.cr,_qt1,_qt2,_qXA,1,1);}}
+    _qt1.set(sx*0.085,0.32,-0.04);rollP(_qt1);_qt2.set(sx*0.085,_qpd.y,_qpd.z);_qt2.x=_qpd.x-sx*0.04;_qXA.set(1,0,0);orient(L.cr,_qt1,_qt2,_qXA,1,1);}
+  if(M.ph)albiPose(M,crank);}
 // per frame: effort decides seated / seated sprint / out of the saddle; resting & finished riders sit up; bots glance round
 function animRider(R,dt){const M=R.model;let A=R.an;if(!A)A=R.an={st:0,su:0,sp:0,br:Math.random()*6,yaw:0,gl:3+Math.random()*8,glY:0,glT:0};
   const ftp=R.ftp||330,P=(phase==='menu'||phase==='walk')?(R.menuP||ftp*0.75):R.realP!=null?R.realP:(R.power||0),e=clamp(P/ftp,0,2.2),v=R.v||0;
@@ -1710,6 +1711,32 @@ function makePhotoHuman(){const D=PHOTO_MODEL,S=D.s,G=D.g;
   const dummy=new THREE.Object3D(),brows=[new THREE.Object3D(),new THREE.Object3D()];
   const rig={g,body,torso,head,legs,arms,brows,mouth:dummy,skin:new THREE.MeshBasicMaterial(),skinCol:new THREE.Color(1,1,1),cur:{},t:Math.random()*10,photo:true};
   poseHuman(rig,{},1);return rig;}
+// ---------- Albi on the bike: his photo-scan body sits on a rider model (kit meshes hidden; bike, cranks, pedals and the helmet stay) ----------
+const _pX=V(1,0,0),_pvA=V();
+function albiBike(M,on){if(!M||!!M.ph===!!on)return;
+  const kit=[...M.body.children,M.arms];for(const L of M.legs)kit.push(L.thS,L.thK,L.shn,L.sock,L.shoe,L.kc);
+  if(on){const r=makePhotoHuman();M.g.add(r.g);M.ph=r;
+    r.L1=r.legs[0].knee.position.length();r.L2=r.legs[0].knee.userData.w.y;r.A1=r.arms[0].el.position.length();r.A2=r.arms[0].hand.position.length()+0.07;
+    for(const o of kit)o.visible=false;r.head.add(M.helmG);M.helmG.position.set(0,ALBI_HELM[0],ALBI_HELM[1]);M.helmG.scale.setScalar(ALBI_HELM[2]);}
+  else{const r=M.ph;M.ph=null;for(const o of kit)o.visible=true;M.head.add(M.helmG);M.helmG.position.set(0,0,0);M.helmG.scale.setScalar(1);
+    r.g.parent&&r.g.parent.remove(r.g);r.g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();if(o.geometry)o.geometry.dispose();if(o.material&&o.material.dispose)o.material.dispose();});}}
+const ALBI_HELM=[0.2,-0.01,1.1];   // helmet on his head bone: up, forward, scale
+// called at the end of poseRider: hips onto the saddle, two-bone IK for the legs to the pedals and the arms to the grips
+function ikAng(a,b,c){return Math.acos(clamp((a*a+b*b-c*c)/(2*a*b),-1,1));}   // angle between sides a and b of a triangle
+function albiPose(M,crank){const r=M.ph,B=r.body,ln=ikAng;
+  const L1=r.L1,L2=r.L2,reach=(L1+L2)*0.985,dz=0.16;   // his legs are shorter than the rider's: sit a little lower when the bottom pedal needs it
+  const hy=Math.min(_qhp.y,0.17+Math.sqrt(reach*reach-dz*dz)),hip0=r.legs[0].hip.position;
+  B.position.set(_qhp.x,hy-hip0.y,_qhp.z-hip0.z);B.rotation.z=_qroll;
+  const lean=Math.atan2(_qNn.z-_qhp.z,_qNn.y-_qhp.y);r.torso.rotation.set(lean,0,0);
+  r.head.rotation.set(-lean*0.78+0.1,0,0);r.head.scale.setScalar(M.body.visible?1:0.001);   // first person: no head in the camera
+  for(let i=0;i<2;i++){const L=r.legs[i],a=crank+(M.legs[i].sx===L.sx?i:1-i)*PI;
+    const ty=0.32+0.17*Math.cos(a)+0.03-(B.position.y+L.hip.position.y),tz=-0.04+0.17*Math.sin(a)-0.025-(B.position.z+L.hip.position.z);
+    const D=Math.min(Math.hypot(ty,tz),(L1+L2)*0.999),th=Math.atan2(-tz,-ty);
+    L.hip.rotation.set(th-ln(L1,D,L2),0,0);L.knee.rotation.set(PI-ln(L1,L2,D),0,0);}
+  for(const A of r.arms){const G=M.rig[A.sx<0?0:1].h;
+    _pvA.copy(G).sub(B.position).sub(r.torso.position).applyAxisAngle(_pX,-lean).sub(A.shp.position);
+    const D=Math.min(Math.hypot(_pvA.y,_pvA.z),(r.A1+r.A2)*0.999),th=Math.atan2(-_pvA.z,-_pvA.y);
+    A.shp.rotation.set(th+ln(r.A1,D,r.A2),0,0);A.el.rotation.set(-(PI-ln(r.A1,r.A2,D)),0,0);A.hand.rotation.set(0,0,0);}}
 // ---------- scan body: Albi's measured body (one smooth skinned mesh) as the template for every standing person ----------
 // clothes are painted per vertex by body region (rows of the reference photo), the jacket can carry a texture (u round the body,
 // 0 = front centre, v = height like the lofted chest), the face gets eyes, brows, nose and mouth on the head bone
@@ -2669,7 +2696,7 @@ function currentLap(R){return clamp(Math.floor((effS(R)-START_S)/L0)+1,1,Math.ce
 // what the lap board and the HUD show: the count flips as the leader crosses the finish line, together with the bell (as in a real race: bell = board shows 1)
 const LAP_FLIP=0;
 function shownLap(R){const n=Math.ceil(LAPS);return clamp(n-shownLeft(effS(R))+1,1,n);}   // always the same lap as the board (keirin / kilo start half a lap out)
-function shownLeft(e){if(e>=FIN)return 0;return Math.min(Math.ceil((FIN-Math.min(e,START_S))/L0),Math.ceil((FIN-e+LAP_FLIP)/L0));}
+function shownLeft(e){if(e>=FIN)return 0;return Math.min(Math.ceil((FIN-START_S)/L0-1e-6),Math.ceil((FIN-e+LAP_FLIP)/L0));}   // the neutral lap before the gun does not count: the board holds the race laps
 function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
   $('spd').textContent=(R.v*3.6).toFixed(1);$('pwr').textContent=Math.round(R.realP||0);$('rpm').textContent=Math.round(R.v/7.6*60);
   const en=$('en'),ec=R.energy>50?'#4dde88':R.energy>20?'#ffd166':'#ff5a5f',eb=RACE_BONUS?100/(1+RACE_BONUS/100):100;en.style.width=R.energy.toFixed(0)+'%';   // bonus from the floor (rollers, bidon, gel) = the gold end of the bar
@@ -2682,7 +2709,7 @@ function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
   else if(mode==='keirin'){$('posLbl').textContent=R.dsq?'Výsledek':'Pořadí';if(R.dsq){$('pos').textContent='DSQ';}else{let pos=1;for(const o of riders)if(o!==R&&o.model.g.visible&&!o.crashed&&!o.dsq){if(o.finished&&R.finished?o.time<R.time:o.s>R.s)pos++;}$('pos').textContent=pos+'/'+riders.filter(r=>r.model.g.visible&&!r.crashed&&!r.dsq).length;}}
   else if(mode==='sprint'&&SP){$('posLbl').textContent='Zápas (na 2 vítězné)';$('pos').textContent=SP.score[0]+':'+SP.score[1];}
   else if(mode==='teamsprint'&&TSP){$('posLbl').textContent='Proti soupeři';$('pos').textContent=tsGapTxt();}
-  else if(mode==='scratch'){let pos=1;for(const o of riders)if(o!==R&&!o.crashed){if(o.finished&&R.finished?o.time<R.time:o.s>R.s)pos++;}$('posLbl').textContent='Pořadí';$('pos').textContent=pos+'/'+riders.filter(r=>!r.crashed).length;}
+  else if(mode==='scratch'){let pos=1;for(const o of riders)if(o!==R&&!o.crashed&&!o.partner){if(o.finished&&R.finished?o.time<R.time:o.s>R.s)pos++;}$('posLbl').textContent='Pořadí';$('pos').textContent=pos+'/'+riders.filter(r=>!r.crashed&&!r.partner).length;}
   else{$('posLbl').textContent='Mezičas';$('pos').textContent=splits.length?fmt(splits[splits.length-1]):'—';}
   if(mode!=='elim')$('pos').style.color=R.dsq?'#ff5a5f':'';
   $('lap').textContent=mode==='sprint'&&SP?spLapTxt(R):mode==='teamsprint'&&TSP?tsLapTxt(R):R.finished?'CÍL':mode==='keirin'&&KR?(R.dsq?'Diskvalifikace':!KR.gun?'Pozice '+R.draw+' z losu · start výstřelem':!KR.free?'Za dernou '+(DERNY.v*3.6).toFixed(0)+' km/h · odstoupí za '+Math.max(1,Math.ceil((KR.exitS-DERNY.s)/L0))+(KR.lap1?' · 1. kolo: drž pořadí':''):'Sprint · kolo '+shownLap(R)+'/'+Math.ceil(LAPS)):mode==='points'&&PR?(isNeutral()?'Neutrální kolo · start výstřelem':TEMPO?'Tempo · kolo '+shownLap(R)+'/'+LAPS+(shownLap(R)<PT_FROM?' · body od '+PT_FROM+'. kola':' · 1 bod za každé kolo v čele'):'Kolo '+shownLap(R)+'/'+LAPS+' · '+(nextSprintLine(effS(R))>=FIN-1?'cílový sprint ×2':'sprint')+' za '+Math.max(1,Math.ceil((nextSprintLine(effS(R))-effS(R))/L0))):mode==='elim'&&EL?(R.out?'VYŘAZEN':nextElimLine(R.s)>=FIN-0.5?'FINÁLE · kolo '+shownLap(R)+'/'+Math.ceil(LAPS):EL.crossed.has(R)?'✅ v bezpečí · kolo '+shownLap(R):(isNeutral()?'Neutrální kolo · ':'')+'Kolo '+shownLap(R)+' · vyřazení za '+Math.max(1,Math.ceil((nextElimLine(R.s)-R.s)/L0))):mode==='madison'?(()=>{const T=MT&&MT.find(t=>t.me),A=T?T.act:R;if(MT&&MT.neutral)return 'Neutrální kolo · start výstřelem';return A.finished?'CÍL':(T&&T.rest===R?'😮‍💨 Odpočíváš · ':'')+'Kolo '+shownLap(A)+'/'+LAPS+' · sprint za '+Math.max(1,Math.ceil((nextSprintLine(A.s)-A.s)/L0));})():mode==='kilo'?'Zbývá '+Math.max(0,Math.round(FIN-R.s))+' m':(isNeutral()?'Neutrální kolo · start výstřelem':'Kolo '+shownLap(R)+'/'+LAPS);$('time').textContent=fmt(R.finished?R.time:raceTime);
@@ -2843,7 +2870,8 @@ const ALBI_SKIN=0xe2b896;let PL_SKIN=null;
 function riderSkin(M,from,to){if(!M||from===to)return;const sw=new Map([[skinMat(from),skinMat(to)]]);for(const k in SKINMM)if(k.startsWith(String(from))&&isNaN(+k.charAt(String(from).length)))sw.set(SKINMM[k],skinMuscle(to,k.slice(String(from).length)));   // plain skin and the muscle-textured limbs
   M.g.traverse(o=>{if(sw.has(o.material))o.material=sw.get(o.material);else if(Array.isArray(o.material))o.material=o.material.map(m=>sw.get(m)||m);});}
 function albiRace(){if(PL_SKIN==null)PL_SKIN=player.skin;const to=ALBI_ME?ALBI_SKIN:PL_SKIN;player.name=ALBI_ME?'Albi':'Ty';
-  for(const M of [player.mAero,player.mStd,RIDE.M,SPV&&SPV.M].concat(HERO_FIGS))riderSkin(M,player.skin,to);player.skin=to;}
+  for(const M of [player.mAero,player.mStd,RIDE.M,SPV&&SPV.M].concat(HERO_FIGS))riderSkin(M,player.skin,to);player.skin=to;
+  for(const M of [player.mAero,player.mStd,RIDE.M])albiBike(M,ALBI_ME);}
 if(ALBI_ME)albiRace();
 function renderShop(){applyGear();const vk=getVK(),own=shopOwned(),hz=wornHelm(),wz={f:wornWheel('f',own),r:wornWheel('r',own)};$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
   for(const b of document.querySelectorAll('#shopTabs [data-tab]')){const on=b.dataset.tab===shopTab;b.style.background=on?'#1a1a1a':'#eee6d6';b.style.color=on?'#c6ff1a':'#1a1a1a';}
@@ -3532,7 +3560,13 @@ function makeMedic(front){const r=makeHuman({skin:[0xdcae8a,0xc98e65,0xe0ad85][M
   return {g:r.g,body:r.body,torso:r.torso,head:r.head,legs:r.legs,arms:r.arms,front,y:0,step:null,lead:front?0:1};}
 function startRescue(o){o=o||{};   // o.walk: you jumped off the ladder on the infield – they pick you up at o.tgt and you ride the stretcher yourself
   const cause=player.crash&&player.crash.cause;DIAG=o.walk?pick(['Zlomená prdel','Vyvrtnutý kotník ze žebříku','Naražená kostrč a ješitnost','Otřes mozku a pýchy']):pick(DIAGS[cause]||['Zlomená prdel']);
-  const crew=new THREE.Group();scene.add(crew);
+  const fig=o.walk?new THREE.Group():makeStanding(player,0);const C=rescueCrew(fig);const crew=C.crew,st=C.stretcher,m1=C.meds[0],m2=C.meds[1];scene.add(crew);
+  JUDGES.updateMatrixWorld();const start=new THREE.Vector3(PODX+5,0,4);JUDGES.localToWorld(start);start.y=FLOOR_Y;crew.position.copy(start);
+  const end=new THREE.Vector3(PODX+6.8,0,0.3);JUDGES.localToWorld(end);end.y=FLOOR_Y;
+  RESC={st:'run',t:0,crew,stretcher:st,fig,meds:[m1,m2],end,walk:0,spd:0,onWalk:!!o.walk,tgt:o.tgt||null};
+  if(!o.walk)showMsg('🚑<small>Záchranka běží!</small>',2);}
+// two paramedics with the stretcher (fig = whoever will lie on it); also the copy other players see online (mpRescTick)
+function rescueCrew(fig){const crew=new THREE.Group();
   const st=new THREE.Group();st.position.y=0.82;crew.add(st);
   const alu=mat(0xc9cdd1),blk=mat(0x151515);
   for(const sx of [-0.3,0.3]){const p=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,2.7,8),alu);p.rotation.x=PI/2;p.position.x=sx;st.add(p);
@@ -3542,12 +3576,9 @@ function startRescue(o){o=o||{};   // o.walk: you jumped off the ladder on the i
   const bed=new THREE.Mesh(new THREE.BoxGeometry(0.56,0.05,1.95),mat(0xe8601c));bed.castShadow=true;st.add(bed);
   for(const sx of [-0.285,0.285]){const ed=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.055,1.95),mat(0xb94a14));ed.position.x=sx;st.add(ed);}
   const pil=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.08,0.3),mat(0xffffff));pil.position.set(0,0.06,-0.8);st.add(pil);
-  const fig=o.walk?new THREE.Group():makeStanding(player,0);fig.rotation.x=-PI/2;fig.position.set(0,0.05,0.92);fig.visible=false;st.add(fig);
+  fig.rotation.x=-PI/2;fig.position.set(0,0.05,0.92);fig.visible=false;st.add(fig);
   const m1=makeMedic(true),m2=makeMedic(false);m1.g.position.z=1.5;m2.g.position.z=-1.5;crew.add(m1.g,m2.g);
-  JUDGES.updateMatrixWorld();const start=new THREE.Vector3(PODX+5,0,4);JUDGES.localToWorld(start);start.y=FLOOR_Y;crew.position.copy(start);
-  const end=new THREE.Vector3(PODX+6.8,0,0.3);JUDGES.localToWorld(end);end.y=FLOOR_Y;
-  RESC={st:'run',t:0,crew,stretcher:st,fig,meds:[m1,m2],end,walk:0,spd:0,onWalk:!!o.walk,tgt:o.tgt||null};
-  if(!o.walk)showMsg('🚑<small>Záchranka běží!</small>',2);}
+  return {crew,stretcher:st,fig,meds:[m1,m2]};}
 // ---------- walking paths on the infield (go around booths, stairwell, rollers, judges) ----------
 const NAV={x0:-32,z0:-14,c:0.5,nx:128,nz:56,grid:null};
 function onCarpet(x,z){const a=(x-1.5)/6.0,b=(z-1.2)/2.6;return a*a+b*b<1;}
@@ -4031,7 +4062,7 @@ function showResults(display){
     SP.heats.forEach(H=>{const w=H.winner===player;h+='<tr class="'+(w?'me':'')+'"><td>'+H.n+'.</td><td>'+(w?'Vyhrál jsi':H.winner.name+' vyhrál')+'<div style="font-size:11px;opacity:.7;margin-left:0">los: pozice '+H.drawP+(H.note?' · '+H.note:'')+'</div></td><td>'+(H.t200!=null?H.t200.toFixed(3).replace('.',',')+' s':'–')+'</td></tr>';});
     h+='<tr><td></td><td style="font-size:12px;opacity:.75">čas = posledních 200 m vítěze rozjížďky</td><td></td></tr><tr><td></td><td>Soupeř: <span class="dot" style="background:'+hex(SP.opp.jersey)+'"></span>'+SP.opp.name+' · '+TEAMS[SP.opp.team].name+'</td><td>'+SP.score[0]+':'+SP.score[1]+'</td></tr>';}
   else if(mode==='scratch'){$('resTitle').textContent='SCRATCH · VÝSLEDKY';
-    const key=r=>r.crashed?2e9+(r.player?1:0):(r.finished?r.time:1e9-r.s);const list=riders.slice().sort((a,b)=>key(a)-key(b));const win=list[0].time;if(player.crashed)$('resTitle').textContent='PÁD · DNF 🚑';
+    const key=r=>r.crashed?2e9+(r.player?1:0):(r.finished?r.time:1e9-r.s);const list=riders.filter(r=>!r.partner).sort((a,b)=>key(a)-key(b));/* the madison partner does not ride the scratch */const win=list[0].time;if(player.crashed)$('resTitle').textContent='PÁD · DNF 🚑';
     list.forEach((R,i)=>{const t=R.crashed?'DNF – pád':R.finished?(i===0?fmt(R.time):'+'+(R.time-win).toFixed(2)+' s'):'na dráze';
       h+='<tr class="'+(R.player?'me':'')+'"><td>'+(R.crashed?'–':(i+1)+'.')+'</td><td><span class="dot" style="background:'+hex(R.jersey)+'"></span>'+R.name+'<div style="font-size:11px;opacity:.7;margin-left:17px">'+TEAMS[R.team].name+'</div></td><td>'+t+'</td></tr>';});}
   else{$('resTitle').textContent='KILOMETR · '+fmt(player.time);let prev=0;
@@ -4585,7 +4616,14 @@ function boxPush(b,x,z,R,o){const dx=x-b.cx,dz=z-b.cz,a=dx*b.ux+dz*b.uz,c=dz*b.u
   if(d>1e-6){if(d>=R)return 0;na=ea/d;nc=ec/d;pen=R-d;}
   else{const pa=b.hu-Math.abs(a),pc=b.hv-Math.abs(c);if(pa<pc){na=Math.sign(a)||1;nc=0;pen=pa+R;}else{na=0;nc=Math.sign(c)||1;pen=pc+R;}}
   if(o){o[0]=(na*b.ux-nc*b.uz)*pen;o[1]=(na*b.uz+nc*b.ux)*pen;}return pen;}
-function walkInside(x,z){return inPoly(x,z,WALK.poly||(WALK.poly=infieldPoly(0.15+WR)));}
+// walking on the track: world (x,z) -> track position s and height w up the banking (w<0 = the blue band), its banking and outward normal
+const TST={s:0,w:-99,b:0,nx:0,nz:0};
+function trackST(x,z){let bi=0,bd=1e18;for(let i=0;i<NS;i+=20){const dx=AX[i]-x,dz=AZ[i]-z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}
+  let bj=bi;for(let j=bi-20;j<=bi+20;j++){const i=(j+NS)%NS,dx=AX[i]-x,dz=AZ[i]-z,d=dx*dx+dz*dz;if(d<bd){bd=d;bj=i;}}
+  const f=frameAt(bj*SSTEP),o=(x-f.px)*f.nx+(z-f.pz)*f.nz;TST.s=bj*SSTEP;TST.b=f.b;TST.nx=f.nx;TST.nz=f.nz;TST.w=o>=0?o/Math.cos(f.b):o/Math.cos(8*deg);return TST;}
+const TRACK_TOP=TW-0.45;   // the barrier at the top of the banking
+function onTrackW(x,z){const T=trackST(x,z);return T.w>-BAND-0.15-WR&&T.w<TRACK_TOP;}
+function walkInside(x,z){return inPoly(x,z,WALK.poly||(WALK.poly=infieldPoly(0.15+WR)))||onTrackW(x,z);}
 function walkFree(x,z,y){if(!walkInside(x,z))return false;
   if(y!==undefined){const pn=podPen(x,z,y,WR);if(pn>0&&pn>=podPen(WALK.pos.x,WALK.pos.z,y,WR)-1e-4)return false;}   // a podium step higher than your feet stops you – jump onto it (moving away from it always works)
   for(const b of walkCols())if(boxPush(b,x,z,WR)>0.003)return false;for(const b of rescueCols())if(boxPush(b,x,z,WR)>0.003)return false;return true;}
@@ -4608,6 +4646,7 @@ function stairY(x,z){const l=stairLocal(x,z);if(Math.abs(l.lx)>1.12||l.lz>STAIR_
 function walkGround(x,z){{const sy=stairY(x,z);if(sy!=null&&sy<0)return FLOOR_Y+sy;}if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.pz,a=dx*f.fx+dz*f.fz,o=-(dx*f.nx+dz*f.nz);   // walking up the ramp onto the apron
     if(Math.abs(a)<R.HWr&&o>R.oT&&o<R.oB)return R.yT+(R.yB-R.yT)*(o-R.oT)/(R.oB-R.oT);}
   const t=podTop(x,z,0.1);if(t>0)return FLOOR_Y+t;
+  {const T=trackST(x,z);if(T.w>-BAND&&T.w<TW)return T.w>=0?T.w*Math.sin(T.b):T.w*Math.sin(8*deg);}   // on the boards: up the banking
   return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
 function walkJump(){if(phase!=='walk'||WALK.ride||WALK.act)return;if(RESC&&RESC.onWalk){walkSkipRescue();return;}if(WALK.hop||WALK.air||WALK.down||WALK.jumpT>0)return;
   if(WALK.climb!=null){if(WALK.pos.y-walkGround(WALK.pos.x,WALK.pos.z)>0.5)walkLeaveLadder();return;}if(WALK.sit){if(WALK.sit.up<0){WALK.sit.up=0;WALK.sit.ux=WALK.pos.x;}return;}
@@ -4689,10 +4728,31 @@ function mpFreeBody(r){scene.remove(r.g);r.g.traverse(o=>{if(o.isSkinnedMesh&&o.
 function mpFig(id,albi){const r=mpBody(id,albi);
   r.t=r.t||0;scene.add(r.g);const tag=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true}));tag.scale.set(1.3,0.325,1);scene.add(tag);mpTagTex(tag,'Hráč',false);
   return {r,T:{},tag,nick:'Hráč',ph:0,spd:0,x:0,y:0,z:0,h:0,albi:!!albi,bub:null,bubT:0,ride:null,crank:0};}
-function mpDrop(id){const F=MP.figs[id];if(!F)return;mpRideOff(F);if(F.rideM)F.rideM.g.children[0].geometry.dispose();mpFreeBody(F.r);scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();mpBubble(F,null);delete MP.figs[id];}
+function mpDrop(id){const F=MP.figs[id];if(!F)return;mpRideOff(F);mpRescTick(F,{},0);if(F.rideM){albiBike(F.rideM,false);F.rideM.g.children[0].geometry.dispose();}mpFreeBody(F.r);scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();mpBubble(F,null);delete MP.figs[id];}
+// someone else's rescue (fall off the ladder): a copy of the crew follows their broadcast r = [x, z, yaw, stage, time in stage]
+const RESC_ST=['run','pick','carry','down','done'],G_W=new THREE.Vector3();
+function mpRescTick(F,p,dt){const q=p.r;let G=F.resc;
+  if(!q){if(G){if(F.r.g.parent!==scene){scene.add(F.r.g);F.r.g.rotation.set(0,0,0);}scene.remove(G.crew);F.resc=null;
+      G.crew.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO&&o.geometry!==G_LIMB&&!o.geometry.userData.shared)o.geometry.dispose();});}return false;}   // materials are cached (mat), left alone
+  if(!G){G=F.resc=Object.assign(rescueCrew(new THREE.Group()),{st:'',t:0,walk:0,spd:0});G.fig.visible=true;G.crew.position.set(q[0],FLOOR_Y,q[1]);G.crew.rotation.y=q[2];scene.add(G.crew);}
+  const ST=RESC_ST[q[3]]||'run';if(ST!==G.st){G.st=ST;G.t=q[4]||0;}else G.t+=dt;
+  const c=G.crew.position,k=1-Math.exp(-dt*8),dx=q[0]-c.x,dz=q[1]-c.z,d=Math.hypot(dx,dz);
+  if(d>6){c.x=q[0];c.z=q[1];}else{c.x+=dx*k;c.z+=dz*k;}c.y=FLOOR_Y;G.crew.rotation.y+=_angTo(G.crew.rotation.y,q[2])*k;
+  const moving=(ST==='run'||ST==='carry')&&d>0.04;G.spd=moving?(ST==='run'?4.6:2.3):0;G.walk+=G.spd*dt*(ST==='run'?2.2:3.0);
+  let crouch=0;
+  if(ST==='pick')crouch=G.t<0.6?_ease(G.t/0.6):G.t<1.15?1:1-_ease((G.t-1.15)/0.5);
+  else if(ST==='down'||ST==='done'){const t=ST==='done'?2:G.t;crouch=Math.min(1,t/0.6)*(t<0.9?1:Math.max(0,1-(t-0.9)/0.4));const w=_ease(clamp((t-0.7)/0.8,0,1));
+    G.meds[0].g.position.set(1.15*w,G.meds[0].g.position.y,1.5-0.4*w);G.meds[1].g.position.set(-1.15*w,G.meds[1].g.position.y,-1.5+1.2*w);}
+  const yF=poseMedic(G,G.meds[0],0,dt,moving,crouch),yR=poseMedic(G,G.meds[1],1,dt,moving,crouch);
+  if((ST==='down'&&G.t>0.7)||ST==='done'){G.stretcher.position.y+=(stretcherRest(G)-G.stretcher.position.y)*Math.min(1,dt*3);G.stretcher.rotation.x*=1-Math.min(1,dt*4);}
+  else{G.stretcher.position.y=0.82+(yF+yR)/2;G.stretcher.rotation.x=Math.atan2(yR-yF,3.0);}
+  const on=!(ST==='run'||(ST==='pick'&&G.t<0.85));   // lifted onto the stretcher halfway through the pick-up, as in your own rescue
+  if(on&&F.r.g.parent!==G.fig){G.fig.add(F.r.g);F.r.g.position.set(0,0,0);F.r.g.rotation.set(0,0,0);}
+  else if(!on&&F.r.g.parent!==scene){scene.add(F.r.g);}
+  return on;}
 // on the rollers: a rider on his own bike sits on the nearest rollers (the rider model is shared geometry and kit materials: just taken off, not disposed)
 function mpRideOn(F,id,p){let R=null,bd=0.6;for(const Q of ROLLERS){const d=Math.hypot(Q.x-p.x,Q.z-p.z);if(d<bd){bd=d;R=Q;}}if(!R||(WALK.ride&&WALK.ride.R===R)||(R.mp&&R.mp!==F))return false;if(RIDE.last===R)RIDE.last=null;
-  if(!F.rideM){const k=mpHash(id);F.rideM=makeRider({team:MP_TEAMS[k%MP_TEAMS.length],num:0,aero:false,spokes:24,helm:'road',shoe:0xffffff,skin:SKINS[(k>>8)%SKINS.length],hair:MP_HAIR[(k>>4)%MP_HAIR.length]});scene.remove(F.rideM.g);F.rideM.g.children[0].visible=false;}
+  if(!F.rideM){const k=mpHash(id);F.rideM=makeRider({team:MP_TEAMS[k%MP_TEAMS.length],num:0,aero:false,spokes:24,helm:'road',shoe:0xffffff,skin:SKINS[(k>>8)%SKINS.length],hair:MP_HAIR[(k>>4)%MP_HAIR.length]});scene.remove(F.rideM.g);F.rideM.g.children[0].visible=false;albiBike(F.rideM,F.albi);}
   const M=F.rideM;R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;R.bike.g.visible=false;rideHideBaked(R,true);R.mp=F;F.ride=R;return true;}
 function mpRideOff(F){const R=F.ride;if(!R)return;if(F.rideM)R.g.remove(F.rideM.g);R.mp=null;F.ride=null;if(!WALK.ride)RIDE.last=R;if(!(WALK.ride&&WALK.ride.R===R)){R.bike.g.visible=true;rideHideBaked(R,false);}}
 // they are solid: walkMove pushes you out of them (circles, so you slide round)
@@ -4723,8 +4783,9 @@ function mpState(){return WALK.ride?5:(WALK.down||WALK.onSt)?3:WALK.climb!=null?
 function mpTick(dt){const M=window.Multi;if(!M)return;
   MP.sendT-=dt;MP.keepT-=dt;
   if(M.status==='on'&&MP.sendT<=0){MP.sendT=0.33;const P=WALK.pos,st=mpState(),L=MP.last;
-    const moved=!L||Math.hypot(P.x-L.x,P.z-L.z)>0.03||Math.abs(P.y-L.y)>0.03||Math.abs(_angTo(L.h,WALK.head))>0.05||L.st!==st||(st===5&&Math.abs(L.v-RIDE.v)>0.5);
-    if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+(WALK.ride?RIDE.v:WALK.spd).toFixed(2),st,c:WALK.ride?Math.round(RIDE.eff*100):0,a:ALBI_ME?1:0};if(M.send(s)){MP.last=s;MP.keepT=3;}}}
+    const rc=RESC&&RESC.onWalk?[+RESC.crew.position.x.toFixed(2),+RESC.crew.position.z.toFixed(2),+RESC.crew.rotation.y.toFixed(2),RESC_ST.indexOf(RESC.st),+RESC.t.toFixed(2)]:null;   // the rescue after a fall off the ladder: the others see the crew too
+    const moved=!L||Math.hypot(P.x-L.x,P.z-L.z)>0.03||Math.abs(P.y-L.y)>0.03||Math.abs(_angTo(L.h,WALK.head))>0.05||L.st!==st||(st===5&&Math.abs(L.v-RIDE.v)>0.5)||!!rc!==!!(L&&L.r)||(rc&&L.r&&(Math.hypot(rc[0]-L.r[0],rc[1]-L.r[1])>0.05||rc[3]!==L.r[3]||Math.abs(_angTo(L.r[2],rc[2]))>0.05));
+    if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+(WALK.ride?RIDE.v:WALK.spd).toFixed(2),st,c:WALK.ride?Math.round(RIDE.eff*100):0,a:ALBI_ME?1:0};if(rc)s.r=rc;if(M.send(s)){MP.last=s;MP.keepT=rc?1:3;}}if(rc)MP.sendT=0.2;}
   if(M.prune)M.prune();
   const seen=MP.seen,now=Date.now();for(const q in seen)delete seen[q];let n=0;
   for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id];let F=MP.figs[id];if(F&&F.albi!==!!p.a){mpDrop(id);F=null;}if(!F){F=MP.figs[id]=mpFig(id,!!p.a);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}F.st=p.st;
@@ -4744,7 +4805,9 @@ function mpTick(dt){const M=window.Multi;if(!M)return;
     const onR=!!F.ride;r.g.visible=!onR&&p.st!==5;F.tag.visible=onR||p.st!==5;
     if(onR){const M=F.rideM,e=clamp((p.c||0)/100,0,1),R=F.ride;F.crank+=p.v/7.6*2*PI*dt;for(const w of M.wheels)w.rotation.x+=p.v/0.34*dt;R.v=p.v;rollerSpin(R,dt);
       poseRider(M,F.crank,e>0.92?1:0,0,0,Math.sin(r.t*(1.5+2.5*e)),0,0.4+e*1.2,0.15);F.x=R.x;F.z=R.z;F.y=FLOOR_Y;}
-    r.g.position.set(F.x,F.y+(lie?0.1:0),F.z);r.g.rotation.order='YXZ';r.g.rotation.y=F.h;r.g.rotation.x=lie?-PI/2:0;
+    const onSt=mpRescTick(F,p,dt);
+    if(!onSt){r.g.position.set(F.x,F.y+(lie?0.1:0),F.z);r.g.rotation.order='YXZ';r.g.rotation.y=F.h;r.g.rotation.x=lie?-PI/2:0;}
+    else{G_W.setFromMatrixPosition(r.g.matrixWorld);F.x=G_W.x;F.z=G_W.z;F.y=G_W.y-0.55;}
     const ty=F.y+(lie?0.6:onR?2.15:p.st===1?1.75:2.2);F.tag.position.set(F.x,ty,F.z);
     if(F.bub){F.bubT-=dt;if(F.bubT<=0)mpBubble(F,null);else{F.bub.visible=F.tag.visible;F.bub.position.set(F.x,ty+0.45,F.z);F.bub.material.opacity=Math.min(1,F.bubT);}}}
   for(const id in MP.figs)if(!seen[id])mpDrop(id);
@@ -4847,7 +4910,7 @@ function walkSitK(){const S=WALK.sit;if(!S)return 0;return S.up<0?_sm(Math.min(1
 const PREP={roll:false,drink:false,gel:false,rollT:0};let RACE_BONUS=0;
 function prepPct(){return (PREP.roll?5:0)+(PREP.drink?3:0)+(PREP.gel?5:0);}
 // rollers: you sit on your own bike (worn wheels and helmet), pedal with the slider, the wheels and all three drums turn; 10 s of riding = warmed up
-function rideModel(){if(RIDE.M)return RIDE.M;const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);M.g.children[0].visible=false;return RIDE.M=M;}
+function rideModel(){if(RIDE.M)return RIDE.M;const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);M.g.children[0].visible=false;albiBike(M,ALBI_ME);return RIDE.M=M;}
 function rollerNear(P){let best=null,bd=0.6;for(const R of ROLLERS){if(R.mp)continue;const dx=P.x-R.x,dz=P.z-R.z,c=Math.cos(R.rot),s=Math.sin(R.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;
     const d=Math.hypot(Math.max(0,Math.abs(lx)-0.33),Math.max(0,Math.abs(lz)-0.95));if(d<bd){bd=d;best=R;}}return best;}
 function rackNear(P){let best=null,bd=0.65;for(const K of RACKS){const d=Math.hypot(Math.max(0,Math.abs(P.x-K.x)-K.hu),Math.max(0,Math.abs(P.z-K.z)-K.hv));if(d<bd){bd=d;best=K;}}return best;}
@@ -4945,7 +5008,8 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(WALK.mp)mpTick(
   const resc=!!(RESC&&RESC.onWalk),busy=resc||WALK.down||WALK.climb!=null||!!WALK.sit||!!WALK.hop||!!WALK.ride||!!WALK.act;
   if(!WALK.ride&&RIDE.last&&RIDE.last.v>0.01){RIDE.last.v*=Math.exp(-dt*0.7);rollerSpin(RIDE.last,dt);}   // the drums run down after you get off
   const stY=stairY(WALK.pos.x,WALK.pos.z),onSt=stY!=null&&stY<-0.03&&stY>-STAIR_D+0.03;WALK.stair=(WALK.stair||0)+((onSt?1:0)-(WALK.stair||0))*Math.min(1,dt*6);   // on the stairs: no running, knees up
-  const top=onSt?1.25*Math.max(amt,0.4):K.run||(WALK.jy>0.8&&amt>0.9)?4.3:1.7*Math.max(amt,0.35),tgt=amt>0.08&&!busy?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?4:8));
+  let slope=1;{const T=trackST(WALK.pos.x,WALK.pos.z);if(T.w>0&&ml>1e-3)slope=1-0.55*Math.sin(T.b)*Math.max(0,(mx*T.nx+mz*T.nz)/ml);}   // up the banking is hard work
+  const top=(onSt?1.25*Math.max(amt,0.4):K.run||(WALK.jy>0.8&&amt>0.9)?4.3:1.7*Math.max(amt,0.35))*slope,tgt=amt>0.08&&!busy?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?4:8));
   const h0=WALK.head;
   if(ml>1e-3&&!busy&&!WALK.fall){const d=_angTo(WALK.head,Math.atan2(mx,mz));WALK.head+=d*Math.min(1,dt*(WALK.spd>2.4?6:9));}
   const P=WALK.pos;if(WALK.down)WALK.downT+=dt;
@@ -4963,7 +5027,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(WALK.mp)mpTick(
   updRescueCols();
   if(WALK.jumpT>0){WALK.jumpT-=dt;if(WALK.jumpT<=0){if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit&&!WALK.ride&&!WALK.air&&!WALK.down&&phase==='walk')walkTakeOff();else WALK.jumpT=0;}}
   if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit&&!WALK.ride){const gy=walkGround(P.x,P.z);
-    if(!WALK.air&&stairY(P.x,P.z)!=null)P.y=gy;   // on the stairs the feet stay on the steps, even running in
+    if(!WALK.air&&(stairY(P.x,P.z)!=null||(trackST(P.x,P.z).w>-BAND&&Math.abs(gy-P.y)<0.6)))P.y=gy;   // on the stairs and down the banking the feet stay on the ground, even running
     if(!WALK.air&&!WALK.down&&gy<P.y-0.2){WALK.air=true;WALK.vy=0;WALK.airTop=P.y;}   // stepped off the podium edge: fall
     if(WALK.air){WALK.vy-=9.81*dt;P.y+=WALK.vy*dt;if(P.y<=gy&&WALK.vy<=0){const drop=(WALK.airTop||gy)-gy;P.y=gy;WALK.air=false;WALK.land=0.26;
         if(WALK.fall){WALK.fall=false;walkMove(P,0,0,P.y);if(drop>1.5)walkHardLanding();else tone(110,0.07,0.05,'sine');}else tone(110,0.07,0.05,'sine');}}
@@ -5027,6 +5091,7 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
   const vis=riders.filter(r=>r.model.g.visible&&!r.partner);
   vis.forEach((R,i)=>{if(!R.menuInit||idleT<dt*1.5){R.s=SF+20-i*2.15;R.w=0.55;R.crashed=false;R.crash=null;R.menuInit=true;}R.v=11.8;R.s+=R.v*dt;R.dw=0;R.crank+=R.v/7.6*2*PI*dt;});
   riders.forEach(R=>{if(R.partner)R.model.g.visible=false;});
+  if(phase==='walk')trackDodge(vis,dt);
   placeModels(dt);
   const lead=vis[Math.min(3,vis.length-1)],shot=Math.floor(idleT/7)%3;
   const tl=(idleT%7)/7;
@@ -5035,6 +5100,18 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
   else{surf(lead.s-6+tl*4,TW+0.3,_mt);_mt.y+=2.2;surf(lead.s+1,0.6,_ml);_ml.y+=0.7;}
   const cut=shot!==menuShot;menuShot=shot;const k=cut?1:1-Math.exp(-dt*4);
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
+// people on the track (you and the others online): the riders swing round them, above or below, and never hit them
+const DODGE=[];
+let DODGE_N=0;
+function trackWalkers(){DODGE_N=0;const add=(x,z)=>{const T=trackST(x,z);if(T.w>-BAND-0.6&&T.w<TW){const e=DODGE[DODGE_N]||(DODGE[DODGE_N]=[0,0]);e[0]=T.s;e[1]=T.w;DODGE_N++;}};
+  if(WALK.r&&!WALK.onSt&&WALK.climb==null)add(WALK.pos.x,WALK.pos.z);
+  if(WALK.mp)for(const id in MP.figs){const F=MP.figs[id];if(!F.ride&&!F.resc)add(F.x,F.z);}
+  return DODGE;}
+function trackDodge(vis,dt){const D=trackWalkers();
+  for(const R of vis){let tw=0.55,urgent=false;
+    for(let pass=0;pass<2;pass++)for(let di=0;di<DODGE_N;di++){const s=D[di][0],w=D[di][1];let g=((s-R.s)%L0+L0)%L0;if(g>L0/2)g-=L0;if(g<-1.4||g>34)continue;   // from 34 m ahead until he is past you
+      if(Math.abs(tw-w)<1.25)tw=w>1.75?w-1.25:w+1.25;if(pass===0&&g<5&&Math.abs(R.w-w)<0.9)urgent=true;}
+    tw=clamp(tw,0.15,TW-0.6);const rate=urgent?6:2.2,dw=clamp(tw-R.w,-rate*dt,rate*dt);R.w+=dw;R.dw=dt>0?dw/dt:0;}}
 // ---------- loop ----------
 resetRiders();clearHolders();refSit();
 let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__coach=()=>({c:COACH,r:RCOACH,cam:camera,ren:renderer,phase,show:showCoach,say:bossSay});window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
