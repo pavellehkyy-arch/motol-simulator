@@ -26,6 +26,7 @@
     coach_name_long: 'Jméno trenéra je moc dlouhé, max. 30 znaků.',
     coach_look_short: 'Popiš, jak má trenér vypadat.',
     coach_look_long: 'Popis je moc dlouhý, max. 600 znaků.',
+    coach_behavior_long: 'Popis chování je moc dlouhý, max. 300 znaků.',
     coach_limit: 'Dnes jsi už poslal 5 žádostí. Další můžeš zítra.',
     not_authenticated: 'Nejdřív se přihlas.',
     fail: 'Něco se nepovedlo. Zkus to znovu.'
@@ -276,22 +277,23 @@
   /* vlastní trenér: hráč pošle jméno a popis, autor hry podle něj vyplní profiles.coach (vidí ho jen tenhle účet) */
   function coachOut() { try { if (typeof G.applyCoach === 'function') G.applyCoach(P && P.coach && typeof P.coach === 'object' ? P.coach : null); } catch (e) {} }
   O.coach = function () { return P && P.coach && typeof P.coach === 'object' ? P.coach : null; };
-  O.sendCoach = function (name, look) {
-    var n = String(name || '').trim(), l = String(look || '').trim();
+  O.sendCoach = function (name, look, behavior) {
+    var n = String(name || '').trim(), l = String(look || '').trim(), b = String(behavior || '').trim();
     if (n.length < 2) return Promise.resolve({ ok: false, err: 'coach_name_short' });
     if (n.length > 30) return Promise.resolve({ ok: false, err: 'coach_name_long' });
     if (l.length < 5) return Promise.resolve({ ok: false, err: 'coach_look_short' });
     if (l.length > 600) return Promise.resolve({ ok: false, err: 'coach_look_long' });
-    return rpc('submit_coach', { p_name: n, p_look: l }, true).then(function (r) {
+    if (b.length > 300) return Promise.resolve({ ok: false, err: 'coach_behavior_long' });
+    return rpc('submit_coach', { p_name: n, p_look: l, p_behavior: b }, true).then(function (r) {
       if (r.ok) return { ok: true };
       return { ok: false, err: r.status === 401 ? 'not_authenticated' : errCode(r) };
     });
   };
-  /* poslední žádost o trenéra ({name, look, status}) nebo null */
+  /* poslední žádost o trenéra ({name, look, behavior, status}) nebo null */
   O.myCoachRequest = function () {
     return token().then(function (t) {
       if (!t) return { ok: false, err: 'not_authenticated' };
-      return getTable('coach_requests?select=name,look,status&order=created_at.desc&limit=1', t).then(function (r) {
+      return getTable('coach_requests?select=name,look,behavior,status&order=created_at.desc&limit=1', t).then(function (r) {
         return r.ok && Array.isArray(r.data) ? { ok: true, req: r.data[0] || null } : { ok: false, err: errCode(r) };
       });
     });
@@ -437,7 +439,7 @@
       box.appendChild(h('h2', { text: '🔒 Jak nakládáme s údaji' }));
       sec('Kdo:', 'Hru Motol Simulator provozuje její autor. Kontakt: ' + CONTACT + '.');
       sec('Bez účtu:', 'nic neodesíláme. Postup, penízky a vybavení se ukládají jen v tvém prohlížeči.');
-      sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno a popis vzhledu).');
+      sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno, popis vzhledu a chování).');
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
       sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
@@ -591,20 +593,24 @@
         return;
       }
       var st = h('div', { class: 'os', text: c ? 'Teď máš trenéra: ' + (c.name || 'vlastní') + '.' : '' });
-      box.appendChild(ask('Jak se má tvůj trenér jmenovat a jak má vypadat? Popiš co nejvíc: postava, vlasy, vousy, oblečení a barvy, čepice, brýle…'));
+      box.appendChild(ask('Jak se má tvůj trenér jmenovat, jak má vypadat a jak se má chovat? Popiš co nejvíc: postava, vlasy, vousy, oblečení a barvy, čepice, brýle… a jestli bývá naštvaný, sprostý, hodný, klidný.'));
       box.appendChild(st);
       var nm = h('input', { class: 'oi', maxlength: '30', placeholder: 'Jméno trenéra' });
       nm.value = ctx.cName || '';
       var ta = h('textarea', { class: 'oi', maxlength: '600', placeholder: 'Třeba: šedivý, plešatý, knír, červené propocené triko, kšandy, modré džíny…' });
       ta.value = ctx.cLook || '';
       var cnt = h('div', { class: 'ocn', text: ta.value.length + ' / 600' });
+      var bh = h('textarea', { class: 'oi', maxlength: '300', placeholder: 'Chování: třeba věčně naštvaný a sprostý, nebo hodný a povzbuzuje. Klidně i jeho oblíbené hlášky.' });
+      bh.value = ctx.cBeh || '';
+      var cnt2 = h('div', { class: 'ocn', text: bh.value.length + ' / 300' });
+      bh.addEventListener('input', function () { ctx.cBeh = bh.value; cnt2.textContent = bh.value.length + ' / 300'; });
       nm.addEventListener('input', function () { ctx.cName = nm.value; });
       ta.addEventListener('input', function () { ctx.cLook = ta.value; cnt.textContent = ta.value.length + ' / 600'; });
       function go() {
-        if (ctx.busy) return; ctx.cName = nm.value; ctx.cLook = ta.value; ctx.busy = true; ctx.msg = 'Posílám…'; render();
-        O.sendCoach(ctx.cName, ctx.cLook).then(function (r) {
+        if (ctx.busy) return; ctx.cName = nm.value; ctx.cLook = ta.value; ctx.cBeh = bh.value; ctx.busy = true; ctx.msg = 'Posílám…'; render();
+        O.sendCoach(ctx.cName, ctx.cLook, ctx.cBeh).then(function (r) {
           ctx.busy = false;
-          if (r.ok) { ctx.cName = ctx.cLook = ''; ctx.cSent = true; ctx.msg = ''; render(); }
+          if (r.ok) { ctx.cName = ctx.cLook = ctx.cBeh = ''; ctx.cSent = true; ctx.msg = ''; render(); }
           else if (r.err === 'not_authenticated') { cur = 'coachLogin'; ctx.msg = ''; render(); }
           else setMsg(msgFor(r.err));
         });
@@ -612,11 +618,13 @@
       box.appendChild(nm);
       box.appendChild(ta);
       box.appendChild(cnt);
+      box.appendChild(bh);
+      box.appendChild(cnt2);
       box.appendChild(h('div', { class: 'om', text: ctx.msg }));
       box.appendChild(h('button', { class: 'ob', text: 'Odeslat', on: { click: go } }));
       box.appendChild(closeBtn());
       box.appendChild(h('div', { class: 'os', text: 'Trenéra vyrábíme ručně, chvíli to potrvá. Uvidíš ho jen ty. Nová žádost nahradí tu, co ještě čeká.' }));
-      if (!ctx.cLook && !ctx.cName) O.myCoachRequest().then(function (r) {
+      if (!ctx.cLook && !ctx.cName && !ctx.cBeh) O.myCoachRequest().then(function (r) {
         if (cur !== 'coach' || ctx.cSent || !r.ok || !r.req || r.req.status !== 'new') return;
         st.textContent = '⏳ Čeká na výrobu: ' + r.req.name + '. Novou žádostí ji nahradíš.';
       });

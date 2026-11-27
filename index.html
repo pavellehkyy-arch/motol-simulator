@@ -276,7 +276,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.19</div>
+    <div class="sub">v1.20</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -2890,6 +2890,24 @@ function coachJacketTex(){const c=mkCanvas(256,128),g=c.getContext('2d');g.fillS
 var COACH_CFG=null;   // var: buildCoach runs before this line
 function coachCol(v,d){if(typeof v==='number')return v;if(typeof v==='string'&&/^#?[0-9a-f]{6}$/i.test(v))return parseInt(v.replace('#',''),16);return d;}
 function coachName(){const n=COACH_CFG&&typeof COACH_CFG.name==='string'?COACH_CFG.name.trim().slice(0,30):'';return n||'Starej šéf';}
+/* personality (profiles.coach.mood): grumpy = the classic Starej šéf, nice, angry, rude, calm; catch = his own catchphrases */
+function coachMood(){const m=COACH_CFG&&COACH_CFG.mood;return ['nice','angry','rude','calm'].includes(m)?m:'grumpy';}
+function coachCatch(){return COACH_CFG&&Array.isArray(COACH_CFG.catch)?COACH_CFG.catch.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim().slice(0,120)).slice(0,8):[];}
+const escH=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';'),lcFirst=t=>t.charAt(0).toLowerCase()+t.slice(1),COACH_HARSH=/zmiz z očí|vyhodím|Zítra v sedm|Zítra trénink|lemro|zblázním|Přemejšlej|Víc kilometrů/;
+function voiceLine(t,angry){if(!t)return t;const m=coachMood();   // one radio line
+  if(m==='calm')return t.replace(/\?!/g,'?').replace(/!+/g,'.');
+  if(m==='nice')return angry?pick(['Klid, ','V pohodě, ','Zkus to: '])+lcFirst(t):t;
+  if(m==='rude')return angry||Math.random()<0.3?pick(['Do prdele, ','Ty vole, ','Kurňa, ','Do háje, ','Sakra, '])+lcFirst(t):t;
+  if(m==='angry')return angry||Math.random()<0.4?pick(['Krucinál! ','Hrom aby do toho! ','Ježišmarja! ','Prokristapána! '])+t:t;
+  return t;}
+function coachVoice(v,raced){const m=coachMood(),ang=v.mood==='angry';let L=v.lines.filter(Boolean).slice(),soft=false;   // the whole verdict after a race
+  if(m==='nice'){if(ang){L=L.filter(l=>!COACH_HARSH.test(l));L.unshift(pick(['Nevadí, to se stává.','Hlavu vzhůru, to přijde.','To nic, každej někdy zakopne.']));L.push(pick(['Příště to dáš, věřím ti!','Odpočiň si a zkusíme to znovu.']));soft=true;}
+    else if(raced)L.push(pick(['Jsem na tebe pyšnej!','Super, jen tak dál!']));}
+  else if(m==='rude'){if(L.length)L[0]=pick(['Ty vole, ','Do prdele, ','Kurňa, '])+lcFirst(L[0]);if(raced)L.push(ang?pick(['Do prdele práce, takhle ne!','Ty vole, to byla hrůza.']):pick(['Ty vole, to bylo dobrý!','Kurňa, to sedlo!']));}
+  else if(m==='angry'){if(ang){if(L.length)L[0]=pick(['Krucinál! ','Hrom aby do toho! '])+L[0];}else if(raced)L.push(pick(['Ale nemysli si, že to bylo dokonalý!','Stejně to mohlo bejt rychlejší!']));}
+  else if(m==='calm')L=L.map(l=>l.replace(/\?!/g,'?').replace(/!+/g,'.'));
+  const c=coachCatch();if(c.length)L.push(escH(pick(c)));   // the lines go to innerHTML: the catchphrase came from a player
+  return {mood:v.mood,lines:L,soft};}
 function makeCoach(){
   // built like the other people (measured body, clothes coloured by area): yellow-black coach jacket, belly, moustache, cap-less short hair
   const C=COACH_CFG;if(SCAN_BODIES){const top=C&&coachCol(C.top,0xffffff),r=makeHuman(C?{skin:coachCol(C.skin,0xd9a77f),top,sleeveMat:mat(coachCol(C.sleeve,top)),pants:coachCol(C.pants,0x1c1c22),shoes:coachCol(C.shoes,0x111111),
@@ -3002,7 +3020,7 @@ function smash(){tone(1900,0.12,0.05,'triangle');tone(2600,0.1,0.04,'triangle',0
 function standTxt(){const R=player;if(mode==='kilo')return '⏱ '+fmt(raceTime);if(mode==='points'&&PR){const r=ptsStandings().indexOf(R)+1;return R.pts+' b · '+r+'. místo';}if(mode==='keirin'&&KR&&!KR.free)return 'Za dernou · '+rankOf(R)+'. v řadě';if(mode==='madison'&&MT){const T=MT.find(t=>t.me),r=madStandings().indexOf(T)+1,ld=madStandings()[0];return T.pts+' b · '+r+'. místo'+(r>1?' (vede '+TEAMS[ld.key].name+' '+ld.pts+' b)':'');}
   if(mode==='elim'&&EL){const n=EL.all.filter(r=>!r.out).length;const k=n-elimRank(R);return 'Jsi '+k+'. z '+n+(k===n?' – POSLEDNÍ!':k===n-1?' – předposlední!':'');}
   return 'Jsi '+rankOf(R)+'. z '+riders.filter(o=>o.model.g.visible&&!o.crashed).length;}
-function bossSay(txt,angry,st,det){const b=$('boss');b.textContent='';if(st){const d=document.createElement('div');d.textContent=st;d.style.cssText='font-size:1.15em;color:#c1121f;margin-bottom:2px';b.appendChild(d);}if(txt)b.appendChild(document.createTextNode(txt));
+function bossSay(txt,angry,st,det){txt=voiceLine(txt,angry);if(coachMood()==='nice')angry=false;else if(txt&&!angry&&Math.random()<0.12){const c=coachCatch();if(c.length)txt+=' '+pick(c);}const b=$('boss');b.textContent='';if(st){const d=document.createElement('div');d.textContent=st;d.style.cssText='font-size:1.15em;color:#c1121f;margin-bottom:2px';b.appendChild(d);}if(txt)b.appendChild(document.createTextNode(txt));
   if(det){const d=document.createElement('div');d.textContent=det;d.style.cssText='font-size:.8em;font-weight:700;opacity:.75;margin-top:3px;white-space:nowrap';b.appendChild(d);}bossMsgT=3.6;if(RCOACH&&angry){RCOACH.mood='angry';RCOACH.t=0;}}
 const WIND=0.45,FLY=2.4;   // wind-up in the boss's hand, then a long high lob that lands well ahead of the target
 function throwBeer(){const cands=riders.filter(r=>{if(r.crashed||r.finished||r.resting||!r.model.g.visible)return false;const g=gapTo(r,{s:RCOACH.s});return g>20&&g<70;});if(!cands.length)return false;
@@ -3011,7 +3029,7 @@ function throwBeer(){const cands=riders.filter(r=>{if(r.crashed||r.finished||r.r
   const shadow=new THREE.Mesh(new THREE.CircleGeometry(0.3,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0,depthWrite:false}));scene.add(shadow);
   const warn=new THREE.Group();const wr=new THREE.Mesh(new THREE.RingGeometry(0.55,0.72,32),warnMat.clone()),wd=new THREE.Mesh(new THREE.CircleGeometry(0.55,32),new THREE.MeshBasicMaterial({color:0xff3b30,transparent:true,opacity:0.22,depthWrite:false}));warn.add(wr,wd);warn.material=wr.material;scene.add(warn);
   cans.push({s:ls,w:lw,vw:0,t:-(WIND+FLY),from:new THREE.Vector3(),mesh:m,shadow,warn,foam:null,tgt,dodged:false,spin:7+Math.random()*4,trailT:0});
-  RCOACH.mood='throw';RCOACH.t=0;$('boss').textContent=tgt===player?pick(['Na, chlastej!','Chyť, ty lemro!','Tumáš!']):pick(['Na, '+tgt.name+'!','Tumáš, '+tgt.name+'!']);bossMsgT=2.4;
+  RCOACH.mood='throw';RCOACH.t=0;$('boss').textContent=tgt===player?pick(({nice:['Na, osvěž se!','Tady, napij se!'],rude:['Na, chlastej, ty vole!','Chyť to, kurňa!'],calm:['Tady máš pití.','Chyť.'],angry:['Chlastej, krucinál!','Chyť, ty lemro!']})[coachMood()]||['Na, chlastej!','Chyť, ty lemro!','Tumáš!']):pick(['Na, '+tgt.name+'!','Tumáš, '+tgt.name+'!']);bossMsgT=2.4;
   if(tgt===player&&msgT<=0)showMsg('<small>🍺 Šéf hází po tobě pivo – uhni z červenýho kruhu!</small>',1.8);return true;}
 const _cv=new THREE.Vector3(),_cn=new THREE.Vector3(),_ch=new THREE.Vector3();
 function updateCans(dt){updateDrops(dt);for(let i=cans.length-1;i>=0;i--){const c=cans[i];c.t+=dt;const f=frameAt(c.s);const b=c.w>=0?f.b:8*deg;surf(c.s,c.w,_cv);
@@ -3955,11 +3973,11 @@ function coachVerdict(){
   if(S.band>2)m.push('A po modrým pásu se nejezdí, to je tvoje chyba číslo jedna!');
   if(!m.length)m.push('Prostě jsi byl pomalej. Víc kilometrů, míň mobilu!');
   return {mood:'angry',lines:b.concat(m.slice(0,3),[pick(['Zítra v sedm na dráze, a ne abys přišel pozdě!','Teď mi zmiz z očí a jdi si to rozjet!','Přemejšlej o tom!'])])};}
-function showCoach(){const v=phase==='walk'?(WALK_V||{mood:'happy',lines:['Nazdar! Nejdřív něco odjeď, pak ti řeknu, co si o tom myslím.','Start je na chodníčku u cílové čáry – tam si vybereš závod.']}):coachVerdict();COACH.mood=v.mood;COACH.t=0;
+function showCoach(){const v=coachVoice(phase==='walk'?(WALK_V||{mood:'happy',lines:['Nazdar! Nejdřív něco odjeď, pak ti řeknu, co si o tom myslím.','Start je na chodníčku u cílové čáry – tam si vybereš závod.']}):coachVerdict(),phase!=='walk'||!!WALK_V);COACH.mood=v.soft?'idle':v.mood;COACH.t=0;
   $('coachText').innerHTML=v.lines.filter(Boolean).map(l=>'<p style="margin:0 0 7px">'+l+'</p>').join('');
-  $('coachFace').textContent=v.mood==='happy'?'😄':'😡';const md=$('coachMood');md.textContent=v.mood==='happy'?'SPOKOJENÝ':'NAŠTVANÝ';md.style.background=v.mood==='happy'?'#c6ff1a':'#ff5a5f';md.style.color=v.mood==='happy'?'#111':'#fff';
+  const hp=v.mood==='happy';$('coachFace').textContent=hp?'😄':v.soft?'😕':'😡';const md=$('coachMood');md.textContent=hp?'SPOKOJENÝ':v.soft?'ZKLAMANÝ':'NAŠTVANÝ';md.style.background=hp?'#c6ff1a':v.soft?'#ffd166':'#ff5a5f';md.style.color=hp||v.soft?'#111':'#fff';
   $('coachBox').style.display='block';$('ceremony').style.display='none';
-  if(v.mood==='angry'){for(let i=0;i<4;i++)tone(110+Math.random()*40,0.18,0.12,'sawtooth',i*0.16);}else{tone(659,0.15,0.1,'triangle');tone(880,0.25,0.1,'triangle',0.15);}
+  if(v.mood==='angry'&&!v.soft){for(let i=0;i<4;i++)tone(110+Math.random()*40,0.18,0.12,'sawtooth',i*0.16);}else{tone(659,0.15,0.1,'triangle');tone(880,0.25,0.1,'triangle',0.15);}
   try{if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(v.lines.filter(Boolean).join(' '));u.lang='cs-CZ';u.rate=v.mood==='angry'?1.15:1.0;u.pitch=v.mood==='angry'?0.7:1.0;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}
 $('coachCustom').onclick=()=>{$('coachClose').onclick();if(window.Online&&Online.customCoach){if(phase==='walk'){WALK.k={};WALK.jx=WALK.jy=0;WALK.joy=null;joyHome();}Online.customCoach();}else alert('Vlastního trenéra teď nejde objednat – zkus to, až půjde internet.');};
 $('coachClose').onclick=()=>{$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}if(phase==='ceremony')$('ceremony').style.display='block';};
@@ -4911,7 +4929,7 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
 // ---------- loop ----------
 resetRiders();clearHolders();refSit();
-let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__coach=()=>({c:COACH,r:RCOACH,cam:camera,ren:renderer,phase});window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
+let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__coach=()=>({c:COACH,r:RCOACH,cam:camera,ren:renderer,phase,show:showCoach,say:bossSay});window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
 let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;if(hasalSrc)hasalMix();
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
