@@ -118,6 +118,15 @@
   O.loggedIn = function () { return !!S; };
   O.email = function () { return S ? S.email : ''; };
   O.profile = function () { return P; };
+  /* pro multi.js (plocha online): platný token, id účtu a veřejná jména hráčů */
+  O.accessToken = function () { return token(); };
+  O.uid = function () {
+    try { var b = S.access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(decodeURIComponent(escape(G.atob(b)))).sub || null; } catch (e) { return null; }
+  };
+  O.names = function (ids) {
+    return rpc('get_public_names', { p_ids: ids }, true).then(function (r) { return r.ok && Array.isArray(r.data) ? r.data : []; });
+  };
+  O.config = function () { return { url: CFG.url, key: CFG.key }; };
 
   O.sendCode = function (email) {
     email = String(email || '').trim();
@@ -416,7 +425,19 @@
     var cur = 'login', ctx = { email: '', msg: '', busy: false, boardMode: 'kilometr', confirmOut: false, after: '', fb: '', fbSent: false, back: '' };
     function open(v) { cur = v; ctx.msg = ''; ctx.confirmOut = false; if (v !== 'login' && v !== 'code' && v !== 'nick' && v !== 'feedback' && v !== 'coach') ctx.after = ''; ov.style.display = 'flex'; render(); }
     function close() { ov.style.display = 'none'; ctx.after = ''; }
-    function afterLogin(def) { var a = ctx.after; ctx.after = ''; open(a || def); }
+    function afterLogin(def) { var a = ctx.after; ctx.after = ''; if (a === 'mp') mpCheck(); else open(a || def); }
+    /* plocha online: jen přihlášený hráč s přezdívkou (ne zamítnutou) */
+    function mpCheck() {
+      if (!S) { open('mpLogin'); return; }
+      function go() {
+        if (!S) { open('mpLogin'); return; }
+        if (!P) { ctx.mpGo = null; open('mpErr'); return; }
+        if (!P.nickname || P.nickname_status === 'rejected') { open('nick'); ctx.after = 'mp'; render(); return; }
+        var f = ctx.mpGo; ctx.mpGo = null; close(); if (f) f();
+      }
+      if (P) go(); else O.sync().then(go, go);
+    }
+    O.multi = function (start) { ctx.mpGo = start; mpCheck(); };
     function setMsg(m) { ctx.msg = m; render(); }
 
     function render() {
@@ -430,6 +451,8 @@
       else if (cur === 'coach') viewCoach();
       else if (cur === 'coachLogin') viewCoachLogin();
       else if (cur === 'privacy') viewPrivacy();
+      else if (cur === 'mpLogin') viewMpLogin();
+      else if (cur === 'mpErr') viewMpErr();
       else viewBoard();
     }
     function privacyLink() { return h('button', { class: 'olk', text: 'Jak nakládáme s údaji', on: { click: function () { ctx.back = cur; cur = 'privacy'; ctx.msg = ''; render(); } } }); }
@@ -442,6 +465,7 @@
       sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno, popis vzhledu a chování).');
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
       sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
+      sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb a přezdívku (jen schválenou), dokud tam jsi. Nikam se to neukládá.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
       sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');
       sec('Jak dlouho:', 'dokud máš účet. Návrhy ze schránky a vyřízené žádosti o trenéra se mažou po roce.');
@@ -502,11 +526,12 @@
       }
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
       box.appendChild(h('h2', { text: '✏️ Přezdívka' }));
-      box.appendChild(h('p', { text: 'Pod touhle přezdívkou se ukážeš v žebříčku. Nejdřív ji schválíme, do té doby hraješ a vyděláváš normálně.' }));
+      if (ctx.after === 'mp') box.appendChild(h('p', { class: 'om', text: P && P.nickname_status === 'rejected' ? 'Tvoje přezdívka byla zamítnutá. Na plochu online si musíš zvolit jinou.' : 'Na plochu online si musíš zvolit přezdívku.' }));
+      box.appendChild(h('p', { text: ctx.after === 'mp' ? 'Ostatní hráči ji uvidí nad tvou hlavou, až ji schválíme. Do té doby budeš na ploše jako „Hráč“.' : 'Pod touhle přezdívkou se ukážeš v žebříčku. Nejdřív ji schválíme, do té doby hraješ a vyděláváš normálně.' }));
       box.appendChild(inp);
       box.appendChild(h('div', { class: 'om', text: ctx.msg }));
       box.appendChild(h('button', { class: 'ob', text: 'Uložit', on: { click: go } }));
-      box.appendChild(ctx.after ? h('button', { class: 'ob alt', text: 'Později', on: { click: function () { afterLogin('account'); } } }) : closeBtn('Později'));
+      box.appendChild(ctx.after === 'mp' ? closeBtn('Zpět') : ctx.after ? h('button', { class: 'ob alt', text: 'Později', on: { click: function () { afterLogin('account'); } } }) : closeBtn('Později'));
       setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
     }
     function statusText() {
@@ -575,6 +600,17 @@
     O.feedback = function () { ctx.fbSent = false; open(S ? 'feedback' : 'fbLogin'); };
 
     /* vlastní trenér: žádost se jménem a popisem vzhledu */
+    function viewMpLogin() {
+      box.appendChild(h('h2', { text: '👥 Plocha online' }));
+      box.appendChild(h('p', { text: 'Na plochu online můžou jen přihlášení hráči. Přihlas se a potkáš tam ostatní.' }));
+      box.appendChild(h('button', { class: 'ob', text: 'Přihlásit se', on: { click: function () { ctx.after = 'mp'; cur = 'login'; ctx.msg = ''; render(); } } }));
+      box.appendChild(closeBtn('Zpět'));
+    }
+    function viewMpErr() {
+      box.appendChild(h('h2', { text: '👥 Plocha online' }));
+      box.appendChild(h('p', { text: 'Nejde se spojit se serverem. Zkontroluj internet a zkus to znovu.' }));
+      box.appendChild(closeBtn());
+    }
     function viewCoachLogin() {
       box.appendChild(h('h2', { text: '🎨 Vlastní trenér' }));
       box.appendChild(ask('Chceš místo mě jiného trenéra? Řekni mi, jak se má jmenovat a jak má vypadat. Nejdřív se ale přihlas.'));

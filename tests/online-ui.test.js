@@ -149,3 +149,82 @@ test('vlastní trenér: nepřihlášený dostane výzvu, po kliknutí na Přihl�
   assert.strictEqual(O._ui.get().cur, 'login');
   assert.strictEqual(O._ui.get().ctx.after, 'coach');
 });
+
+/* ---------- plocha online: jen přihlášený s přezdívkou ---------- */
+function login(O, profile) {
+  O._fetch = async (url) => {
+    const path = url.replace(/^https:\/\/[^/]+/, '').split('?')[0];
+    const d = path === '/auth/v1/verify' ? { access_token: 'A1', refresh_token: 'R1', expires_in: 3600, user: { id: 'u1', email: 'a@b.cz' } }
+      : path.startsWith('/rest/v1/profiles') ? [profile]
+      : path.startsWith('/rest/v1/purchases') ? [] : path === '/rest/v1/rpc/import_local_progress' ? { imported: true, money: 0 } : {};
+    return { ok: true, status: 200, text: async () => JSON.stringify(d) };
+  };
+  return O.verify('a@b.cz', '123456');
+}
+const tick = () => new Promise((r) => setTimeout(r, 30));
+
+test('plocha online: nepřihlášený dostane výzvu k přihlášení a hra se nespustí', () => {
+  const { O, box } = setup();
+  let started = 0;
+  O.multi(() => { started++; });
+  assert.strictEqual(O._ui.get().cur, 'mpLogin');
+  assert.match(texts(box), /jen přihlášení hráči/);
+  btn(box, 'Přihlásit se').click();
+  assert.strictEqual(O._ui.get().cur, 'login');
+  assert.strictEqual(O._ui.get().ctx.after, 'mp');
+  assert.strictEqual(started, 0);
+});
+
+test('plocha online: přihlášený s přezdívkou rovnou vstoupí', async () => {
+  const { O, ov } = setup();
+  await login(O, { nickname: 'Pepa', nickname_status: 'pending', money: 0, imported: true });
+  let started = 0;
+  O.multi(() => { started++; });
+  await tick();
+  assert.strictEqual(started, 1);
+  assert.strictEqual(ov.style.display, 'none');
+});
+
+test('plocha online: bez přezdívky musí zvolit přezdívku, pak vstoupí', async () => {
+  const { O, box } = setup();
+  await login(O, { nickname: null, nickname_status: null, money: 0, imported: true });
+  let started = 0;
+  O.multi(() => { started++; });
+  await tick();
+  assert.strictEqual(O._ui.get().cur, 'nick');
+  assert.match(texts(box), /musíš zvolit přezdívku/);
+  assert.strictEqual(started, 0);
+  box.find((e) => e.tag === 'input')[0].value = 'Pepa';
+  btn(box, 'Uložit').click();
+  await tick();
+  assert.strictEqual(started, 1);
+});
+
+test('plocha online: Zpět v okně přezdívky hru nespustí, zamítnutá přezdívka nestačí', async () => {
+  const { O, box } = setup();
+  await login(O, { nickname: 'Fuj', nickname_status: 'rejected', money: 0, imported: true });
+  let started = 0;
+  O.multi(() => { started++; });
+  await tick();
+  assert.match(texts(box), /zamítnutá/);
+  btn(box, 'Zpět').click();
+  await tick();
+  assert.strictEqual(started, 0);
+});
+
+test('plocha online: po přihlášení kódem bez přezdívky přijde okno přezdívky a pak hra', async () => {
+  const { O, box } = setup();
+  let started = 0;
+  O.multi(() => { started++; });
+  btn(box, 'Přihlásit se').click();
+  await login(O, { nickname: null, nickname_status: null, money: 0, imported: true });
+  O.verify = async () => ({ ok: true });   // už přihlášený, okno kódu jen pokračuje
+  O._ui.open('code');
+  btn(box, 'Přihlásit').click();
+  await tick();
+  assert.strictEqual(O._ui.get().cur, 'nick');
+  box.find((e) => e.tag === 'input')[0].value = 'Pepa';
+  btn(box, 'Uložit').click();
+  await tick();
+  assert.strictEqual(started, 1);
+});
