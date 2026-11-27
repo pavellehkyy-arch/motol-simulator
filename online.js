@@ -21,7 +21,7 @@
     nickname_taken: 'Tahle přezdívka je už obsazená.',
     feedback_short: 'Napiš aspoň pár slov.',
     feedback_long: 'Zpráva je moc dlouhá, max. 1000 znaků.',
-    feedback_limit: 'Dnes jsi poslal už 3 návrhy. Další můžeš zítra.',
+    feedback_limit: 'Dnes jsi poslal už 20 návrhů. Další můžeš zítra.',
     coach_name_short: 'Napiš jméno trenéra (aspoň 2 znaky).',
     coach_name_long: 'Jméno trenéra je moc dlouhé, max. 30 znaků.',
     coach_look_short: 'Popiš, jak má trenér vypadat.',
