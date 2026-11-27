@@ -7,7 +7,7 @@
   var G = typeof window !== 'undefined' ? window : globalThis;
   var ROOM_MAX = 8, ROOMS = 9, HB = 25000, TOKEN_EVERY = 60000, PEER_TTL = 12000;
 
-  var M = { peers: {}, status: 'off', room: 0 };
+  var M = { peers: {}, status: 'off', room: 0, stats: { tx: 0, rx: 0, bad: 0 } };
   G.Multi = M;
   var ws = null, want = false, ref = 0, joinRef = null, topic = '', uid = null, me = null, room = 1, tracked = false;
   var hbT = null, tokT = null, retryT = null, retries = 0, present = {}, names = {}, asked = {}, gen = 0, hbRef = null, lastTok = '';
@@ -37,7 +37,7 @@
   var lastSent = 0;
   M.send = function (st) {
     if (M.status !== 'on' || !tracked) return false;
-    st.u = me; lastSent = nowMs();
+    st.u = me; lastSent = nowMs(); M.stats.tx++;
     return msg('broadcast', { type: 'broadcast', event: 'p', payload: st });
   };
 
@@ -121,11 +121,11 @@
     }
     if (m.event === 'broadcast' && p.event === 'p') {
       var s = p.payload;
-      if (!s || typeof s.u !== 'string' || s.u === me || !present[s.u]) return;
+      if (!s || typeof s.u !== 'string' || s.u === me || !present[s.u]) { M.stats.bad++; return; }
       var x = +s.x, y = +s.y, z = +s.z, h = +s.h;
       if (!isFinite(x) || !isFinite(y) || !isFinite(z) || !isFinite(h)) return;
       var P = M.peers[s.u] || (M.peers[s.u] = { id: s.u });
-      P.x = x; P.y = y; P.z = z; P.h = h; P.v = +s.v || 0; P.st = s.st | 0; P.c = s.c | 0; P.t = nowMs();
+      M.stats.rx++; P.x = x; P.y = y; P.z = z; P.h = h; P.v = +s.v || 0; P.st = s.st | 0; P.c = s.c | 0; P.t = nowMs();
     }
   }
   /* jména: jen schválené přezdívky ze serveru (ostatní jsou „Hráč“) */
