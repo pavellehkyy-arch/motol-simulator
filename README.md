@@ -4,7 +4,7 @@
 
 **Hrát:** https://motolsimulator.com/
 
-- Scratch na 13 kol (2 km) proti 8 soupeřům z týmů Prostějov, Praha, Praha 2 a Brno – všichni jezdci jsou zhruba stejně silní, rozhoduje taktika
+- Scratch na 13 kol (2 km) proti 9 soupeřům z týmů Prostějov, Praha, Praha 2, Brno a německé reprezentace – všichni jezdci jsou zhruba stejně silní, rozhoduje taktika
 - Start bodovacích závodů podle UCI: polovina jezdců u mantinelu, polovina ve sprinterském pruhu s držiteli, neutrální kolo a letmý start výstřelem
 - Na špici v protivětru se energie čerpá rychleji (čím rychlejší tempo, tím víc), jezdci se proto střídají
 - Menu rozdělené na **sprinterské** (sprint, keirin, kilometr, team sprint) a **vytrvalostní** disciplíny (scratch, bodovačka, madison, vylučovačka, omnium)
