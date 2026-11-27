@@ -266,8 +266,8 @@
   };
 
   O.leaderboard = function (mode) {
-    return rpc('get_leaderboard', { p_mode: mode, p_limit: 30 }, false).then(function (r) {
-      return r.ok && Array.isArray(r.data) ? { ok: true, rows: r.data } : { ok: false, err: errCode(r) };
+    return rpc('get_leaderboard', { p_mode: mode, p_limit: 10 }, false).then(function (r) {
+      return r.ok && Array.isArray(r.data) ? { ok: true, rows: r.data.slice(0, 10) } : { ok: false, err: errCode(r) };
     });
   };
 
