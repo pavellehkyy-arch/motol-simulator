@@ -272,7 +272,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI{display:none!important}
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.6</div>
+    <div class="sub">v1.7</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -1086,7 +1086,7 @@ function riderGeos(){const RG=RDG;if(RG.ok)return RG;
   RG.thS=loftGeo('thS',TH,{t1:0.74});RG.thK=loftGeo('thK',TH,{t0:0.74});
   // shin: knee -> ankle, calf belly at the back
   const SN=[[-0.1,0,0,0],[-0.08,0.035,0.035,0.035],[-0.04,0.048,0.05,0.045],[0.03,0.047,0.044,0.052],[0.15,0.047,0.038,0.066],[0.3,0.049,0.036,0.078],[0.45,0.042,0.032,0.058],[0.65,0.032,0.027,0.036],[0.85,0.026,0.024,0.027],[1,0.03,0.03,0.031],[1.06,0.026,0.026,0.026],[1.09,0,0,0]];
-  RG.shn=loftGeo('shn',SN,{t1:0.74});RG.sock=loftGeo('sock',SN,{t0:0.72});
+  RG.shn=loftGeo('shn',SN,{t1:0.74});RG.sock=loftGeo('sock',SN,{t0:0.72});RG.aeroCalf=loftGeo('aeroCalf',SN,{t0:0.4});   // aero overshoe: the cover runs right up the calf
   // arms
   const UA=[[-0.12,0,0,0],[-0.09,0.034,0.034,0.034],[-0.03,0.052,0.052,0.052],[0.08,0.052,0.05,0.052],[0.24,0.047,0.045,0.043],[0.42,0.042,0.041,0.039],[0.62,0.037,0.036,0.035],[0.82,0.037,0.035,0.036],[1.02,0.032,0.03,0.032],[1.12,0,0,0]];
   RG.uaS=loftGeo('uaS',UA,{t1:0.55,seg:LOWEND?10:14});RG.uaK=loftGeo('uaK',UA,{t0:0.55,seg:LOWEND?10:14});RG.uaL=loftGeo('uaL',UA,{seg:LOWEND?10:14});
@@ -2001,14 +2001,18 @@ buildInfield();buildHallExtras();buildJudges();buildStairwell();buildCoach();
     const g=o.geometry;if(!g.boundingSphere)g.computeBoundingSphere();bs.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
     const cast=!o.material.isMeshBasicMaterial&&bs.radius<6&&bs.center.y<5;const k=o.material.uuid+(cast?'#c':'');
     if(!buckets.has(k))buckets.set(k,{m:o.material,cast,list:[]});buckets.get(k).list.push(o);drop.push(o);});
-  for(const {m,cast,list} of buckets.values()){let n=0;const parts=list.map(o=>{let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry;if(!g.attributes.normal){g=g.clone();g.computeVertexNormals();}n+=g.attributes.position.count;return [o,g];});
+  const rollerOf=o=>{for(let q=o;q;q=q.parent)for(const R of ROLLERS)if(q===R.bike.g)return R;return null;};   // the bikes on the rollers are baked too – remember where, so the one you ride can be hidden (rideHideBaked)
+  for(const {m,cast,list} of buckets.values()){let n=0;const mine=[];const parts=list.map(o=>{let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry;if(!g.attributes.normal){g=g.clone();g.computeVertexNormals();}n+=g.attributes.position.count;return [o,g];});
     const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let off=0;const v=new THREE.Vector3();
-    for(const [o,g] of parts){const pa=g.attributes.position,na=g.attributes.normal,ua=g.attributes.uv;_n.getNormalMatrix(o.matrixWorld);
+    for(const [o,g] of parts){const pa=g.attributes.position,na=g.attributes.normal,ua=g.attributes.uv;_n.getNormalMatrix(o.matrixWorld);{const R=rollerOf(o);if(R){const e={off,cnt:pa.count};(R.baked=R.baked||[]).push(e);mine.push(e);}}
       for(let i=0;i<pa.count;i++){v.fromBufferAttribute(pa,i).applyMatrix4(o.matrixWorld);P.set([v.x,v.y,v.z],(off+i)*3);v.fromBufferAttribute(na,i).applyMatrix3(_n).normalize();N.set([v.x,v.y,v.z],(off+i)*3);if(ua)U.set([ua.getX(i),ua.getY(i)],(off+i)*2);}
       off+=pa.count;}
     const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.setAttribute('uv',new THREE.BufferAttribute(U,2));
-    const M=new THREE.Mesh(G,m);M.castShadow=cast;M.receiveShadow=!m.isMeshBasicMaterial;M.matrixAutoUpdate=false;scene.add(M);}
+    const M=new THREE.Mesh(G,m);M.castShadow=cast;M.receiveShadow=!m.isMeshBasicMaterial;M.matrixAutoUpdate=false;scene.add(M);for(const e of mine)e.M=M;}
   for(const o of drop)o.parent.remove(o);}
+// hide / show one baked roller bike: squash its vertices to a point (and back) – you ride your own bike on those rollers
+function rideHideBaked(R,hide){if(!R||!R.baked)return;for(const e of R.baked){const A=e.M.geometry.attributes.position,a=A.array,i0=e.off*3,i1=(e.off+e.cnt)*3;
+  if(hide){if(e.save)continue;e.save=a.slice(i0,i1);for(let i=i0;i<i1;i+=3){a[i]=a[i0];a[i+1]=a[i0+1];a[i+2]=a[i0+2];}}else{if(!e.save)continue;a.set(e.save,i0);e.save=null;}A.needsUpdate=true;}}
 
 // lap board
 const lapCanvas=mkCanvas(256,192),lapCtx=lapCanvas.getContext('2d'),lapTex=new THREE.CanvasTexture(lapCanvas);
@@ -2743,8 +2747,8 @@ const SHOP_ITEMS=[   // price in penízky; w = extra watts (only what you wear c
   {id:'helm_aero',tab:'helmy',kind:'aero',name:'Aero helma',desc:'Hladká bílá skořepina, málo větráků. +10 W',price:1500,w:10},
   {id:'helm_shield',tab:'helmy',kind:'shield',name:'Aero helma se štítem',desc:'Bílá perleť a duhový štít na magnetech. +20 W',price:2500,w:20},
   {id:'helm_tt',tab:'helmy',kind:'tt',name:'Časovkářská helma',desc:'Černá kapka s ocasem a velkým štítem. +35 W',price:4000,w:35},
-  {id:'aero_covers',tab:'aero',part:'covers',name:'Aero návleky na tretry',desc:'Hladké černé návleky přes tretry s vysokými ponožkami. +8 W',price:1200,w:8},
-  {id:'aero_gloves',tab:'aero',part:'gloves',name:'Aero rukavice',desc:'Bílé rukavice s dlouhou manžetou a pruhy. +5 W',price:800,w:5}];
+  {id:'aero_covers',tab:'aero',part:'covers',name:'Aero návleky na tretry',desc:'Lesklé černé návleky přes tretry až po lýtka, neonový pruh a nápis AERO. +8 W',price:1200,w:8},
+  {id:'aero_gloves',tab:'aero',part:'gloves',name:'Aero rukavice',desc:'Bílé rukavice s neonovými pruhy, nápisem AERO a dlouhou neonovou manžetou. +5 W',price:800,w:5}];
 const AERO_ICO={covers:'<path d="M12 2h9v12l9 5c2 1 2 4-1 4H8c-2 0-3-1-2-3l6-6z" fill="#17181a"/><path d="M12 5h9M12 8h9M12 11h9" stroke="#55585d" stroke-width="1.2"/><path d="M6 21h24" stroke="#3a3c40" stroke-width="1.5"/>',
   gloves:'<path d="M9 25V12c0-2 3-2 3 0V5c0-2 3-2 3 0v6V3c0-2 3-2 3 0v8V5c0-2 3-2 3 0v9l2-3c1-2 4-1 3 1l-4 8c-1 3-3 5-6 5z" fill="#f4f4f2" stroke="#8d9196" stroke-width="1"/><path d="M12 9v14M15 8v15M18 8v15" stroke="#c8ccd1" stroke-width=".8"/><path d="M12 5v2M15 3v2M18 3v2M21 5v2" stroke="#17181a" stroke-width="2.4" stroke-linecap="round"/>'};
 const HELM_ICO={road:'<path d="M3 17C3 8 11 4 19 4c7 0 12 4 13 10l-2 4H5z" fill="#17181a"/><path d="M8 7l9-1M7 10l12-1M8 13l11-1M21 6l7 2M21 9l8 3" stroke="#e9ecef" stroke-width="1.6" stroke-linecap="round"/><path d="M22 18h8l2-4c-3 1-6 2-10 4z" fill="#eceeef"/><path d="M3 17l-2 1 4 1z" fill="#17181a"/>',
@@ -2778,18 +2782,31 @@ function applyGear(){const own=shopOwned();const ne=shopEquipNext&&SHOP_ITEMS.fi
 function gearOn(M,hk,want,cov,glv){setRiderHelm(M,hk);aeroOn(M,cov,glv);if(!M.wheels)return;M.gear=M.gear||['wire','wire'];
   for(let i=0;i<2;i++){if(M.gear[i]===want[i]||!M.wheels[i])continue;const old=M.wheels[i],nw=makeWheel(want[i]);nw.position.copy(old.position);nw.rotation.x=old.rotation.x;
     nw.traverse(o=>{if(o.isMesh)o.castShadow=true;});old.parent.add(nw);old.parent.remove(old);M.wheels[i]=nw;M.gear[i]=want[i];}}
-// aero overshoes (photo): smooth black covers over the shoes, tall grey socks with dark stripes; aero gloves: white with pinstripes and a long cuff
+// aero overshoes: glossy black covers over the shoes and right up the calf, neon band at the top, a neon stripe and AERO down the side;
+// aero gloves: white, neon stripes, black AERO on the back of the hand and a long neon cuff up the forearm – readable from the chase camera
+const AERO_NEON='#c6ff1a';
+function aeroWord(q,x,y,sz,col,rot){q.save();q.translate(x,y);q.rotate(rot||0);q.fillStyle=col;q.font='900 '+sz+'px Arial,Helvetica,sans-serif';q.textAlign='center';q.textBaseline='middle';q.fillText('AERO',0,0);q.restore();}
 const AEROM={};function aeroMats(){if(AEROM.ok)return AEROM;
-  AEROM.cover=new THREE.MeshPhongMaterial({color:0x111214,specular:0x777777,shininess:95});
-  {const c=mkCanvas(64,256),q=c.getContext('2d');const gr=q.createLinearGradient(0,0,0,256);gr.addColorStop(0,'#b9bcc0');gr.addColorStop(0.55,'#55585d');gr.addColorStop(1,'#151618');q.fillStyle=gr;q.fillRect(0,0,64,256);
-   q.fillStyle='rgba(10,10,12,.55)';for(let y=6;y<256;y+=11)q.fillRect(0,y,64,4+y/90);const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;AEROM.sock=new THREE.MeshPhongMaterial({map:t,specular:0x333333,shininess:30});}
-  {const c=mkCanvas(128,64),q=c.getContext('2d');q.fillStyle='#f6f6f4';q.fillRect(0,0,128,64);q.fillStyle='rgba(150,155,160,.5)';for(let x=8;x<128;x+=21)q.fillRect(x,0,2,64);q.fillStyle='#1a1a1a';q.fillRect(0,0,128,5);
-   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;AEROM.glove=new THREE.MeshPhongMaterial({map:t,specular:0x666666,shininess:45});}
+  {const c=mkCanvas(256,128),q=c.getContext('2d');q.fillStyle='#0d0e10';q.fillRect(0,0,256,128);   // shoe cover: u round the shoe, v along it
+   const g=q.createLinearGradient(0,0,0,128);g.addColorStop(0,'rgba(255,255,255,.10)');g.addColorStop(0.5,'rgba(255,255,255,0)');q.fillStyle=g;q.fillRect(0,0,256,128);
+   q.fillStyle=AERO_NEON;for(const x of [58,186])q.fillRect(x,6,10,116);for(const x of [64,192])aeroWord(q,x+26,64,30,'#fff',-PI/2);
+   const t=new THREE.CanvasTexture(c);AEROM.cover=new THREE.MeshPhongMaterial({map:t,specular:0xaaaaaa,shininess:120});}
+  {const c=mkCanvas(256,256),q=c.getContext('2d');q.fillStyle='#0d0e10';q.fillRect(0,0,256,256);   // calf cover (on the sock): neon bands at both ends, neon stripe + AERO on both sides
+   q.fillStyle=AERO_NEON;q.fillRect(0,0,256,22);q.fillRect(0,234,256,22);for(const x of [56,184])q.fillRect(x,22,9,212);
+   for(const x of [92,220])aeroWord(q,x,128,34,'#fff',-PI/2);q.fillStyle='rgba(255,255,255,.08)';q.fillRect(0,22,256,30);
+   const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;AEROM.sock=new THREE.MeshPhongMaterial({map:t,specular:0xaaaaaa,shininess:110});}
+  {const c=mkCanvas(256,128),q=c.getContext('2d');q.fillStyle='#fbfbf8';q.fillRect(0,0,256,128);   // glove: u round the hand, v along it
+   q.fillStyle=AERO_NEON;for(let x=10;x<256;x+=64)q.fillRect(x,0,12,128);q.fillStyle='#111';q.fillRect(0,0,256,14);aeroWord(q,96,70,30,'#111',0);aeroWord(q,224,70,30,'#111',0);
+   const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;AEROM.glove=new THREE.MeshPhongMaterial({map:t,specular:0x888888,shininess:70});}
+  {const c=mkCanvas(128,64),q=c.getContext('2d');q.fillStyle=AERO_NEON;q.fillRect(0,0,128,64);q.fillStyle='#111';q.fillRect(0,0,128,8);q.fillRect(0,56,128,8);aeroWord(q,64,32,26,'#111',0);
+   const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;AEROM.cuffM=new THREE.MeshPhongMaterial({map:t,specular:0x777777,shininess:60});
+   AEROM.cuffG=new THREE.CylinderGeometry(0.034,0.039,0.1,14,1,true);AEROM.cuffG.translate(0,-0.125,0);}   // in the glove's frame: y runs from the wrist to the knuckles
   AEROM.ok=true;return AEROM;}
 function aeroOn(M,cov,glv){if(!cov&&!glv&&!AEROM.ok)return;const A=aeroMats();
   if(M.legs)for(const L of M.legs){const up=L.shoe.children[0];if(!L.m0)L.m0={up:up.material,sock:L.sock.material,boa:L.shoe.children[2]};
-    up.material=cov?A.cover:L.m0.up;L.sock.material=cov?A.sock:L.m0.sock;if(L.m0.boa)L.m0.boa.visible=!cov;}
-  if(M.rig)for(const R of M.rig){if(!R.g0)R.g0=R.glove.material;R.glove.material=glv?A.glove:R.g0;R.glove.scale.setScalar(glv?1.06:1);}}
+    if(!L.m0.sg)L.m0.sg=L.sock.geometry;up.material=cov?A.cover:L.m0.up;L.sock.material=cov?A.sock:L.m0.sock;L.sock.geometry=cov&&RDG.aeroCalf?RDG.aeroCalf:L.m0.sg;if(L.m0.boa)L.m0.boa.visible=!cov;up.scale.setScalar(cov?1.06:1);}
+  if(M.rig)for(const R of M.rig){if(!R.g0)R.g0=R.glove.material;R.glove.material=glv?A.glove:R.g0;
+    if(glv&&!R.cuff){R.cuff=new THREE.Mesh(A.cuffG,A.cuffM);R.cuff.castShadow=true;R.glove.add(R.cuff);}if(R.cuff)R.cuff.visible=!!glv;}}
 window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js calls this after a purchase or an account sync
 const RIDE={M:null,v:0,eff:0.45,crank:0,t:0,st:0,su:0,sp:0,br:0,last:null};   // riding on the rollers on the walk (see PREP)
 let SPV=null;applyGear();
@@ -4529,7 +4546,7 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   if(!WALK.r){const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
     WALK.r=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});scene.add(WALK.r.g);}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
-  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();
+  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();buildAdvisor();
   if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
@@ -4617,7 +4634,7 @@ function walkSkipRescue(){const R=RESC;if(!R||!R.onWalk||R.st==='done')return;co
   if(!R.fig.visible){R.fig.visible=true;walkOnStretcher();}R.path=null;R.meds[0].g.position.set(1.15,R.meds[0].g.position.y,1.1);R.meds[1].g.position.set(-1.15,R.meds[1].g.position.y,-0.3);R.stretcher.position.y=0.3;R.stretcher.rotation.x=0;R.st='done';R.t=0;}
 // ---------- booths: in through the doorway, walk into the bench and you sit down; move the stick away (or jump) and you get up ----------
 function walkTrySit(ux,uz,amt){if(amt<0.2||WALK.air)return false;const P=WALK.pos;
-  for(const B of BOOTHS){const inX=(P.x-B.xb)*B.open;if(inX<0.3||inX>1.2||P.z<B.zc-B.bl/2-0.05||P.z>B.zc+B.bl/2+0.05)continue;
+  for(const B of BOOTHS){if(ADV&&ADV.B===B)continue;const inX=(P.x-B.xb)*B.open;if(inX<0.3||inX>1.2||P.z<B.zc-B.bl/2-0.05||P.z>B.zc+B.bl/2+0.05)continue;
     if(ux*B.open<-0.45&&inX<0.51+WR+0.1){WALK.sit={B,t:0,up:-1,x0:P.x,z0:P.z,h0:WALK.head,z:clamp(P.z,B.zc-B.bl/2+0.3,B.zc+B.bl/2-0.3)};WALK.spd=0;return true;}}return false;}
 function walkSitTick(dt,mx,mz,amt){const S=WALK.sit,B=S.B,P=WALK.pos,ml=Math.hypot(mx,mz),sx=B.xb+B.open*0.3,fx=B.xb+B.open*(0.51+WR+0.06),face=B.open>0?PI/2:-PI/2;
   if(S.up<0){S.t+=dt;const k=_sm(Math.min(1,S.t/0.7));P.x=_mix(S.x0,sx,k);P.z=_mix(S.z0,S.z,k);WALK.head=S.h0+_angTo(S.h0,face)*_sm(Math.min(1,S.t/0.45));
@@ -4634,12 +4651,12 @@ function prepPct(){return (PREP.roll?5:0)+(PREP.drink?3:0)+(PREP.gel?5:0);}
 function rideModel(){if(RIDE.M)return RIDE.M;const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);M.g.children[0].visible=false;return RIDE.M=M;}
 function rollerNear(P){let best=null,bd=0.6;for(const R of ROLLERS){const dx=P.x-R.x,dz=P.z-R.z,c=Math.cos(R.rot),s=Math.sin(R.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;
     const d=Math.hypot(Math.max(0,Math.abs(lx)-0.33),Math.max(0,Math.abs(lz)-0.95));if(d<bd){bd=d;best=R;}}return best;}
-function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;
+function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;rideHideBaked(R,true);
   WALK.ride={R,t:0,x0:WALK.pos.x,z0:WALK.pos.z};RIDE.v=R.v||0;RIDE.t=0;WALK.spd=0;WALK.r.g.visible=false;
   const fw=R.rot;WALK.pos.set(R.x,FLOOR_Y,R.z);WALK.head=fw;WALK.yaw=fw+0.9;WALK.pitch=0.22;   // camera from behind-side, so you see the legs and the drums
   $('rideEff').value=Math.round(RIDE.eff*100);$('rideUI').style.display='flex';document.body.classList.add('riding');rideCount();tone(520,0.08,0.04,'triangle');}
 function rideStop(){const W=WALK.ride;if(!W)return;const R=W.R;RIDE.last=R;R.v=RIDE.v;
-  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;WALK.ride=null;WALK.acCD=0.8;$('rideUI').style.display='none';document.body.classList.remove('riding');
+  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;rideHideBaked(R,false);WALK.ride=null;WALK.acCD=0.8;$('rideUI').style.display='none';document.body.classList.remove('riding');
   const c=Math.cos(R.rot),s=Math.sin(R.rot),P=WALK.pos;let ok=false;
   for(const sd of [1,-1]){const x=R.x+c*0.75*sd,z=R.z-s*0.75*sd;if(walkFree(x,z)){P.x=x;P.z=z;ok=true;break;}}   // step off to the side of the bike
   if(!ok){P.x=W.x0;P.z=W.z0;}P.y=walkGround(P.x,P.z);WALK.head=Math.atan2(R.x-P.x,R.z-P.z)+PI;WALK.r.g.visible=true;WALK.spd=0;tone(420,0.08,0.04,'triangle');}
@@ -4656,7 +4673,7 @@ function rideTick(dt){const W=WALK.ride,R=W.R,M=RIDE.M,K=WALK.k;W.t+=dt;
   M.g.position.x=x;M.g.rotation.z=-x*0.9-0.012*e*Math.sin(RIDE.crank);M.g.rotation.y=-0.25*amp*Math.cos(t*0.83);
   const sT=e>0.92?1:0,uT=e<0.25?1:0,pT=clamp((e-0.7)/0.25,0,1);RIDE.st+=(sT-RIDE.st)*Math.min(1,dt*4);RIDE.su+=(uT-RIDE.su)*Math.min(1,dt*1.5);RIDE.sp+=(pT-RIDE.sp)*Math.min(1,dt*3);RIDE.br+=dt*(1.5+2.5*e);
   poseRider(M,RIDE.crank,RIDE.st,RIDE.su*(1-RIDE.st),RIDE.sp*(1-RIDE.st)*(1-RIDE.su),Math.sin(RIDE.br),0.25*Math.sin(t*0.4)*(1-e),0.4+e*1.2,0.15);}
-// booths: a bottle stands on the bench (booth 1 on the sketch), a gel lies there (booth 2) – both groups of booths
+// booths: a bottle stands on the bench (booth 1 on the sketch), a gel lies there (booth 2) – both groups of booths; gels stay on the bench after you've had one
 const SNACKS=[];
 function bottleMesh(){const g=new THREE.Group();const red=new THREE.MeshPhongMaterial({color:0xd8232a,specular:0x996666,shininess:70}),wh=new THREE.MeshPhongMaterial({color:0xf4f4f2,specular:0xffffff,shininess:60});
   const pts=[[0,0],[0.033,0],[0.036,0.006],[0.036,0.07],[0.031,0.085],[0.031,0.1],[0.036,0.115],[0.036,0.16],[0.034,0.168],[0,0.168]].map(p=>new THREE.Vector2(p[0],p[1]));
@@ -4673,23 +4690,36 @@ function gelMesh(){const g=new THREE.Group(),m=new THREE.MeshPhongMaterial({map:
   const b=new THREE.Mesh(new THREE.BoxGeometry(0.052,0.12,0.007),[blk,blk,blk,blk,m,m]);b.position.y=0.06;g.add(b);
   const tab=new THREE.Mesh(new THREE.BoxGeometry(0.022,0.03,0.005),blk);tab.position.y=0.133;g.add(tab);return g;}
 function buildSnacks(){if(SNACKS.length)return;walkCols();const y=FLOOR_Y+0.01+0.48;
-  const pick=[[-19.0,1,'drink'],[11.65,2,'drink'],[-13.55,0,'gel'],[17.05,0,'gel']];   // [column x, booth (0 = back straight end), what]
+  const pick=[[-19.0,1,'drink'],[11.65,2,'drink'],[-13.55,0,'gel'],[17.05,2,'gel']];   // [column x, booth (0 = back straight end), what]
   for(const [xc,i,kind] of pick){const B=BOOTHS.find(b=>Math.abs((b.xb+b.xf)/2-xc)<0.1&&Math.abs(b.zc-[-3.4,0,3.4][i])<0.2);if(!B)continue;
     const x=B.xb+B.open*0.3,z=B.zc+(B.bl/2-0.3)*(i===0?1:-1),m=kind==='drink'?bottleMesh():gelMesh();
     if(kind==='gel'){m.rotation.set(-PI/2,0,0.5);m.position.set(x+0.04*B.open,y+0.004,z-0.06);}else{m.position.set(x+0.02*B.open,y,z);m.rotation.y=0.6;}
     scene.add(m);SNACKS.push({kind,m,B,home:[m.position.clone(),m.rotation.clone()],x,z});}}
-function snackShow(){for(const S of SNACKS){S.m.visible=S.kind==='drink'||!PREP.gel;if(S.m.parent!==scene){scene.add(S.m);}S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}}
-function snackNear(P){let best=null,bd=1.05;for(const S of SNACKS){if(S.kind==='drink'?PREP.drink:PREP.gel)continue;const B=S.B,inX=(P.x-B.xb)*B.open;if(inX<0||inX>3.0||P.z<B.z0||P.z>B.z1)continue;
+function snackShow(){for(const S of SNACKS){S.m.visible=true;if(S.m.parent!==scene){scene.add(S.m);}S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}}
+function snackNear(P){let best=null,bd=1.05;for(const S of SNACKS){if(S.kind==='drink'?PREP.drink:PREP.gel)continue;const B=S.B;if(WALK.sit){if(WALK.sit.B===B){const d=Math.abs(P.z-S.z)*0.5;if(d<bd){bd=d;best=S;}}continue;}const inX=(P.x-B.xb)*B.open;if(inX<0||inX>3.0||P.z<B.z0||P.z>B.z1)continue;
     const d=Math.hypot(P.x-S.x,P.z-S.z);if(d<bd){bd=d;best=S;}}return best;}
-function snackStart(S){WALK.act={S,t:0,h0:WALK.head,hT:Math.atan2(S.x-WALK.pos.x,S.z-WALK.pos.z)};WALK.spd=0;tone(500,0.06,0.03,'triangle');}
+function snackStart(S){WALK.act={S,t:0,h0:WALK.head,hT:WALK.sit?WALK.head:Math.atan2(S.x-WALK.pos.x,S.z-WALK.pos.z),sit:!!WALK.sit};WALK.spd=0;tone(500,0.06,0.03,'triangle');}
 const SN_DUR={drink:3.0,gel:2.6};
+// ---------- booth 3: a man sits on the bench and asks what to improve in the game (suggestion box, logged-in players only, online.js) ----------
+let ADV=null;
+function buildAdvisor(){if(ADV)return;walkCols();const B=BOOTHS.find(b=>Math.abs((b.xb+b.xf)/2-17.05)<0.1&&Math.abs(b.zc+3.4)<0.2);if(!B)return;
+  const r=makeHuman({skin:0xd9a882,top:0x2f4a3a,collar:0x2f4a3a,pants:0x2b2f3a,shoes:0x3a2a1e,hair:0x8a8680,hairStyle:'short',mustache:true});
+  const face=B.open>0?PI/2:-PI/2,z=B.zc;r.g.position.set(B.xb+B.open*0.3,walkGround(B.xb+B.open*0.3,z),z);r.g.rotation.y=face;scene.add(r.g);
+  ADV={r,B,face,T:{},look:0,said:0,t:Math.random()*5};}
+function advNear(P){if(!ADV)return false;const B=ADV.B,inX=(P.x-B.xb)*B.open;return inX>0.2&&inX<2.6&&Math.abs(P.z-B.zc)<B.bl/2+0.3&&Math.hypot(P.x-ADV.r.g.position.x,P.z-ADV.r.g.position.z)<2.4;}
+function advTick(dt,P){if(!ADV)return;const A=ADV,g=A.r.g,T=A.T;A.t+=dt;for(const k in T)delete T[k];
+  const near=advNear(P),dx=P.x-g.position.x,dz=P.z-g.position.z;let want=0;
+  if(near){want=clamp(_angTo(A.face,Math.atan2(dx,dz)),-1.1,1.1);if(!A.said){A.said=1;walkSay('🧔 <b>Ahoj!</b> Co bys na hře zlepšil?',3.2);tone(330,0.08,0.03,'triangle');}}else if(Math.hypot(dx,dz)>5)A.said=0;
+  A.look+=(want-A.look)*Math.min(1,dt*4);
+  Object.assign(T,sitPose({},1,A.t));T.hy=A.look;T.twist=0.25*A.look;T.mo=near?0.15+0.15*Math.sin(A.t*9)*(A.t%3<0.8?1:0):0;T.a0x=T.a1x=-0.55;T.e0=T.e1=-0.9;T.a0z=T.a1z=0.12;   // forearms on the knees
+  poseHuman(A.r,T,1-Math.exp(-dt*6));}
+function advTalk(){if(window.Online&&Online.feedback){WALK.k={};WALK.jx=WALK.jy=0;WALK.joy=null;joyHome();Online.feedback();}else walkSay('🧔 Schránka na návrhy teď nejde – zkus to, až půjde internet.',3);}
 function snackTick(dt){const A=WALK.act,S=A.S,t=A.t+=dt,r=WALK.r;WALK.head=A.h0+_angTo(A.h0,A.hT)*_sm(Math.min(1,t/0.35));
-  const take=0.55,back=S.kind==='drink'?2.45:99;
+  const take=0.55,back=S.kind==='drink'?2.45:2.3;   // the gel goes back on the bench too (another one for later)
   if(t>=take&&!A.held){A.held=true;r.arms[0].hand.add(S.m);if(S.kind==='drink'){S.m.rotation.set(PI/2+0.25,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.1);}else{S.m.rotation.set(PI/2+0.2,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.05);}}
   if(S.kind==='drink'&&t>1.1&&t<2.2&&!A.glug){A.glug=true;for(let i=0;i<4;i++)setTimeout(()=>tone(180+Math.random()*40,0.05,0.025,'sine'),i*230);}
   if(S.kind==='gel'&&t>1.15&&!A.squeeze){A.squeeze=true;tone(240,0.08,0.025,'sine');}
   if(t>=back&&A.held&&!A.back){A.back=true;scene.add(S.m);S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}
-  if(S.kind==='gel'&&t>=2.0&&S.m.visible){for(const G of SNACKS)if(G.kind==='gel')G.m.visible=false;}   // the empty wrapper goes in your pocket
   if(t>=SN_DUR[S.kind]){WALK.act=null;if(S.kind==='drink'){PREP.drink=true;walkSay('💧 +3 % energie',1.6);}else{PREP.gel=true;walkSay('⚡ +5 % energie',1.6);}tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
 // pick it up from the bench, up to the mouth, head back to drink (or squeeze the gel), then put the bottle back
 function snackPose(T,t,kind){const D=SN_DUR[kind],k1=_sm(t/0.45),k2=_sm((t-0.55)/0.5),k3=kind==='drink'?_sm((t-2.0)/0.5):_sm((t-1.9)/0.5),k4=kind==='drink'?_sm((t-2.5)/0.4):0;
@@ -4734,6 +4764,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   for(const k in T)delete T[k];
   if(WALK.down||WALK.onSt)downPose(T,r.t);
   else if(WALK.climb!=null)climbPose(T,WALK.ph,Math.abs(WALK.clV||0)+(WALK.clT<0.45?1:0));
+  else if(WALK.act&&WALK.act.sit){heroGait(T,0,0,0,r.t,0);Object.assign(T,sitPose({},1,r.t));const Q=snackPose({},WALK.act.t,WALK.act.S.kind);for(const q of ['a0x','a0y','a0z','e0','a1x','a1z','e1','hx','mo'])if(Q[q]!==undefined)T[q]=Q[q];T.lean+=0.25*(Q.lean||0);T.twist=0.3*(Q.lean||0)*(WALK.act.S.z>WALK.pos.z?1:-1)*WALK.sit.B.open;}   // seated: only the arms reach over, the body just leans a little
   else if(WALK.act){heroGait(T,0,0,0,r.t,0);snackPose(T,WALK.act.t,WALK.act.S.kind);}
   else if(WALK.sit){heroGait(T,0,0,0,r.t,0);const k=walkSitK(),S=sitPose({},k,r.t);for(const q in S)T[q]=(T[q]||0)*(1-k)+S[q];}
   else{heroGait(T,WALK.ph,a,run,r.t,turn);
@@ -4758,10 +4789,12 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
   if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
   // the action button: right up to a bike on the rollers / the bottle / the gel
-  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P);if(R)ac={k:'roll',R};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
-  const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':'';ab.style.display=key?'block':'none';}WALK.ac=ac;
+  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P);if(R)ac={k:'roll',R};else if(advNear(P))ac={k:'talk'};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
+  else if(WALK.sit&&WALK.sit.up<0&&WALK.sit.t>0.8&&!WALK.act&&!(WALK.acCD>0)){const S=snackNear(P);if(S)ac={k:S.kind,S};}   // sitting next to it: have it without getting up
+  advTick(dt,P);
+  const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':key==='talk'?'💬 Promluvit':'';ab.style.display=key?'block':'none';}WALK.ac=ac;
   if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
-function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else snackStart(A.S);}
+function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else if(A.k==='talk')advTalk();else snackStart(A.S);}
 if(/#(debug|turbo)/.test(location.hash))window.__WALK=()=>({WALK,walkFree,walkZones,walkCols,BOOTHS,LADDER,NAV,RESC,walkJump,step:n=>{for(let i=0;i<n;i++)walkTick(1/30);},crash:()=>crashRider(player,'slip')});
 // ---------- menu backdrop: the bunch rolls round in a paceline, camera cuts between shots ----------
 const _mt=new THREE.Vector3(),_ml=new THREE.Vector3();let menuShot=-1;

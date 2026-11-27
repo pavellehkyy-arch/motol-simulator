@@ -19,6 +19,10 @@
     otp: 'Kód nesedí nebo vypršel. Zkus ho opsat znovu, případně si pošli nový.',
     invalid_nickname: 'Přezdívka musí mít 3 až 16 znaků a nesmí obsahovat < > & " \' \\',
     nickname_taken: 'Tahle přezdívka je už obsazená.',
+    feedback_short: 'Napiš aspoň pár slov.',
+    feedback_long: 'Zpráva je moc dlouhá, max. 1000 znaků.',
+    feedback_limit: 'Dnes jsi poslal už 3 návrhy. Další můžeš zítra.',
+    not_authenticated: 'Nejdřív se přihlas.',
     fail: 'Něco se nepovedlo. Zkus to znovu.'
   };
 
@@ -250,6 +254,17 @@
       return { ok: false, err: errCode(r) };
     });
   };
+  /* návrh na zlepšení: jen pro přihlášené, ukládá se do tabulky feedback (čte ji autor hry) */
+  O.sendFeedback = function (text) {
+    var t = String(text || '').trim();
+    if (t.length < 3) return Promise.resolve({ ok: false, err: 'feedback_short' });
+    if (t.length > 1000) return Promise.resolve({ ok: false, err: 'feedback_long' });
+    return rpc('submit_feedback', { p_message: t }, true).then(function (r) {
+      if (r.ok) return { ok: true };
+      return { ok: false, err: r.status === 401 ? 'not_authenticated' : errCode(r) };
+    });
+  };
+
   O.leaderboard = function (mode) {
     return rpc('get_leaderboard', { p_mode: mode, p_limit: 30 }, false).then(function (r) {
       return r.ok && Array.isArray(r.data) ? { ok: true, rows: r.data } : { ok: false, err: errCode(r) };
@@ -288,7 +303,13 @@
       '@supports ((-webkit-background-clip:text) or (background-clip:text)){#onlineOv span.gold,.obd span.gold{color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(100deg,#a67400 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#a67400 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}}' +
       '@keyframes onGold{0%{background-position:150% 0}100%{background-position:-100% 0}}' +
       '@media (prefers-reduced-motion:reduce){#onlineOv span.gold,.obd span.gold{animation:none}}' +
-      '#onlineOv .os{font-size:12px;opacity:.7}';
+      '#onlineOv .os{font-size:12px;opacity:.7}' +
+      '#onlineOv textarea.oi{font-size:16px;min-height:120px;resize:vertical;line-height:1.35}' +
+      '#onlineOv .oq{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px}' +
+      '#onlineOv .oq b{flex:none;font-size:30px;line-height:1}' +
+      '#onlineOv .oq p{margin:0;background:#efe9da;border-radius:12px;padding:8px 11px;font-weight:700}' +
+      '#onlineOv .ocn{font-size:12px;text-align:right;margin:-6px 0 6px;opacity:.65}' +
+      '#onlineOv .ook{font-size:15px;font-weight:800;color:#1d7a35;margin:0 0 10px}';
     document.head.appendChild(st);
 
     var ov = document.createElement('div');
@@ -315,9 +336,10 @@
       (kids || []).forEach(function (c) { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
       return e;
     }
-    var cur = 'login', ctx = { email: '', msg: '', busy: false, boardMode: 'kilometr', confirmOut: false };
-    function open(v) { cur = v; ctx.msg = ''; ctx.confirmOut = false; ov.style.display = 'flex'; render(); }
-    function close() { ov.style.display = 'none'; }
+    var cur = 'login', ctx = { email: '', msg: '', busy: false, boardMode: 'kilometr', confirmOut: false, after: '', fb: '', fbSent: false };
+    function open(v) { cur = v; ctx.msg = ''; ctx.confirmOut = false; if (v !== 'login' && v !== 'code' && v !== 'nick' && v !== 'feedback') ctx.after = ''; ov.style.display = 'flex'; render(); }
+    function close() { ov.style.display = 'none'; ctx.after = ''; }
+    function afterLogin(def) { var a = ctx.after; ctx.after = ''; open(a || def); }
     function setMsg(m) { ctx.msg = m; render(); }
 
     function render() {
@@ -326,6 +348,8 @@
       else if (cur === 'code') viewCode();
       else if (cur === 'nick') viewNick();
       else if (cur === 'account') viewAccount();
+      else if (cur === 'feedback') viewFeedback();
+      else if (cur === 'fbLogin') viewFbLogin();
       else viewBoard();
     }
     function closeBtn(label) { return h('button', { class: 'ob alt', text: label || 'Zavřít', on: { click: close } }); }
@@ -355,7 +379,7 @@
         if (ctx.busy) return; ctx.busy = true; ctx.msg = 'Ověřuju…'; render();
         O.verify(ctx.email, inp.value).then(function (r) {
           ctx.busy = false;
-          if (r.ok) { open(P && !P.nickname ? 'nick' : 'account'); } else setMsg(msgFor(r.err));
+          if (r.ok) { if (P && !P.nickname) open('nick'); else afterLogin('account'); } else setMsg(msgFor(r.err));
         });
       }
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
@@ -375,7 +399,7 @@
         if (ctx.busy) return; ctx.busy = true; ctx.msg = 'Ukládám…'; render();
         O.setNickname(inp.value).then(function (r) {
           ctx.busy = false;
-          if (r.ok) open('account'); else setMsg(msgFor(r.err));
+          if (r.ok) afterLogin('account'); else setMsg(msgFor(r.err));
         });
       }
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
@@ -384,7 +408,7 @@
       box.appendChild(inp);
       box.appendChild(h('div', { class: 'om', text: ctx.msg }));
       box.appendChild(h('button', { class: 'ob', text: 'Uložit', on: { click: go } }));
-      box.appendChild(closeBtn('Později'));
+      box.appendChild(ctx.after ? h('button', { class: 'ob alt', text: 'Později', on: { click: function () { afterLogin('account'); } } }) : closeBtn('Později'));
       setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
     }
     function statusText() {
@@ -407,6 +431,50 @@
       }
       box.appendChild(closeBtn());
     }
+    /* schránka na návrhy: člověk v kóji na ploše se ptá, co zlepšit */
+    function ask(t) { return h('div', { class: 'oq' }, [h('b', { text: '🧔' }), h('p', { text: t })]); }
+    function viewFbLogin() {
+      box.appendChild(h('h2', { text: '💡 Návrhy na zlepšení' }));
+      box.appendChild(ask('Máš nápad, co na hře zlepšit? Napiš mi ho, ale nejdřív se přihlas.'));
+      box.appendChild(h('p', { text: 'Návrhy můžou posílat jen přihlášení hráči, ať víme, komu případně odpovědět. Přihlášení je přes e-mail s kódem, bez hesla.' }));
+      box.appendChild(h('button', { class: 'ob', text: 'Přihlásit se', on: { click: function () { ctx.after = 'feedback'; cur = 'login'; ctx.msg = ''; render(); } } }));
+      box.appendChild(closeBtn('Teď ne'));
+    }
+    function viewFeedback() {
+      if (!S) { cur = 'fbLogin'; render(); return; }
+      box.appendChild(h('h2', { text: '💡 Návrhy na zlepšení' }));
+      if (ctx.fbSent) {
+        box.appendChild(ask('Díky! Přečteme si to a když to půjde, uděláme to.'));
+        box.appendChild(h('div', { class: 'ook', text: '✅ Návrh je odeslaný.' }));
+        box.appendChild(h('button', { class: 'ob alt', text: 'Napsat další', on: { click: function () { ctx.fbSent = false; ctx.msg = ''; render(); } } }));
+        box.appendChild(closeBtn());
+        return;
+      }
+      box.appendChild(ask('Ahoj! Co bys na hře zlepšil? Klidně i stížnost, nic mě nerozhodí.'));
+      var ta = h('textarea', { class: 'oi', maxlength: '1000', placeholder: 'Třeba: v madisonu se špatně počítají kola…' });
+      ta.value = ctx.fb;
+      var cnt = h('div', { class: 'ocn', text: ctx.fb.length + ' / 1000' });
+      ta.addEventListener('input', function () { ctx.fb = ta.value; cnt.textContent = ta.value.length + ' / 1000'; });
+      function go() {
+        if (ctx.busy) return; ctx.fb = ta.value; ctx.busy = true; ctx.msg = 'Posílám…'; render();
+        O.sendFeedback(ctx.fb).then(function (r) {
+          ctx.busy = false;
+          if (r.ok) { ctx.fb = ''; ctx.fbSent = true; ctx.msg = ''; render(); }
+          else if (r.err === 'not_authenticated') { cur = 'fbLogin'; ctx.msg = ''; render(); }
+          else setMsg(msgFor(r.err));
+        });
+      }
+      box.appendChild(ta);
+      box.appendChild(cnt);
+      box.appendChild(h('div', { class: 'om', text: ctx.msg }));
+      box.appendChild(h('button', { class: 'ob', text: 'Odeslat', on: { click: go } }));
+      box.appendChild(closeBtn());
+      box.appendChild(h('div', { class: 'os', text: 'Zprávu uložíme na server spolu s tvou přezdívkou a účtem (' + (S.email || '') + '), aby ji autor hry mohl přečíst a případně ti odpovědět e-mailem. Nikomu dalšímu ji nedáváme, po 12 měsících se sama smaže a smazat ji jde i dřív na požádání. Nepiš do ní hesla ani citlivé údaje.' }));
+      setTimeout(function () { try { ta.focus(); } catch (e) {} }, 50);
+    }
+    O.feedback = function () { ctx.fbSent = false; open(S ? 'feedback' : 'fbLogin'); };
+    O.overlayOpen = function () { return ov.style.display === 'flex'; };
+
     function fmtRow(mode, r) {
       if (mode === 'kilometr' || mode === 'team_sprint') return r.best_time_s == null ? '–' : Number(r.best_time_s).toFixed(3).replace('.', ',') + ' s';
       if (mode === 'bodovacka' || mode === 'madison' || mode === 'omnium') return (r.best_points == null ? '–' : r.best_points + ' b');
