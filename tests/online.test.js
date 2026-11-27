@@ -60,6 +60,12 @@ function makeEnv() {
       if (srv.profile.money < 150) return json(400, { code: 'P0001', message: 'not_enough_money' });
       srv.profile.money -= 150; srv.purchases.push(body.p_item_id); return json(200, srv.profile.money);
     }
+    if (path === '/rest/v1/rpc/submit_feedback') {
+      if (!authed) return json(401, { message: 'JWT' });
+      srv.feedback = srv.feedback || [];
+      if (srv.feedback.length >= 3) return json(400, { code: 'P0001', message: 'feedback_limit' });
+      srv.feedback.push(body.p_message); return json(200, 'ok');
+    }
     return json(404, { message: 'nezname ' + path });
   };
   delete require.cache[require.resolve('../online.js')];
@@ -223,4 +229,18 @@ test('odhlášení vynuluje telefon a smaže frontu', async () => {
   assert.strictEqual(store.motol_vk, '0');
   assert.strictEqual(store.motol_session, undefined);
   assert.strictEqual(store.motol_outbox, undefined);
+});
+
+test('návrhy: bez přihlášení se nic neposílá, prázdný a dlouhý se odmítne, limit 3 denně', async () => {
+  const { O, srv } = makeEnv();
+  let r = await O.sendFeedback('Přidejte tandem');
+  assert.deepStrictEqual(r, { ok: false, err: 'not_authenticated' });
+  assert.ok(!srv.calls.includes('/rest/v1/rpc/submit_feedback'));
+  await O.verify('a@b.cz', '123456');
+  assert.strictEqual((await O.sendFeedback('  a ')).err, 'feedback_short');
+  assert.strictEqual((await O.sendFeedback('x'.repeat(1001))).err, 'feedback_long');
+  for (let i = 0; i < 3; i++) assert.strictEqual((await O.sendFeedback('  návrh ' + i + '  ')).ok, true);
+  assert.deepStrictEqual(srv.feedback, ['návrh 0', 'návrh 1', 'návrh 2']);
+  r = await O.sendFeedback('čtvrtý');
+  assert.strictEqual(r.err, 'feedback_limit');
 });
