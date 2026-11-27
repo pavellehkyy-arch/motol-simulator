@@ -276,7 +276,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.15</div>
+    <div class="sub">v1.16</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -2947,17 +2947,18 @@ function animCoach(dt,C){C=C||COACH;if(!C)return;C.t+=dt;const t=C.t,H=C.head;
   C.g.scale.y=1+Math.sin(t*2)*0.006;C.tag.lookAt(camera.position);
   const [L,Rr]=C.arms;let face=C.faceN||0xd9a77f;
   if(C.mood==='angry'){const sh=Math.sin(t*14);for(const a of C.arms){a.piv.rotation.x=-1.9+sh*0.35*a.sx;a.piv.rotation.z=a.sx*0.35;a.el.rotation.x=-0.6+Math.sin(t*9)*0.4;}
-    H.rotation.y=C.yaw+Math.sin(t*7)*0.25;H.rotation.x=0.08;C.g.position.y=C.baseY+Math.abs(Math.sin(t*7))*0.05;;face=C.faceA||0xe0624c;
+    H.rotation.y=C.yaw+Math.sin(t*7)*0.25;H.rotation.x=0.08;C.g.position.y=C.baseY+Math.abs(Math.sin(t*7))*0.05;face=C.faceA||0xe0624c;
     H.userData['brow-1'].rotation.z=-0.45;H.userData['brow1'].rotation.z=0.45;H.userData.mouth.rotation.z=0;}
   else if(C.mood==='happy'){for(const a of C.arms){a.piv.rotation.x=-2.6;a.piv.rotation.z=a.sx*(0.55+Math.sin(t*6)*0.25);a.el.rotation.x=-0.3;}
     H.rotation.y=Math.sin(t*2)*0.15;H.rotation.x=-0.1;C.g.position.y=C.baseY+Math.abs(Math.sin(t*5))*0.07;
-    H.userData['brow-1'].rotation.z=0.15;H.userData['brow1'].rotation.z=-0.15;H.userData.mouth.rotation.z=PI;}
+    H.userData['brow-1'].rotation.z=0.15;H.userData['brow1'].rotation.z=-0.15;H.userData.mouth.rotation.z=C.scan?0:PI;}
   else if(C.mood==='watch'){for(const a of C.arms){a.piv.rotation.x=-1.25;a.piv.rotation.z=-a.sx*0.35;a.el.rotation.x=-1.75;}   // binoculars to the eyes
     H.rotation.y=C.yaw;H.rotation.x=0.12;C.g.position.y=C.baseY;H.userData['brow-1'].rotation.z=-0.3;H.userData['brow1'].rotation.z=0.3;H.userData.mouth.rotation.z=0;}
   else if(C.mood==='throw'){const k=sm(0.25,0.6,C.t);const a=C.arms[1];a.piv.rotation.x=-3.0+k*2.6;a.piv.rotation.z=0.2;a.el.rotation.x=-1.2+k*1.1;C.arms[0].piv.rotation.x=-0.6;C.arms[0].el.rotation.x=-0.8;
-    H.rotation.y=C.yaw;C.g.position.y=C.baseY;;face=C.faceA||0xe0624c;H.userData.mouth.rotation.z=0;}
+    H.rotation.y=C.yaw;C.g.position.y=C.baseY;face=C.faceA||0xe0624c;H.userData.mouth.rotation.z=0;}
   else{for(const a of C.arms){if(C.scan){a.piv.rotation.x=0.06;a.piv.rotation.z=a.sx*0.12;a.el.rotation.x=-0.3;}else{a.piv.rotation.x=-0.35;a.piv.rotation.z=a.sx*0.55;a.el.rotation.x=-1.9;}}   // arms relaxed (the old figure: hands on hips)
     H.rotation.y=Math.sin(t*0.7)*0.3;H.rotation.x=0;C.g.position.y=C.baseY;H.userData['brow-1'].rotation.z=-0.15;H.userData['brow1'].rotation.z=0.15;H.userData.mouth.rotation.z=0;}
+  if(C.scan){const m=H.userData.mouth;m.scale.x=C.mood==='happy'?0.062:0.045;m.scale.y=C.mood==='angry'||C.mood==='throw'?0.028+0.012*Math.abs(Math.sin(t*9)):C.mood==='happy'?0.016:0.012;}   // the scan face has a box mouth: wide grin / shouting
   C.bino.visible=C.mood==='watch';C.beer.visible=false;
   C.skin.color.lerp(new THREE.Color(face),Math.min(1,dt*4));}
 
@@ -3645,7 +3646,7 @@ function shortOf(a){const k=a.k.replace(/[0-9]+$/,'');
 function trend(tr,ref,gap,dt){if(!ref)return null;if(!tr||Math.abs(gap-tr.gap)>12)tr={h:[],gap,rate:0,age:0};tr.gap=gap;tr.age+=dt;tr.h.push([RAD.t,gap]);while(tr.h.length&&RAD.t-tr.h[0][0]>16)tr.h.shift();
   const n=tr.h.length;if(n>4){let st=0,sg=0,stt=0,stg=0;for(const [x,y] of tr.h){st+=x;sg+=y;stt+=x*x;stg+=x*y;}const d=n*stt-st*st;tr.rate=d>1e-6?(n*stg-st*sg)/d:0;}return tr;}
 function coachTick(dt){RAD.t+=dt;
-  RAD.evalT-=dt;if(RAD.evalT>0)return;const step=0.4;RAD.evalT=step;RAD.best=null;
+  RAD.evalT-=dt;if(RAD.evalT>0)return;const step=0.4;RAD.evalT=step;RAD.best=null;RAD.keys=null;
   const R=player;if(phase!=='race'||R.crashed||R.finished||R.out||raceTime<2.5)return;
   const c=[];const add=(p,k,txt,good,cd)=>c.push({p,k,txt,good,cd:cd||16});
   const toGo=FIN-R.s,lapsLeft=toGo/L0,v=Math.max(R.v,6),e=keys.sprint?1:effort,sprinting=e>=0.8;
@@ -3801,7 +3802,7 @@ function restTips(add,T){const R=player,A=T.act;if(!A||A.crashed||MT.neutral)ret
   else if(R.w<2.4)add(2.2,'mup','Odpočíváš – vyjeď nahoru na klopení, ať nepřekážíš balíku.',0,10);
   else if(R.v>11)add(1.8,'measy','Šetři se, jeď volně. Parťák maká, ty nabírej síly.',0,14);}
 function pickAdvice(c){RAD.keys=new Set(c.map(a=>a.k));if(!c.length)return;c.sort((a,b)=>b.p-a.p);
-  for(const a of c){const last=RAD.said[a.k];if(last!==undefined&&RAD.t-last<a.cd)continue;if(a.k===RAD.lastK&&a.p<2.5&&c.some(b=>b!==a&&b.k!==RAD.lastK&&b.p>=a.p*0.6))continue;   // don't shout the same thing two passes running unless it's urgent
+  for(const a of c){const last=RAD.said[a.k];if(last!==undefined&&RAD.t-last<a.cd)continue;if(a.k===RAD.lastK&&a.p<2.5&&c.some(b=>b!==a&&b.k!==RAD.lastK&&b.p>=a.p*0.6&&(RAD.said[b.k]===undefined||RAD.t-RAD.said[b.k]>=b.cd)))continue;   // don't shout the same thing two passes running unless it's urgent
     RAD.best=a;return;}}
 // the numbers under the shout: energy, laps to go, the gaps to the groups around you and which way they are going
 function bossDetail(){const R=player;if(mode==='kilo'||mode==='teamsprint'||(mode==='keirin'&&KR&&!KR.free))return '';const toGo=FIN-R.s,laps=Math.ceil(toGo/L0-0.05);
@@ -4530,14 +4531,15 @@ function walkFree(x,z,y){if(!walkInside(x,z))return false;
   if(y!==undefined){const pn=podPen(x,z,y,WR);if(pn>0&&pn>=podPen(WALK.pos.x,WALK.pos.z,y,WR)-1e-4)return false;}   // a podium step higher than your feet stops you – jump onto it (moving away from it always works)
   for(const b of walkCols())if(boxPush(b,x,z,WR)>0.003)return false;for(const b of rescueCols())if(boxPush(b,x,z,WR)>0.003)return false;return true;}
 // the ambulance crew and their stretcher are solid too (they move, so they are not in the cached walkCols)
-const _rv=new THREE.Vector3();
-function rescueCols(){if(!RESC||WALK.onSt)return [];const c=RESC.crew,L=[];c.updateMatrixWorld(true);
+const _rv=new THREE.Vector3(),NO_COLS=[];let RCOLS=NO_COLS;
+function rescueCols(){return RCOLS;}
+function updRescueCols(){if(!RESC||WALK.onSt){RCOLS=NO_COLS;return;}const c=RESC.crew,L=[];c.updateMatrixWorld(true);   // once per frame in walkTick
   for(const m of RESC.meds){m.g.getWorldPosition(_rv);L.push(OB(_rv.x,_rv.z,0,0.22,0.22));}
-  RESC.stretcher.getWorldPosition(_rv);L.push(OB(_rv.x,_rv.z,c.rotation.y,0.32,1.0));return L;}
+  RESC.stretcher.getWorldPosition(_rv);L.push(OB(_rv.x,_rv.z,c.rotation.y,0.32,1.0));RCOLS=L;}
 // one step: move, push out of whatever you touch (so you glide along walls and round corners instead of sticking), fall back to single axes
 const _pv=[0,0];
-function walkMove(P,dx,dz,y){const C=walkCols().concat(rescueCols()),stuck=!walkFree(P.x,P.z,y);let x=P.x+dx,z=P.z+dz;
-  for(let it=0;it<4;it++){let hit=false;for(const b of C)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(!hit)break;}
+function walkMove(P,dx,dz,y){const C=walkCols(),RC=rescueCols(),stuck=!walkFree(P.x,P.z,y);let x=P.x+dx,z=P.z+dz;
+  for(let it=0;it<4;it++){let hit=false;for(const b of C)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}for(const b of RC)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(!hit)break;}
   if((walkFree(x,z,y)||(stuck&&walkInside(x,z)))&&Math.hypot(x-P.x,z-P.z)<=Math.hypot(dx,dz)*1.5+0.03){const m=Math.hypot(x-P.x,z-P.z);P.x=x;P.z=z;return m;}
   if(walkFree(P.x+dx,P.z,y)){P.x+=dx;return Math.abs(dx);}if(walkFree(P.x,P.z+dz,y)){P.z+=dz;return Math.abs(dz);}return 0;}
 // stairwell: local coords (lz runs from the infield entrance +2.55 down the 12 steps to the landing; lx across, ±1.1 between the walls)
@@ -4593,7 +4595,7 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   if(!WALK.r){const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
     WALK.r=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});scene.add(WALK.r.g);}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
-  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();buildAdvisor();
+  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.jumpT=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();buildAdvisor();
   if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
@@ -4813,6 +4815,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   else if(WALK.spd>0.02){const ux=ml>1e-3?mx/ml:Math.sin(WALK.head),uz=ml>1e-3?mz/ml:Math.cos(WALK.head),st=WALK.spd*dt;
     const moved=walkMove(P,ux*st,uz*st,P.y);if(moved<st*0.35)WALK.spd*=0.85;   // up against something: don't keep the full stride going on the spot
     if(!walkTryClimb(ux,uz,amt))walkTrySit(ux,uz,amt);}
+  updRescueCols();
   if(WALK.jumpT>0){WALK.jumpT-=dt;if(WALK.jumpT<=0){if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit&&!WALK.ride&&!WALK.air&&!WALK.down&&phase==='walk')walkTakeOff();else WALK.jumpT=0;}}
   if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit&&!WALK.ride){const gy=walkGround(P.x,P.z);
     if(!WALK.air&&stairY(P.x,P.z)!=null)P.y=gy;   // on the stairs the feet stay on the steps, even running in
