@@ -2362,8 +2362,10 @@ function botAI(R,dt){const RP=aiPace();
   for(const o of riders){if(o===R||!o.model.g.visible)continue;const d=gapTo(R,o);if(d<=0)continue;
     if(o.crashed){if(d<25&&Math.abs(o.w-R.w)<1.3&&o.w>-0.4&&o.crash.t<2.5)wreck=o;continue;}
     if(o.resting||(o.pullT>0&&!(R.pullT>0)&&!o.player)||(o===R.passWho&&R.passT>0))continue;   // a man swinging off isn't a wheel to follow
-    if(d<gapA&&d<70){gapA=d;anyA=o;}
+    if(d<gapA&&d<70&&!(mode==='madison'&&R.s-o.s>L0*0.4)){gapA=d;anyA=o;}   // madison: a man a lap down isn't the pace to follow
     if(d<gap&&d<40&&Math.abs(o.w-R.w)<0.9){gap=d;ahead=o;}}
+  R.slFresh=Math.max(0,(R.slFresh||0)-dt);
+  const lapAhead=mode==='madison'&&!!ahead&&gap<14&&(R.s-ahead.s>L0*0.4||(R.slFresh>0&&ahead.v<R.v-0.8));   // madison: lapped rider (or a slower one just after the sling) in my line -> go round, don't sit behind him
   if(mode==='madison')for(const o of riders){if(!o.resting||o.crashed||teamOf(o)===teamOf(R))continue;const d=gapTo(R,o);if(d>0&&d<20&&Math.abs(o.w-R.w)<1.0&&o.v<R.v){wreck={w:o.w>1.1?0.4:o.w+0.95,crash:{t:0},mad:true};if(d<10&&o.slowT>0)wreck.brake=o.v+0.3;}}
   for(const c of cans){if(c.t<-0.3)continue;const d=gapTo(R,c);if(d>0&&d<22&&Math.abs(c.w-R.w)<0.9)wreck={w:c.w,crash:{t:0}};}
   const keirin0=mode==='keirin';const lastLine=toGo>=FIN-eS-1,inter=(mode==='points'||mode==='madison')&&!lastLine;
@@ -2412,7 +2414,7 @@ function botAI(R,dt){const RP=aiPace();
   if(neutral){const ld=AIG&&AIG.G[0]?effS(AIG.G[0].head):eS;vT=NEU_V+clamp((ld-eS-4)*0.15,0,2.2);}   // neutral lap: close up into a compact bunch
   if(raceTime<5)vT=Math.min(vT,2+raceTime*2.2);
   if(R.attackT>0)vT=R.bridge&&!R.bridge.crashed?(R.mark?vEq(R.bridge)+clamp((gapTo(R,R.bridge)-2)*0.45,-1.5,3.2):Math.max(vEq(R.bridge)+Math.min(2.4,gapTo(R,R.bridge)*0.12),RP+1)):RP+(mode==='points'?1.9:2.5);
-  if(!front&&!(R.attackT>0)&&R.pullT<=0&&anyA){const tgt=ahead&&gap<12?ahead:anyA;const d=tgt===ahead?gap:gapA;
+  if(!front&&!(R.attackT>0)&&R.pullT<=0&&anyA){const tgt=ahead&&gap<12&&!lapAhead?ahead:anyA;const d=tgt===ahead?gap:gapA;
     if(d<6&&!neutral)vT=Math.min(vT+0.6,vEq(tgt)+(d-1.9)*0.7);   // sit on the wheel
     else if(d<6)vT=Math.min(vT,vEq(tgt)+(d-1.9)*0.7);
     else vT=Math.max(vT,vEq(tgt)+Math.min(2.4,(d-3)*0.12));   // a gap opened in the line: close it
@@ -2435,7 +2437,7 @@ function botAI(R,dt){const RP=aiPace();
       if(gapA>4.5&&(!att||R.followAtk)){vT=Math.max(vT,vEq(anyA)+Math.min(3,(gapA-3)*0.4));packLim=R.ftp*(att?2.2:1.6);}   // a gap: shut it at once
       else if(gapA>4.5)vT=Math.min(vT,g.vT);}
     if(g!==B&&ldR){vT=Math.max(vT,vEq(ldR)+Math.min(3,(effS(B.tail)-eS)*0.06+0.4));packLim=R.ftp*1.6;}   // dropped off the back: get back on
-    if(ahead&&gap<4&&ahead!==anyA)vT=Math.min(vT,vEq(ahead)+(gap-1.9)*0.7);
+    if(ahead&&gap<4&&ahead!==anyA&&!lapAhead)vT=Math.min(vT,vEq(ahead)+(gap-1.9)*0.7);
     packTw=anyA&&gapA<GROUP_GAP?clamp(anyA.w,0.45,1.35):lineW;}   // follow the wheel, but the bunch stays down by the black and red lines
   if(sprinting)vT=25;
   // never ride into the back wheel in front: look further ahead the faster I'm closing
@@ -2458,14 +2460,14 @@ function botAI(R,dt){const RP=aiPace();
   else if(lapsLeft<1.3&&!sprinting&&!keirin)tw=mode==='madison'?Math.min(R.highLane,1.4):R.highLane;   // up the banking for the sprint
   else if(keirin&&!sprinting&&front)tw=0.45;
   if(sprinting){tw=0.55;if(ahead&&gap<16&&ahead.v<R.v-1.2)tw=ahead.w+0.9;}
-  const wantPass=ahead&&gap<5&&(vT>ahead.v+0.4||sprinting||R.attackT>0)&&R.pullT<=0;
+  const wantPass=ahead&&(gap<5||lapAhead)&&(vT>ahead.v+0.4||sprinting||R.attackT>0||lapAhead)&&R.pullT<=0;
   if(wantPass){const up=ahead.w+0.85;if(freeAt(R,up,3))tw=up;else if(R.aggr>0.65&&lapsLeft<1.2)tw=up;else tw=Math.min(tw,ahead.w);}
   if(R.attackT>0&&R.mark&&R.bridge&&!sprinting)tw=R.bridge.w;
   else if(R.attackT>0&&!wantPass)tw=ahead&&gap<8?ahead.w+0.85:0.55;
   if(g.gapFront>40&&(!anyA||gapA>15)&&!sprinting&&!(R.attackT>0))tw=0.45;   // dropped / lapped: hold the black line, the others pass above
   if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
-  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&gap<3.5;tw=passing?Math.min(tw,ahead.w+0.8):R.pullT>0?1.0:(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}
+  if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&(gap<3.5||lapAhead&&gap<8);tw=passing?Math.min(tw,ahead.w+0.8):R.pullT>0?1.0:(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}
   if(R.held&&neutral&&(raceTime<6||R.v<6)&&!wreck)tw=clamp(R.w,0.4,0.75);   // let go low by his holder: rides straight off in his line, no climbing up the banking
   R.targetW=clamp(tw,mode==='madison'?0.25:0.4,mode==='madison'?3.2:TW-1.0);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
@@ -2651,9 +2653,9 @@ function updateCamera(dt){
 const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(1);};
 let hudT=0;
 function currentLap(R){return clamp(Math.floor((effS(R)-START_S)/L0)+1,1,Math.ceil(LAPS));}
-// what the lap board and the HUD show: the count flips only in the bend after the finish line (LAP_FLIP m past it), so coming down the home straight you already see what's left
-const LAP_FLIP=LSTR/2+LT*0.6;
-function shownLap(R){const e=effS(R);return e>=FIN?Math.ceil(LAPS):clamp(Math.floor((e-START_S-LAP_FLIP)/L0)+1,1,Math.ceil(LAPS));}
+// what the lap board and the HUD show: the count flips as the leader crosses the finish line, together with the bell (as in a real race: bell = board shows 1)
+const LAP_FLIP=0;
+function shownLap(R){const n=Math.ceil(LAPS);return clamp(n-shownLeft(effS(R))+1,1,n);}   // always the same lap as the board (keirin / kilo start half a lap out)
 function shownLeft(e){if(e>=FIN)return 0;return Math.min(Math.ceil((FIN-Math.min(e,START_S))/L0),Math.ceil((FIN-e+LAP_FLIP)/L0));}
 function updateHUD(dt){hudT-=dt;if(hudT>0)return;hudT=0.1;const R=player;
   $('spd').textContent=(R.v*3.6).toFixed(1);$('pwr').textContent=Math.round(R.realP||0);$('rpm').textContent=Math.round(R.v/7.6*60);
@@ -3336,7 +3338,7 @@ function slingEligible(T){const A=T.act,R=T.rest;if(!R||R.crashed||A.crashed||A.
   const lim=T.waitT>1.2?2.6:1.8;return d>-1.5&&d<lim&&Math.abs(R.w-A.w)<1.1;}
 function doSling(T,q){const A=T.act,R=T.rest;const newS=A.s+gapTo(A,R),boost=1.0+2.4*q;
   // the player is always the same rider: throwing the partner sends you up to rest, getting thrown puts you back in the race
-  R.s=newS;R.v=Math.max(R.v,A.v);R.resting=false;A.resting=true;A.targetW=3.7;T.act=R;T.rest=A;R.attackT=0;slingKick(R,A,boost);
+  R.s=newS;R.v=Math.max(R.v,A.v);R.resting=false;R.slFresh=4;A.resting=true;A.targetW=3.7;T.act=R;T.rest=A;R.attackT=0;slingKick(R,A,boost);
   if(T.me){if(R.player){R.targetWp=R.w;R.latched=false;}
     showMsg('🤝<small>'+(q>0.8?'Perfektní vrh! ':'Předávka ')+'+'+Math.round(boost*3.6)+' km/h – '+(R.player?'jedeš ty!':'jede parťák, vyjeď nahoru a odpočívej')+'</small>',1.6);tone(q>0.8?880:600,0.15,0.12,'triangle');if(ST)ST.slings=(ST.slings||0)+1;}
   else{const g=gapTo(player,A);if(phase==='race'&&!player.crashed&&g>2&&g<35&&Math.abs(A.w-player.w)<1.6)showMsg('⚠️<small>Předávka před tebou – objeď je!</small>',1.3);}
@@ -4484,7 +4486,9 @@ function walkCols(){if(WCOL)return WCOL;const C=OBST.walk.slice(),t=0.035;BOOTHS
   for(const [xc,zs,open] of OBST.cols)for(let i=0;i<3;i++){const z0=zs[i],z1=zs[i+1],W=3.0,xb=xc-open*W/2,xf=xc+open*W/2,zc=(z0+z1)/2,bl=z1-z0-0.5;
     ab(xb-t,z0,xb+t,z1);for(const zz of [z0,z1])ab(Math.min(xb,xf),zz-t,Math.max(xb,xf),zz+t);   // back wall, partitions
     ab(xb,zc-bl/2,xb+open*0.51,zc+bl/2);BOOTHS.push({xb,xf,open,z0,z1,zc,bl});}   // bench + backrest
-  C.push(OB(STAIR.cx,STAIR.cz,Math.atan2(-STAIR.uz,STAIR.ux),2.55+0.12,1.15+0.12));
+  {const S=STAIR,ro=Math.atan2(-S.uz,S.ux);   // stairwell: side walls and the rail at the far end, the infield end is open – walk down the stairs (stairY)
+   for(const sx of [-1,1])C.push(OB(S.cx+S.vx*sx*1.19,S.cz+S.vz*sx*1.19,ro,2.55+0.2,0.09));
+   C.push(OB(S.cx+S.ux*2.64,S.cz+S.uz*2.64,ro,0.09,1.28));}
   JUDGES.updateMatrixWorld();const jr=JUDGES.rotation.y,jp=V(0.375,0,0),tp=V(PODX,0,-2.75);JUDGES.localToWorld(jp);JUDGES.localToWorld(tp);
   C.push(OB(jp.x,jp.z,jr,1.275,2.65));C.push(OB(tp.x,tp.z,jr,0.35,0.88));   // judges' booth, TV on its stand
   for(const b of WALK_BOX)ab(b[0],b[1],b[2],b[3]);
@@ -4506,7 +4510,11 @@ function walkMove(P,dx,dz,y){const C=walkCols(),stuck=!walkFree(P.x,P.z,y);let x
   for(let it=0;it<4;it++){let hit=false;for(const b of C)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(!hit)break;}
   if((walkFree(x,z,y)||(stuck&&walkInside(x,z)))&&Math.hypot(x-P.x,z-P.z)<=Math.hypot(dx,dz)*1.5+0.03){const m=Math.hypot(x-P.x,z-P.z);P.x=x;P.z=z;return m;}
   if(walkFree(P.x+dx,P.z,y)){P.x+=dx;return Math.abs(dx);}if(walkFree(P.x,P.z+dz,y)){P.z+=dz;return Math.abs(dz);}return 0;}
-function walkGround(x,z){if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.pz,a=dx*f.fx+dz*f.fz,o=-(dx*f.nx+dz*f.nz);   // walking up the ramp onto the apron
+// stairwell: local coords (lz runs from the infield entrance +2.55 down the 12 steps to the landing; lx across, ±1.1 between the walls)
+const STAIR_D=2.6,STAIR_RUN=3.4,STAIR_HL=2.55;
+function stairLocal(x,z){const S=STAIR,dx=x-S.cx,dz=z-S.cz;return {lx:dx*S.vx+dz*S.vz,lz:-(dx*S.ux+dz*S.uz)};}
+function stairY(x,z){const l=stairLocal(x,z);if(Math.abs(l.lx)>1.12||l.lz>STAIR_HL||l.lz<-STAIR_HL-0.1)return null;return -STAIR_D*clamp((STAIR_HL-l.lz)/STAIR_RUN,0,1);}   // smooth slope: the feet follow the steps, no fall at every edge
+function walkGround(x,z){{const sy=stairY(x,z);if(sy!=null&&sy<0)return FLOOR_Y+sy;}if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.pz,a=dx*f.fx+dz*f.fz,o=-(dx*f.nx+dz*f.nz);   // walking up the ramp onto the apron
     if(Math.abs(a)<R.HWr&&o>R.oT&&o<R.oB)return R.yT+(R.yB-R.yT)*(o-R.oT)/(R.oB-R.oT);}
   const t=podTop(x,z,0.1);if(t>0)return FLOOR_Y+t;
   return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
@@ -4734,7 +4742,7 @@ function advTick(dt,P){if(!ADV)return;const A=ADV,g=A.r.g,T=A.T;A.t+=dt;for(cons
 function advTalk(){if(window.Online&&Online.feedback){WALK.k={};WALK.jx=WALK.jy=0;WALK.joy=null;joyHome();Online.feedback();}else walkSay('🧔 Schránka na návrhy teď nejde – zkus to, až půjde internet.',3);}
 function snackTick(dt){const A=WALK.act,S=A.S,t=A.t+=dt,r=WALK.r;WALK.head=A.h0+_angTo(A.h0,A.hT)*_sm(Math.min(1,t/0.35));
   const take=0.55,back=S.kind==='drink'?2.45:2.3;   // the gel goes back on the bench too (another one for later)
-  if(t>=take&&!A.held){A.held=true;r.arms[0].hand.add(S.m);S.m.scale.setScalar(1.15);if(S.kind==='drink'){S.m.rotation.set(PI/2+0.25,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.1);}else{S.m.rotation.set(PI/2+0.2,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.05);}}
+  if(t>=take&&!A.held){A.held=true;r.arms[0].hand.add(S.m);S.m.scale.setScalar(1.15);if(S.kind==='drink'){S.m.rotation.set(-PI/2-1.0,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.16);}else{S.m.rotation.set(PI/2+0.2,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.05);}}
   if(S.kind==='drink'&&t>1.1&&t<2.2&&!A.glug){A.glug=true;for(let i=0;i<4;i++)setTimeout(()=>tone(180+Math.random()*40,0.05,0.025,'sine'),i*230);}
   if(S.kind==='gel'&&t>1.15&&!A.squeeze){A.squeeze=true;tone(240,0.08,0.025,'sine');}
   if(t>=back&&A.held&&!A.back){A.back=true;scene.add(S.m);S.m.scale.setScalar(SN_BIG);S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}
@@ -4753,7 +4761,8 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
   const resc=!!(RESC&&RESC.onWalk),busy=resc||WALK.down||WALK.climb!=null||!!WALK.sit||!!WALK.hop||!!WALK.ride||!!WALK.act;
   if(!WALK.ride&&RIDE.last&&RIDE.last.v>0.01){RIDE.last.v*=Math.exp(-dt*0.7);rollerSpin(RIDE.last,dt);}   // the drums run down after you get off
-  const top=K.run||(WALK.jy>0.8&&amt>0.9)?4.3:1.7*Math.max(amt,0.35),tgt=amt>0.08&&!busy?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?4:8));
+  const stY=stairY(WALK.pos.x,WALK.pos.z),onSt=stY!=null&&stY<-0.03&&stY>-STAIR_D+0.03;WALK.stair=(WALK.stair||0)+((onSt?1:0)-(WALK.stair||0))*Math.min(1,dt*6);   // on the stairs: no running, knees up
+  const top=onSt?1.25*Math.max(amt,0.4):K.run||(WALK.jy>0.8&&amt>0.9)?4.3:1.7*Math.max(amt,0.35),tgt=amt>0.08&&!busy?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?4:8));
   const h0=WALK.head;
   if(ml>1e-3&&!busy&&!WALK.fall){const d=_angTo(WALK.head,Math.atan2(mx,mz));WALK.head+=d*Math.min(1,dt*(WALK.spd>2.4?6:9));}
   const P=WALK.pos;if(WALK.down)WALK.downT+=dt;
@@ -4769,6 +4778,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
     const moved=walkMove(P,ux*st,uz*st,P.y);if(moved<st*0.35)WALK.spd*=0.85;   // up against something: don't keep the full stride going on the spot
     if(!walkTryClimb(ux,uz,amt))walkTrySit(ux,uz,amt);}
   if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit&&!WALK.ride){const gy=walkGround(P.x,P.z);
+    if(!WALK.air&&stairY(P.x,P.z)!=null)P.y=gy;   // on the stairs the feet stay on the steps, even running in
     if(!WALK.air&&!WALK.down&&gy<P.y-0.2){WALK.air=true;WALK.vy=0;WALK.airTop=P.y;}   // stepped off the podium edge: fall
     if(WALK.air){WALK.vy-=9.81*dt;P.y+=WALK.vy*dt;if(P.y<=gy&&WALK.vy<=0){const drop=(WALK.airTop||gy)-gy;P.y=gy;WALK.air=false;WALK.land=0.2;
         if(WALK.fall){WALK.fall=false;walkMove(P,0,0,P.y);if(drop>1.5)walkHardLanding();else tone(110,0.07,0.05,'sine');}else tone(110,0.07,0.05,'sine');}}
@@ -4785,7 +4795,8 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   else if(WALK.act&&WALK.act.sit){heroGait(T,0,0,0,r.t,0);Object.assign(T,sitPose({},1,r.t));const Q=snackPose({},WALK.act.t,WALK.act.S.kind);for(const q of ['a0x','a0y','a0z','e0','a1x','a1z','e1','hx','mo'])if(Q[q]!==undefined)T[q]=Q[q];T.lean+=0.25*(Q.lean||0);T.twist=0.3*(Q.lean||0)*(WALK.act.S.z>WALK.pos.z?1:-1)*WALK.sit.B.open;}   // seated: only the arms reach over, the body just leans a little
   else if(WALK.act){heroGait(T,0,0,0,r.t,0);snackPose(T,WALK.act.t,WALK.act.S.kind);}
   else if(WALK.sit){heroGait(T,0,0,0,r.t,0);const k=walkSitK(),S=sitPose({},k,r.t);for(const q in S)T[q]=(T[q]||0)*(1-k)+S[q];}
-  else{heroGait(T,WALK.ph,a,run,r.t,turn);
+  else{heroGait(T,WALK.ph,a,run,r.t,turn);if(WALK.stair>0.01&&!WALK.air){const k=WALK.stair*a,s0=Math.max(0,Math.sin(WALK.ph)),s1=Math.max(0,-Math.sin(WALK.ph));   // stairs: each foot lifts onto the next step
+      T.l0h=(T.l0h||0)-0.45*k*s0;T.l0k=(T.l0k||0)+0.8*k*s0;T.l1h=(T.l1h||0)-0.45*k*s1;T.l1k=(T.l1k||0)+0.8*k*s1;T.lean=(T.lean||0)+0.06*k;T.hx=(T.hx||0)+0.2*k;}
     if(WALK.air){const f=WALK.fall?1:0;T.l0h=T.l1h=-0.55+0.3*f;T.l0k=T.l1k=0.95-0.4*f;T.a0x=T.a1x=-0.7-1.4*f;T.a0z=T.a1z=0.08+0.9*f;T.e0=T.e1=-0.6;T.mo=f*0.8;}   // tuck in the air – or flail when it's a long way down
     else if(WALK.land>0){WALK.land-=dt;const c=WALK.land/0.2;T.l0k=Math.max(T.l0k,0.7*c);T.l1k=Math.max(T.l1k,0.7*c);T.l0h=Math.min(T.l0h,-0.3*c);T.l1h=Math.min(T.l1h,-0.3*c);T.y-=0.07*c;}}   // soft landing
   if(!WALK.onSt){poseHuman(r,T,1-Math.exp(-dt*(WALK.sit||WALK.climb!=null?8:14)));r.g.position.copy(P);r.g.rotation.order='YXZ';r.g.rotation.y=WALK.head;
@@ -4799,6 +4810,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
     WALK.cam.lerp(_wc,Math.min(1,dt*2.2));WALK.lk.lerp(_wl,Math.min(1,dt*3.5));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(WALK.lk);}
   else{const cp=Math.cos(WALK.pitch),sp=Math.sin(WALK.pitch);let D=WALK.ride?2.7:3.6;for(let q=0;q<10;q++){const x=P.x-fx*cp*D,z=P.z-fz*cp*D;if(walkInside(x,z)||D<=1.3)break;D-=0.25;}
     const ly=WALK.down?0.35:WALK.ride?1.05:WALK.sit?0.95:1.35;_wc.set(P.x-fx*cp*D,P.y+ly+0.2+sp*D,P.z-fz*cp*D);_wl.set(P.x+fx*0.6,P.y+ly,P.z+fz*0.6);
+    if(P.y<FLOOR_Y-0.3){const S=STAIR,l=stairLocal(_wc.x,_wc.z),lx=clamp(l.lx,-0.8,0.8),lz=clamp(l.lz,-STAIR_HL+0.4,STAIR_HL+1.5);_wc.x=S.cx+S.vx*lx-S.ux*lz;_wc.z=S.cz+S.vz*lx-S.uz*lz;_wc.y=Math.max(_wc.y,FLOOR_Y+1.7);}   // down the stairwell: the camera looks in from above the opening, never through its walls
     if(!WALK.camOk){WALK.cam.copy(_wc);WALK.camOk=true;}if(!WALK.lkOk){WALK.lk.copy(_wl);WALK.lkOk=true;}const ck=WALK.hop?dt*3:dt*10;WALK.cam.lerp(_wc,Math.min(1,ck));WALK.lk.lerp(_wl,Math.min(1,ck*1.2));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(WALK.lk);}
   if(window.__wcam)window.__wcam(camera,WALK);   // debug view
   // zones: come up to it and it opens, walk away and it closes
