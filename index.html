@@ -272,7 +272,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI{display:none!important}
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.9</div>
+    <div class="sub">v1.10</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -4596,7 +4596,7 @@ function heroGait(T,ph,a,run,t,turn){const s=Math.sin(ph),c=Math.cos(ph),w=a*(1-
   T.lean=0.05*w+0.2*r;T.twist=-s*(0.1*w+0.18*r);T.side=s*0.035*w-turn*0.06*a+idle*Math.sin(t*0.5)*0.015;
   T.hx=-T.lean*0.6;T.hy=turn*0.25+s*(0.08*w+0.12*r)*0.5+idle*Math.sin(t*0.23)*0.35;T.hz=0;return T;}
 // sitting on a booth bench: hips over the seat, hands on the thighs, looking about
-function sitPose(T,k,t){T.l0h=T.l1h=-1.5*k;T.l0k=T.l1k=1.5*k;T.y=-0.4*k;T.lean=-0.06*k;T.twist=0;T.side=0;
+function sitPose(T,k,t){T.l0h=T.l1h=-1.5*k;T.l0k=T.l1k=1.5*k;T.y=-0.3*k;T.lean=-0.06*k;T.twist=0;T.side=0;
   T.a0x=T.a1x=-0.55*k;T.a0z=T.a1z=0.12;T.e0=T.e1=-0.75*k;T.hx=0.08*k;T.hy=Math.sin(t*0.3)*0.5*k;T.hz=0;return T;}
 // on the ladder: hands on the rails, knee up onto the next rung, body leaning into the slope
 function climbPose(T,ph,mv){const s=Math.sin(ph),c=Math.cos(ph),m=Math.min(1,mv);
@@ -4673,7 +4673,7 @@ function rideTick(dt){const W=WALK.ride,R=W.R,M=RIDE.M,K=WALK.k;W.t+=dt;
   const sT=e>0.92?1:0,uT=e<0.25?1:0,pT=clamp((e-0.7)/0.25,0,1);RIDE.st+=(sT-RIDE.st)*Math.min(1,dt*4);RIDE.su+=(uT-RIDE.su)*Math.min(1,dt*1.5);RIDE.sp+=(pT-RIDE.sp)*Math.min(1,dt*3);RIDE.br+=dt*(1.5+2.5*e);
   poseRider(M,RIDE.crank,RIDE.st,RIDE.su*(1-RIDE.st),RIDE.sp*(1-RIDE.st)*(1-RIDE.su),Math.sin(RIDE.br),0.25*Math.sin(t*0.4)*(1-e),0.4+e*1.2,0.15);}
 // booths: a bottle stands on the bench (booth 1 on the sketch), a gel lies there (booth 2) – both groups of booths; gels stay on the bench after you've had one
-const SNACKS=[];
+const SNACKS=[],SN_BIG=1.7;   // bottles and gels a size up, so you can see them on the bench
 function bottleMesh(){const g=new THREE.Group();const red=new THREE.MeshPhongMaterial({color:0xd8232a,specular:0x996666,shininess:70}),wh=new THREE.MeshPhongMaterial({color:0xf4f4f2,specular:0xffffff,shininess:60});
   const pts=[[0,0],[0.033,0],[0.036,0.006],[0.036,0.07],[0.031,0.085],[0.031,0.1],[0.036,0.115],[0.036,0.16],[0.034,0.168],[0,0.168]].map(p=>new THREE.Vector2(p[0],p[1]));
   g.add(new THREE.Mesh(new THREE.LatheGeometry(pts,20),red));
@@ -4693,8 +4693,10 @@ function buildSnacks(){if(SNACKS.length)return;walkCols();const y=FLOOR_Y+0.01+0
   for(const [xc,i,kind] of pick){const B=BOOTHS.find(b=>Math.abs((b.xb+b.xf)/2-xc)<0.1&&Math.abs(b.zc-[-3.4,0,3.4][i])<0.2);if(!B)continue;
     const x=B.xb+B.open*0.3,z=B.zc+(B.bl/2-0.3)*(i===0?1:-1),m=kind==='drink'?bottleMesh():gelMesh();
     if(kind==='gel'){m.rotation.set(-PI/2,0,0.5);m.position.set(x+0.04*B.open,y+0.004,z-0.06);}else{m.position.set(x+0.02*B.open,y,z);m.rotation.y=0.6;}
-    scene.add(m);SNACKS.push({kind,m,B,home:[m.position.clone(),m.rotation.clone()],x,z});}}
-function snackShow(){for(const S of SNACKS){S.m.visible=true;if(S.m.parent!==scene){scene.add(S.m);}S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}}
+    m.scale.setScalar(SN_BIG);scene.add(m);const tag=walkTag(kind==='drink'?'💧':'⚡');tag.scale.set(0.42,0.42,1);tag.position.set(x,FLOOR_Y+1.05,z);WALK.tags.push(tag);
+    SNACKS.push({kind,m,B,home:[m.position.clone(),m.rotation.clone()],x,z,tag});}}
+function snackTags(){for(const S of SNACKS)S.tag.visible=phase==='walk'&&!(S.kind==='drink'?PREP.drink:PREP.gel)&&!(WALK.act&&WALK.act.S===S);}   // green ring over what you can still have
+function snackShow(){for(const S of SNACKS){S.m.visible=true;S.m.scale.setScalar(SN_BIG);if(S.m.parent!==scene){scene.add(S.m);}S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}}
 function snackNear(P){let best=null,bd=1.05;for(const S of SNACKS){if(S.kind==='drink'?PREP.drink:PREP.gel)continue;const B=S.B;if(WALK.sit){if(WALK.sit.B===B){const d=Math.abs(P.z-S.z)*0.5;if(d<bd){bd=d;best=S;}}continue;}const inX=(P.x-B.xb)*B.open;if(inX<0||inX>3.0||P.z<B.z0||P.z>B.z1)continue;
     const d=Math.hypot(P.x-S.x,P.z-S.z);if(d<bd){bd=d;best=S;}}return best;}
 function snackStart(S){WALK.act={S,t:0,h0:WALK.head,hT:WALK.sit?WALK.head:Math.atan2(S.x-WALK.pos.x,S.z-WALK.pos.z),sit:!!WALK.sit};WALK.spd=0;tone(500,0.06,0.03,'triangle');}
@@ -4716,10 +4718,10 @@ function advTick(dt,P){if(!ADV)return;const A=ADV,g=A.r.g,T=A.T;A.t+=dt;for(cons
 function advTalk(){if(window.Online&&Online.feedback){WALK.k={};WALK.jx=WALK.jy=0;WALK.joy=null;joyHome();Online.feedback();}else walkSay('🧔 Schránka na návrhy teď nejde – zkus to, až půjde internet.',3);}
 function snackTick(dt){const A=WALK.act,S=A.S,t=A.t+=dt,r=WALK.r;WALK.head=A.h0+_angTo(A.h0,A.hT)*_sm(Math.min(1,t/0.35));
   const take=0.55,back=S.kind==='drink'?2.45:2.3;   // the gel goes back on the bench too (another one for later)
-  if(t>=take&&!A.held){A.held=true;r.arms[0].hand.add(S.m);if(S.kind==='drink'){S.m.rotation.set(PI/2+0.25,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.1);}else{S.m.rotation.set(PI/2+0.2,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.05);}}
+  if(t>=take&&!A.held){A.held=true;r.arms[0].hand.add(S.m);S.m.scale.setScalar(1.15);if(S.kind==='drink'){S.m.rotation.set(PI/2+0.25,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.1);}else{S.m.rotation.set(PI/2+0.2,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.05);}}
   if(S.kind==='drink'&&t>1.1&&t<2.2&&!A.glug){A.glug=true;for(let i=0;i<4;i++)setTimeout(()=>tone(180+Math.random()*40,0.05,0.025,'sine'),i*230);}
   if(S.kind==='gel'&&t>1.15&&!A.squeeze){A.squeeze=true;tone(240,0.08,0.025,'sine');}
-  if(t>=back&&A.held&&!A.back){A.back=true;scene.add(S.m);S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}
+  if(t>=back&&A.held&&!A.back){A.back=true;scene.add(S.m);S.m.scale.setScalar(SN_BIG);S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}
   if(t>=SN_DUR[S.kind]){WALK.act=null;if(S.kind==='drink'){PREP.drink=true;walkSay('💧 +3 % energie',1.6);}else{PREP.gel=true;walkSay('⚡ +5 % energie',1.6);}tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
 // pick it up from the bench, up to the mouth, head back to drink (or squeeze the gel), then put the bottle back
 function snackPose(T,t,kind){const D=SN_DUR[kind],k1=_sm(t/0.45),k2=_sm((t-0.55)/0.5),k3=kind==='drink'?_sm((t-2.0)/0.5):_sm((t-1.9)/0.5),k4=kind==='drink'?_sm((t-2.5)/0.4):0;
@@ -4791,7 +4793,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   // the action button: right up to a bike on the rollers / the bottle / the gel
   if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P);if(R)ac={k:'roll',R};else if(advNear(P))ac={k:'talk'};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
   else if(WALK.sit&&WALK.sit.up<0&&WALK.sit.t>0.8&&!WALK.act&&!(WALK.acCD>0)){const S=snackNear(P);if(S)ac={k:S.kind,S};}   // sitting next to it: have it without getting up
-  advTick(dt,P);
+  advTick(dt,P);snackTags();
   const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':key==='talk'?'💬 Promluvit':'';ab.style.display=key?'block':'none';}WALK.ac=ac;
   if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
 function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else if(A.k==='talk')advTalk();else snackStart(A.S);}
