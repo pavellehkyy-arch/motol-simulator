@@ -303,6 +303,7 @@
       '@supports ((-webkit-background-clip:text) or (background-clip:text)){#onlineOv span.gold,.obd span.gold{color:transparent;-webkit-text-fill-color:transparent;background-image:linear-gradient(100deg,#a67400 0%,#ffd700 30%,#fff6b0 50%,#ffd700 70%,#a67400 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;animation:onGold 2.4s linear infinite}}' +
       '@keyframes onGold{0%{background-position:150% 0}100%{background-position:-100% 0}}' +
       '@media (prefers-reduced-motion:reduce){#onlineOv span.gold,.obd span.gold{animation:none}}' +
+      '#onlineOv span.gb,.obd span.gb{display:inline-block;margin-left:5px;padding:1px 4px 0;border-radius:4px;font-size:9px;font-weight:900;letter-spacing:.5px;line-height:1.3;vertical-align:2px;color:#3a2a00;background:linear-gradient(135deg,#a67400,#ffd700 45%,#fff6b0 55%,#c99700);box-shadow:0 0 0 1px #0003}' +
       '#onlineOv .os{font-size:12px;opacity:.7}' +
       '#onlineOv textarea.oi{font-size:16px;min-height:120px;resize:vertical;line-height:1.35}' +
       '#onlineOv .oq{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px}' +
@@ -500,7 +501,7 @@
         r.rows.forEach(function (x) {
           var mine = P && P.nickname && x.nickname === P.nickname;
           tb.appendChild(h('tr', { class: mine ? 'me' : '' }, [
-            h('td', { text: x.place + '.' }), h('td', x.badge === 'gold' ? null : { text: String(x.nickname) }, x.badge === 'gold' ? [h('span', { class: 'gold', text: String(x.nickname) })] : null), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
+            h('td', { text: x.place + '.' }), h('td', x.badge === 'gold' ? null : { text: String(x.nickname) }, x.badge === 'gold' ? [h('span', { class: 'gold', text: String(x.nickname) }), h('span', { class: 'gb', text: 'GOLD', title: 'Gold účet' })] : null), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
         });
         list.appendChild(tb);
       });
