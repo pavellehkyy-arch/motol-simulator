@@ -136,6 +136,9 @@ body.walking #results{background:none;pointer-events:none;align-items:center;pad
 body.cerwalk #againBtn,body.cerwalk #menuBtn{display:none}
 body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,body.cerwalk #walkMsg{display:none}
 #walkMenu{position:absolute;top:12px;right:12px;padding:9px 14px;font-size:14px}#mpBadge{position:absolute;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));padding:8px 12px;font-size:13px;font-weight:800;background:rgba(10,20,35,.75);border:1px solid rgba(198,255,26,.5);border-radius:10px;pointer-events:none;display:none}body.cerwalk #mpBadge{display:none}
+#mpLog{position:absolute;top:calc(max(12px,env(safe-area-inset-top)) + 40px);left:max(12px,env(safe-area-inset-left));max-width:min(46vw,360px);font-size:13px;line-height:1.35;background:rgba(10,20,35,.6);border-radius:10px;padding:6px 10px;pointer-events:none;display:none;overflow-wrap:anywhere}#mpLog b{color:#7fd3ff}#mpLog b.gold{color:#ffd34d}
+#mpChatBtn{position:absolute;top:62px;right:12px;padding:8px 13px;font-size:18px;display:none}body.riding #mpChatBtn,body.cerwalk #mpChatBtn,body.cerwalk #mpLog{display:none!important}
+#mpChatF{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);display:none;gap:6px;width:min(92vw,520px);z-index:5}#mpChatIn{flex:1;min-width:0;font-size:16px;padding:9px 12px;border-radius:10px;border:2px solid #7fd3ff;background:rgba(10,20,35,.92);color:#fff}#mpChatIn.bad{border-color:#ff5a5a}#mpChatF .go{padding:9px 12px;font-size:14px}
 #walkAct{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));padding:13px 20px;font-size:16px;min-width:0;box-shadow:0 4px 18px rgba(0,0,0,.4)}
 #rideUI{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));pointer-events:none}#rideUI>*{pointer-events:auto}
 #rideCnt{min-width:64px;text-align:center;font-size:14px;font-weight:800;background:rgba(10,20,35,.75);border-radius:10px;padding:7px 10px}#rideEff{flex:1;min-width:120px;max-width:520px;height:36px;accent-color:#c6ff1a;touch-action:none}#rideOff{padding:11px 16px;font-size:15px;min-width:0}body.riding #joy{display:none}
@@ -276,7 +279,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v2.4</div>
+    <div class="sub">v2.5</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -289,7 +292,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="wipe"><i></i><i></i><i></i></div>
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
-<div id="walkUI"><div id="joy"><i></i></div><div id="mpBadge"></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div><button class="go" id="walkAct" style="display:none"></button><div id="bikePick" style="display:none"><b>Vyber si kolo</b><div id="bikeSw"></div><button class="go alt" id="bikePickX">Zavřít</button></div><div id="rideUI" style="display:none"><span id="rideCnt"></span><input type="range" id="rideEff" min="0" max="100" value="45" aria-label="Šlapání"><button class="go alt" id="rideOff">Sesednout</button></div></div>
+<div id="walkUI"><div id="joy"><i></i></div><div id="mpBadge"></div><div id="mpLog"></div><button class="go alt" id="mpChatBtn" aria-label="Napsat zprávu">💬</button><form id="mpChatF" autocomplete="off"><input id="mpChatIn" maxlength="120" enterkeyhint="send" placeholder="Zpráva pro ostatní…" aria-label="Zpráva pro ostatní"><button class="go" type="submit">Poslat</button><button class="go alt" type="button" id="mpChatX" aria-label="Zavřít">✕</button></form><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div><button class="go" id="walkAct" style="display:none"></button><div id="bikePick" style="display:none"><b>Vyber si kolo</b><div id="bikeSw"></div><button class="go alt" id="bikePickX">Zavřít</button></div><div id="rideUI" style="display:none"><span id="rideCnt"></span><input type="range" id="rideEff" min="0" max="100" value="45" aria-label="Šlapání"><button class="go alt" id="rideOff">Sesednout</button></div></div>
 <div id="walkRace" class="screen" style="display:none"><div class="card mcard">
   <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
   <div id="walkRaceList">
@@ -1741,8 +1744,8 @@ function makeScanHuman(o){o=o||{};const D=PHOTO_MODEL,S=D.s,G=D.g;
     if(part==='top'){if(topMap)return white;if(y>=topEnd)return pantsC;if(o.collar&&y<150&&d<1.0)return C(o.collar);
       if(o.sweat&&((y>178&&y<250&&d<0.42)||(y>190&&y<275&&d>1.25&&d<1.95)))return topC.clone().multiplyScalar(0.68);return topC;}   // sweat-soaked chest and armpits
     if(part==='low')return y<topEnd?topC:pantsC;
-    if(part==='leg'){if(o.shoeSole&&y>614)return C(o.shoeSole);if(y>597)return shoeC;if(o.legBand&&y>o.legBand[0]&&y<o.legBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return pantsC;}
-    if(part==='arm'){if(y>346)return handC;if(o.cuffs&&y>335)return C(o.cuffs);if(o.watch&&sx>0&&y>324&&y<334)return C(o.watch);if(o.armBand&&y>o.armBand[0]&&y<o.armBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return slvC;}
+    if(part==='leg'){if(o.shoeSole&&y>614)return C(o.shoeSole);if(y>597)return shoeC;if(o.shorts&&y>455)return skinC;if(o.legBand&&y>o.legBand[0]&&y<o.legBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return pantsC;}
+    if(part==='arm'){if(y>346)return handC;if(o.shortSleeve&&y>215)return skinC;if(o.cuffs&&y>335)return C(o.cuffs);if(o.watch&&sx>0&&y>324&&y<334)return C(o.watch);if(o.armBand&&y>o.armBand[0]&&y<o.armBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return slvC;}
     return topC;}
   const pos=[],uv=[],col=[],sk=[],sw=[],groups=[[],[],[]];   // 0 clothes/limbs, 1 textured jacket, 2 head (tints red when angry)
   const step=LOWEND?3:2,NR=LOWEND?18:26;
@@ -2188,7 +2191,7 @@ document.querySelectorAll('.btn').forEach(b=>{const k=b.dataset.k;
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);});
 const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'sprint',ShiftLeft:'sprint',ShiftRight:'sprint',KeyQ:'lookL',KeyR:'lookR',KeyW:'effUp',ArrowUp:'effUp',KeyS:'effDn',ArrowDown:'effDn'};
 const GAMEKEYS=['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS','KeyQ','KeyR','KeyC','KeyE','KeyM','KeyP','Digit1','Digit2','Digit3','Digit4','ShiftLeft','ShiftRight'];
-document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;const a=document.activeElement;if(a&&a.blur&&a!==document.body)a.blur();},true);
+document.addEventListener('click',e=>{if(e.target&&e.target.closest&&e.target.closest('#onlineOv,#mpChatF'))return;const a=document.activeElement;if(a&&a.blur&&a!==document.body)a.blur();},true);
 const typing=e=>{const t=e.target;return !!(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))&&t.type!=='range');};   // writing in a text box (login, suggestion box): the letters belong to the box, not the game
 window.addEventListener('keydown',e=>{if(GAMEKEYS.includes(e.code)&&phase!=='menu'&&!typing(e))e.preventDefault();},true);
 window.addEventListener('keyup',e=>{if(GAMEKEYS.includes(e.code)&&phase!=='menu'&&!typing(e))e.preventDefault();},true);
@@ -2825,6 +2828,14 @@ function aeroOn(M,cov,glv){if(!cov&&!glv&&!AEROM.ok)return;const A=aeroMats();
 window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js calls this after a purchase or an account sync
 const RIDE={M:null,v:0,eff:0.45,crank:0,t:0,st:0,su:0,sp:0,br:0,last:null};   // riding on the rollers on the walk (see PREP)
 let SPV=null;applyGear();
+// play as Albi (switched by Albi on the floor, remembered in localStorage motol_albi): on the floor his photo-scan body, in the race his name and skin
+let ALBI_ME=false;try{ALBI_ME=localStorage.getItem('motol_albi')==='1';}catch(e){}
+const ALBI_SKIN=0xe2b896;let PL_SKIN=null;
+function riderSkin(M,from,to){if(!M||from===to)return;const sw=new Map([[skinMat(from),skinMat(to)]]);for(const k in SKINMM)if(k.startsWith(String(from))&&isNaN(+k.charAt(String(from).length)))sw.set(SKINMM[k],skinMuscle(to,k.slice(String(from).length)));   // plain skin and the muscle-textured limbs
+  M.g.traverse(o=>{if(sw.has(o.material))o.material=sw.get(o.material);else if(Array.isArray(o.material))o.material=o.material.map(m=>sw.get(m)||m);});}
+function albiRace(){if(PL_SKIN==null)PL_SKIN=player.skin;const to=ALBI_ME?ALBI_SKIN:PL_SKIN;player.name=ALBI_ME?'Albi':'Ty';
+  for(const M of [player.mAero,player.mStd,RIDE.M,SPV&&SPV.M].concat(HERO_FIGS))riderSkin(M,player.skin,to);player.skin=to;}
+if(ALBI_ME)albiRace();
 function renderShop(){applyGear();const vk=getVK(),own=shopOwned(),hz=wornHelm(),wz={f:wornWheel('f',own),r:wornWheel('r',own)};$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
   for(const b of document.querySelectorAll('#shopTabs [data-tab]')){const on=b.dataset.tab===shopTab;b.style.background=on?'#1a1a1a':'#eee6d6';b.style.color=on?'#c6ff1a':'#1a1a1a';}
   const sn=$('shopNote');sn.classList.toggle('err',!!shopErr);if(shopErr){sn.textContent=shopErr;}else sn.textContent=shopTab==='kola'?'Vepředu i vzadu máš vždycky jedno kolo. Watty dávají jen ta nasazená a sčítají se.':shopTab==='aero'?'Návleky i rukavice můžeš nosit zároveň. Watty dává jen to, co máš na sobě.':'Na hlavě máš vždycky jednu helmu. Watty dává jen ta nasazená.';
@@ -2914,7 +2925,7 @@ function makeCoach(){
   // built like the other people (measured body, clothes coloured by area): yellow-black coach jacket, belly, moustache, cap-less short hair
   const C=COACH_CFG;if(SCAN_BODIES){const top=C&&coachCol(C.top,0xffffff),r=makeHuman(C?{skin:coachCol(C.skin,0xd9a77f),top,sleeveMat:mat(coachCol(C.sleeve,top)),pants:coachCol(C.pants,0x1c1c22),shoes:coachCol(C.shoes,0x111111),
       hair:coachCol(C.hair,0x302722),hairStyle:['short','bald','long','tousled','cap'].includes(C.hairStyle)?C.hairStyle:'short',capCol:coachCol(C.capCol,0x1d3557),mustache:!!C.mustache,glasses:!!C.glasses,belly:!!C.belly,
-      suspenders:C.suspenders?coachCol(C.suspenders,0x1a1a1a):0,sweat:!!C.sweat,chestTex:C.shirtText?textTex(String(C.shirtText).slice(0,14).toUpperCase(),'rgba(0,0,0,0)',C.shirtCol||'#ffffff'):null}
+      suspenders:C.suspenders?coachCol(C.suspenders,0x1a1a1a):0,sweat:!!C.sweat,shorts:!!C.shorts,shortSleeve:!!C.shortSleeve,chestTex:C.shirtText?textTex(String(C.shirtText).slice(0,14).toUpperCase(),'rgba(0,0,0,0)',C.shirtCol||'#ffffff'):null}
       :{skin:0xd9a77f,top:0xffffff,topMat:new THREE.MeshLambertMaterial({map:coachJacketTex()}),sleeveMat:mat(0xf2d21b),cuffs:0x161616,
       pants:0x1c1c22,shoes:0x111111,hair:0x302722,hairStyle:'short',mustache:true,belly:true,collar:0x161616,zip:0x161616});
     const g=r.g,head=r.head;head.userData['brow-1']=r.brows[0];head.userData['brow1']=r.brows[1];head.userData.mouth=r.mouth;
@@ -4578,7 +4589,7 @@ function updRescueCols(){if(!RESC||WALK.onSt){RCOLS=NO_COLS;return;}const c=RESC
 // one step: move, push out of whatever you touch (so you glide along walls and round corners instead of sticking), fall back to single axes
 const _pv=[0,0];
 function walkMove(P,dx,dz,y){const C=walkCols(),RC=rescueCols(),stuck=!walkFree(P.x,P.z,y);let x=P.x+dx,z=P.z+dz;
-  for(let it=0;it<4;it++){let hit=false;for(const b of C)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}for(const b of RC)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(!hit)break;}
+  for(let it=0;it<4;it++){let hit=false;for(const b of C)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}for(const b of RC)if(boxPush(b,x,z,WR,_pv)>0){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(mpPush(x,z,_pv)){x+=_pv[0]*1.01;z+=_pv[1]*1.01;hit=true;}if(!hit)break;}
   if((walkFree(x,z,y)||(stuck&&walkInside(x,z)))&&Math.hypot(x-P.x,z-P.z)<=Math.hypot(dx,dz)*1.5+0.03){const m=Math.hypot(x-P.x,z-P.z);P.x=x;P.z=z;return m;}
   if(walkFree(P.x+dx,P.z,y)){P.x+=dx;return Math.abs(dx);}if(walkFree(P.x,P.z+dz,y)){P.z+=dz;return Math.abs(dz);}return 0;}
 // stairwell: local coords (lz runs from the infield entrance +2.55 down the 12 steps to the landing; lx across, ±1.1 between the walls)
@@ -4597,7 +4608,7 @@ function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle=
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));sp.scale.set(0.6,0.6,1);sp.visible=false;scene.add(sp);return sp;}
 function walkZones(){if(WALK.zones)return WALK.zones;JUDGES.updateMatrixWorld();const tv=new THREE.Vector3(),co=new THREE.Vector3(),st=new THREE.Vector3();
   TVMESH.getWorldPosition(tv);co.set(WALK_COACH[0],FLOOR_Y,WALK_COACH[1]);holderGround(SF-4.8,-BAND-0.55,st);   // start: on the apron at the top of the ramp (spot 2)
-  const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.3},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6},{id:'albi',ic:null,p:V(WALK_ALBI[0],FLOOR_Y,WALK_ALBI[1]),r:2.2}];
+  const Z=[{id:'tv',ic:'📺',p:tv,r:2.4,h:2.75},{id:'coach',ic:'🧔',p:co,r:2.3,h:2.85},{id:'shop',ic:null,p:SHOP.position.clone(),r:2.1},{id:'start',ic:'🏁',p:st,r:2.0,h:1.6},{id:'albi',ic:null,p:V(WALK_ALBI[0],FLOOR_Y,WALK_ALBI[1]),r:2.2}];
   for(const z of Z)if(z.ic){z.tag=walkTag(z.ic);z.tag.position.set(z.p.x,(z.id==='start'?st.y:FLOOR_Y)+z.h,z.p.z);WALK.tags.push(z.tag);}
   if(LADDER){const t=walkTag('🪜');t.position.set(LADDER.a.x,FLOOR_Y+1.9,LADDER.a.z+0.3);t.visible=true;WALK.tags.push(t);}   // you can climb it: walk into its foot
   return WALK.zones=Z;}
@@ -4606,10 +4617,18 @@ function walkOpen(id){if(id==='tv'){$('omniNext').style.display='none';$('resClo
   else if(id==='shop')openShop();
   else if(id==='coach')showCoach();
   else if(id==='start'){$('walkRaceBack').textContent='Zpět na plochu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
-  else if(id==='albi'){ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
+  else if(id==='albi'){if(!ALBI||!ALBI.r.g.visible)return;ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
     try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Čau Kemi!');u.lang='cs-CZ';u.rate=1.05;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}}
+function heroBuild(albi){if(albi)return WALK.rAlbi||(WALK.rAlbi=makePhotoHuman());if(WALK.rMe)return WALK.rMe;
+  const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
+  return WALK.rMe=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
+function heroSet(){const old=WALK.r,r=heroBuild(ALBI_ME);if(old===r)return;r.t=r.t||0;
+  if(old){r.g.position.copy(old.g.position);r.g.rotation.copy(old.g.rotation);r.g.visible=old.g.visible;scene.remove(old.g);old.g.visible=false;}scene.add(r.g);WALK.r=r;}
+function albiSwap(){if(WALK.ride||WALK.act||WALK.sit||WALK.climb!=null||WALK.onSt||WALK.down)return;ALBI_ME=!ALBI_ME;try{localStorage.setItem('motol_albi',ALBI_ME?'1':'0');}catch(e){}
+  albiRace();heroSet();albiShow(true);MP.last=null;WALK.acCD=0.8;tone(660,0.1,0.06,'triangle');setTimeout(()=>tone(990,0.14,0.06,'triangle'),110);
+  walkSay(ALBI_ME?'🔄 Teď jsi <b>Albi</b>, na ploše i v závodě.':'🙋 Hraješ zase za sebe.',2.5);}
 let ALBI=null;
-function albiShow(on){if(on&&!ALBI){const r=makePhotoHuman();scene.add(r.g);ALBI={r,wave:0,head:PI/2};}
+function albiShow(on){if(ALBI_ME)on=false;if(on&&!ALBI){const r=makePhotoHuman();scene.add(r.g);ALBI={r,wave:0,head:PI/2};}
   if(!ALBI)return;ALBI.r.g.visible=on;if(on){ALBI.wave=0;ALBI.head=PI/2;ALBI.r.g.position.set(WALK_ALBI[0],walkGround(WALK_ALBI[0],WALK_ALBI[1]),WALK_ALBI[1]);ALBI.r.g.rotation.y=ALBI.head;}}
 function albiTick(dt){const A=ALBI;if(!A||!A.r.g.visible)return;const r=A.r;r.t+=dt;const dx=WALK.pos.x-r.g.position.x,dz=WALK.pos.z-r.g.position.z,d=Math.hypot(dx,dz);
   let ang=Math.atan2(dx,dz)-A.head;ang=Math.atan2(Math.sin(ang),Math.cos(ang));
@@ -4631,8 +4650,7 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
     const me=cerObjs.find(o=>o.userData.me);if(RESC){hopFrom=camera.position.clone();hopFrom.y-=0.75;if(RESC.fig)RESC.fig.visible=false;}else if(me&&me.visible){hopFrom=new THREE.Vector3();me.getWorldPosition(hopFrom);me.visible=false;}}
   else clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';$('menu').style.display='none';
   riders.forEach(R=>R.model.g.visible=true);mode='scratch';if(!OMNI)RACE_BONUS=0;resetRiders();clearHolders();idleT=0;player.model.g.visible=false;
-  if(!WALK.r){const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
-    WALK.r=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});scene.add(WALK.r.g);}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
+  heroSet();
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
   WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.jumpT=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();buildAdvisor();
   if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
@@ -4646,20 +4664,47 @@ function walkStop(){mpLeave();bikePickClose();if(WALK.ride)rideStop();if(WALK.ac
   $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
   if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
 // ---------- PLOCHA ONLINE: the other logged-in players on the floor (multi.js, Supabase Realtime; online.js lets in only logged-in players with a nickname) ----------
-// we send our position 3x a second while moving (every 3 s standing still), the others are drawn as plain figures with their nickname over the head; they walk through you (no collisions)
-const MP={figs:{},seen:{},sendT:0,keepT:0,badgeT:0,last:null},MP_MAX=7;
+// we send our position 3x a second while moving (every 3 s standing still), the others are drawn as plain figures (or Albi, a:1) with their nickname over the head;
+// they are solid (mpPush in walkMove), on the rollers they ride a bike, chat messages show as a bubble over the head and in the list top left
+const MP={figs:{},seen:{},sendT:0,keepT:0,badgeT:0,last:null},MP_MAX=7,MP_R=0.3,MP_TEAMS=['favorit','pardus','dukla','sparta'];
 const MP_TOPS=[0xe63946,0x2a9df4,0xf4a261,0x2ec4b6,0x9b5de5,0xffd166,0x06d6a0,0xef476f,0x118ab2,0xf15bb5],MP_HAIR=[0x3b2a1e,0x161616,0x8a5a2b,0xd8b26a];
 function mpHash(s){let h=7;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
 function mpTagTex(sp,nick,gold){const c=mkCanvas(256,64),g=c.getContext('2d');g.font='800 30px system-ui';const tw=g.measureText(nick).width+(gold?66:0),w=Math.min(252,tw+28),x0=128-w/2;
   g.fillStyle='rgba(10,20,35,.8)';g.fillRect(x0,8,w,48);g.strokeStyle=gold?'#ffd34d':'#7fd3ff';g.lineWidth=3;g.strokeRect(x0+1.5,9.5,w-3,45);g.textBaseline='middle';g.textAlign='left';
   g.fillStyle=gold?'#ffd34d':'#ffffff';g.fillText(nick,x0+14,33,w-28-(gold?66:0));if(gold){g.font='900 16px system-ui';g.fillStyle='#1a1200';g.fillRect(x0+w-72,20,58,26);g.fillStyle='#ffd34d';g.fillRect(x0+w-70,22,54,22);g.fillStyle='#1a1200';g.textAlign='center';g.fillText('GOLD',x0+w-43,34);}
   if(sp.material.map)sp.material.map.dispose();sp.material.map=new THREE.CanvasTexture(c);sp.material.needsUpdate=true;}
-function mpFig(id){const k=mpHash(id),r=makeHuman({top:MP_TOPS[k%MP_TOPS.length],pants:0x111111,shoes:0xf0f0f0,hair:MP_HAIR[(k>>4)%MP_HAIR.length],skin:SKINS[(k>>8)%SKINS.length]});
+function mpBody(id,albi){const k=mpHash(id);return albi?makePhotoHuman():makeHuman({top:MP_TOPS[k%MP_TOPS.length],pants:0x111111,shoes:0xf0f0f0,hair:MP_HAIR[(k>>4)%MP_HAIR.length],skin:SKINS[(k>>8)%SKINS.length]});}
+function mpFreeBody(r){scene.remove(r.g);r.g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==PHOTO_TEX)m.map.dispose();m.dispose();});});}
+function mpFig(id,albi){const r=mpBody(id,albi);
   r.t=r.t||0;scene.add(r.g);const tag=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true}));tag.scale.set(1.3,0.325,1);scene.add(tag);mpTagTex(tag,'Hráč',false);
-  return {r,T:{},tag,nick:'Hráč',ph:0,spd:0,x:0,y:0,z:0,h:0};}
-function mpDrop(id){const F=MP.figs[id];if(!F)return;scene.remove(F.r.g);F.r.g.traverse(o=>{if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==F.tag.material.map)m.map.dispose();m.dispose();});});scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();delete MP.figs[id];}
-function mpJoin(){if(!window.Multi)return;Multi.start();MP.last=null;MP.sendT=MP.keepT=0;$('mpBadge').style.display='block';mpBadge();}
-function mpLeave(){if(window.Multi)Multi.stop();for(const id in MP.figs)mpDrop(id);$('mpBadge').style.display='none';}
+  return {r,T:{},tag,nick:'Hráč',ph:0,spd:0,x:0,y:0,z:0,h:0,albi:!!albi,bub:null,bubT:0,ride:null,crank:0};}
+function mpDrop(id){const F=MP.figs[id];if(!F)return;mpRideOff(F);if(F.rideM)F.rideM.g.children[0].geometry.dispose();mpFreeBody(F.r);scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();mpBubble(F,null);delete MP.figs[id];}
+// on the rollers: a rider on his own bike sits on the nearest rollers (the rider model is shared geometry and kit materials: just taken off, not disposed)
+function mpRideOn(F,id,p){let R=null,bd=0.6;for(const Q of ROLLERS){const d=Math.hypot(Q.x-p.x,Q.z-p.z);if(d<bd){bd=d;R=Q;}}if(!R||(WALK.ride&&WALK.ride.R===R)||(R.mp&&R.mp!==F))return false;if(RIDE.last===R)RIDE.last=null;
+  if(!F.rideM){const k=mpHash(id);F.rideM=makeRider({team:MP_TEAMS[k%MP_TEAMS.length],num:0,aero:false,spokes:24,helm:'road',shoe:0xffffff,skin:SKINS[(k>>8)%SKINS.length],hair:MP_HAIR[(k>>4)%MP_HAIR.length]});scene.remove(F.rideM.g);F.rideM.g.children[0].visible=false;}
+  const M=F.rideM;R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;R.bike.g.visible=false;rideHideBaked(R,true);R.mp=F;F.ride=R;return true;}
+function mpRideOff(F){const R=F.ride;if(!R)return;if(F.rideM)R.g.remove(F.rideM.g);R.mp=null;F.ride=null;if(!WALK.ride)RIDE.last=R;if(!(WALK.ride&&WALK.ride.R===R)){R.bike.g.visible=true;rideHideBaked(R,false);}}
+// they are solid: walkMove pushes you out of them (circles, so you slide round)
+function mpPush(x,z,o){let px=0,pz=0,hit=false;if(!WALK.mp)return false;for(const id in MP.figs){const F=MP.figs[id];if(!F.r.g.visible||F.ride||F.st===3)continue;if(Math.abs(F.y-WALK.pos.y)>1.2)continue;
+    const dx=x-F.x,dz=z-F.z,d=Math.hypot(dx,dz),R=MP_R+WR;if(d>=R)continue;const pen=R-d;if(d>1e-4){px+=dx/d*pen;pz+=dz/d*pen;}else{px+=pen;}hit=true;}
+  if(hit){o[0]=px;o[1]=pz;}return hit;}
+// chat bubble over the head (5 s)
+function mpBubbleTex(text){const c=mkCanvas(512,128),g=c.getContext('2d');g.font='700 30px system-ui';const words=[].concat(...text.split(' ').map(w=>{const o=[];while(g.measureText(w).width>440&&w.length>1){let n=w.length;while(n>1&&g.measureText(w.slice(0,n)).width>440)n--;o.push(w.slice(0,n));w=w.slice(n);}o.push(w);return o;})),L=[];let cur='';
+  for(const w of words){const t=cur?cur+' '+w:w;if(g.measureText(t).width>440&&cur){L.push(cur);cur=w;}else cur=t;if(L.length>=2)break;}if(L.length<2&&cur)L.push(cur);if(L.length===2&&words.join(' ').length>L.join(' ').length+1)L[1]=L[1].replace(/.?$/,'…');
+  const w=Math.min(500,Math.max(...L.map(l=>g.measureText(l).width))+40),x0=256-w/2,h=L.length*36+26;
+  g.fillStyle='rgba(255,255,255,.95)';g.beginPath();g.moveTo(x0+14,4);g.arcTo(x0+w,4,x0+w,4+h,14);g.arcTo(x0+w,4+h,x0,4+h,14);g.arcTo(x0,4+h,x0,4,14);g.arcTo(x0,4,x0+w,4,14);g.fill();
+  g.beginPath();g.moveTo(246,4+h);g.lineTo(256,4+h+16);g.lineTo(266,4+h);g.fill();g.fillStyle='#101820';g.textBaseline='top';g.textAlign='center';L.forEach((l,i)=>g.fillText(l,256,17+i*36));
+  return new THREE.CanvasTexture(c);}
+function mpBubble(F,text){if(F.bub){scene.remove(F.bub);F.bub.material.map.dispose();F.bub.material.dispose();F.bub=null;}if(!text)return;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:mpBubbleTex(text),transparent:true,depthTest:false}));sp.scale.set(2,0.5,1);sp.renderOrder=5;scene.add(sp);F.bub=sp;F.bubT=6;}
+function mpChatMsg(c){const box=$('mpLog');if(!box)return;const M=window.Multi,nm=c.me?null:M.name(c.u),who=c.me?'Ty':nm?nm.nick:'Hráč';
+  const d=document.createElement('div');const b=document.createElement('b');b.textContent=who+': ';if(nm&&nm.gold)b.className='gold';d.appendChild(b);d.appendChild(document.createTextNode(c.text));box.appendChild(d);
+  while(box.children.length>6)box.removeChild(box.firstChild);d.dataset.t=Date.now();box.style.display='block';
+  if(!c.me){const F=MP.figs[c.u];if(F)mpBubble(F,c.text);}tone(c.me?660:880,0.05,0.03,'triangle');}
+function mpChatOpen(on){const f=$('mpChatF');if(on){const i=$('mpChatIn');if(f.style.display!=='flex')i.value='';f.style.display='flex';i.focus();WALK.k={};}else{f.style.display='none';$('mpChatIn').blur();}}
+function mpChatSend(){const i=$('mpChatIn'),t=i.value;if(!t.trim()){mpChatOpen(false);return;}if(window.Multi&&Multi.say(t))mpChatOpen(false);else{walkSay(window.Multi&&Multi.status==='on'?'⏱ Počkej chvilku, zprávy jdou nejvýš jedna za 2 s.':'👥 Nejsi připojený, zprávu teď nejde poslat.',2.5);i.classList.add('bad');setTimeout(()=>i.classList.remove('bad'),400);}}
+function mpJoin(){if(!window.Multi)return;Multi.onChat=mpChatMsg;Multi.start();MP.last=null;MP.sendT=MP.keepT=0;$('mpBadge').style.display='block';$('mpChatBtn').style.display='block';$('mpLog').innerHTML='';mpBadge();}
+function mpLeave(){if(window.Multi)Multi.stop();for(const id in MP.figs)mpDrop(id);mpChatOpen(false);$('mpBadge').style.display='none';$('mpChatBtn').style.display='none';$('mpLog').style.display='none';}
 function mpWho(n){return n<1?'👥 Na ploše jen ty':'👥 Ty + '+n+(n===1?' další hráč':n<5?' další hráči':' dalších hráčů');}
 function mpBadge(){const M=window.Multi,st=M?M.status:'off';
   $('mpBadge').textContent=st==='on'?mpWho(M.others())+'  ↑'+M.stats.tx+' ↓'+M.stats.rx+(M.stats.bad?' ✕'+M.stats.bad:''):st==='connecting'?'👥 Připojuji…':st==='error'?'👥 Spojení vypadlo, zkouším znovu…':st==='full'?'👥 Plocha je plná, zkus to později':'👥 Online plocha teď nejde';}
@@ -4667,11 +4712,11 @@ function mpState(){return WALK.ride?5:(WALK.down||WALK.onSt)?3:WALK.climb!=null?
 function mpTick(dt){const M=window.Multi;if(!M)return;
   MP.sendT-=dt;MP.keepT-=dt;
   if(M.status==='on'&&MP.sendT<=0){MP.sendT=0.33;const P=WALK.pos,st=mpState(),L=MP.last;
-    const moved=!L||Math.hypot(P.x-L.x,P.z-L.z)>0.03||Math.abs(P.y-L.y)>0.03||Math.abs(_angTo(L.h,WALK.head))>0.05||L.st!==st;
-    if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+WALK.spd.toFixed(2),st};if(M.send(s)){MP.last=s;MP.keepT=3;}}}
+    const moved=!L||Math.hypot(P.x-L.x,P.z-L.z)>0.03||Math.abs(P.y-L.y)>0.03||Math.abs(_angTo(L.h,WALK.head))>0.05||L.st!==st||(st===5&&Math.abs(L.v-RIDE.v)>0.5);
+    if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+(WALK.ride?RIDE.v:WALK.spd).toFixed(2),st,c:WALK.ride?Math.round(RIDE.eff*100):0,a:ALBI_ME?1:0};if(M.send(s)){MP.last=s;MP.keepT=3;}}}
   if(M.prune)M.prune();
   const seen=MP.seen,now=Date.now();for(const q in seen)delete seen[q];let n=0;
-  for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id];let F=MP.figs[id];if(!F){F=MP.figs[id]=mpFig(id);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}
+  for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id];let F=MP.figs[id];if(F&&F.albi!==!!p.a){mpDrop(id);F=null;}if(!F){F=MP.figs[id]=mpFig(id,!!p.a);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}F.st=p.st;
     const nm=M.name(id),nk=nm?nm.nick+(nm.gold?'★':''):'Hráč';if(F.nick!==nk){F.nick=nk;mpTagTex(F.tag,nm?nm.nick:'Hráč',!!(nm&&nm.gold));}
     // between messages: glide towards the last position, a little ahead along the way they were walking
     const mv=p.st===0||p.st===4,ex=mv?p.v*Math.min(0.3,(now-p.t)/1000):0,tx=p.x+Math.sin(p.h)*ex,tz=p.z+Math.cos(p.h)*ex,k=1-Math.exp(-dt*10),dy=p.y-F.y;
@@ -4684,10 +4729,15 @@ function mpTick(dt){const M=window.Multi;if(!M)return;
     else if(p.st===1){heroGait(T,0,0,0,r.t,0);sitPose(T,1,r.t);}
     else heroGait(T,F.ph,a,run,r.t,0);
     poseHuman(r,T,1-Math.exp(-dt*12));const lie=p.st===3;
-    r.g.visible=F.tag.visible=p.st!==5;   // on the rollers: hidden for now
+    if(p.st===5){if(!F.ride)mpRideOn(F,id,p);}else if(F.ride)mpRideOff(F);
+    const onR=!!F.ride;r.g.visible=!onR&&p.st!==5;F.tag.visible=onR||p.st!==5;
+    if(onR){const M=F.rideM,e=clamp((p.c||0)/100,0,1),R=F.ride;F.crank+=p.v/7.6*2*PI*dt;for(const w of M.wheels)w.rotation.x+=p.v/0.34*dt;R.v=p.v;rollerSpin(R,dt);
+      poseRider(M,F.crank,e>0.92?1:0,0,0,Math.sin(r.t*(1.5+2.5*e)),0,0.4+e*1.2,0.15);F.x=R.x;F.z=R.z;F.y=FLOOR_Y;}
     r.g.position.set(F.x,F.y+(lie?0.1:0),F.z);r.g.rotation.order='YXZ';r.g.rotation.y=F.h;r.g.rotation.x=lie?-PI/2:0;
-    F.tag.position.set(F.x,F.y+(lie?0.6:p.st===1?1.75:2.2),F.z);}
+    const ty=F.y+(lie?0.6:onR?2.15:p.st===1?1.75:2.2);F.tag.position.set(F.x,ty,F.z);
+    if(F.bub){F.bubT-=dt;if(F.bubT<=0)mpBubble(F,null);else{F.bub.visible=F.tag.visible;F.bub.position.set(F.x,ty+0.45,F.z);F.bub.material.opacity=Math.min(1,F.bubT);}}}
   for(const id in MP.figs)if(!seen[id])mpDrop(id);
+  const lg=$('mpLog');if(lg.style.display!=='none'&&lg.lastChild&&now-lg.lastChild.dataset.t>20000&&$('mpChatF').style.display==='none')lg.style.display='none';
   MP.badgeT-=dt;if(MP.badgeT<=0){MP.badgeT=0.5;mpBadge();}}
 // joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
 const JOY_R=56,JOY=$('joy');
@@ -4711,11 +4761,11 @@ wui.addEventListener('wheel',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.ctrl
 const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
 window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
-addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.target&&e.target.id==='mpChatIn'){if(e.code==='Escape'){e.preventDefault();mpChatOpen(false);}e.stopImmediatePropagation();return;}if(e.code==='KeyT'&&!e.repeat&&WALK.mp&&!WALK.ride&&!typing(e)){e.preventDefault();e.stopImmediatePropagation();mpChatOpen(true);return;}if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>{WALK.mp=false;wipe(walkStart);};
 $('btnWalkMp').onclick=()=>{if(!(window.Online&&Online.multi&&window.Multi)){const b=$('btnWalkMp').querySelector('span');b.textContent='online teď nejde, zkus to později';setTimeout(()=>{b.textContent='potkej ostatní přihlášené hráče';},3000);return;}Online.multi(()=>{WALK.mp=true;wipe(walkStart);});};
-$('walkAct').onclick=walkAction;$('rideOff').onclick=()=>rideStop();$('rideEff').addEventListener('input',e=>{RIDE.eff=e.target.value/100;});
+$('walkAct').onclick=walkAction;$('mpChatBtn').onclick=()=>mpChatOpen($('mpChatF').style.display!=='flex');$('mpChatX').onclick=()=>mpChatOpen(false);$('mpChatF').addEventListener('submit',e=>{e.preventDefault();mpChatSend();});$('rideOff').onclick=()=>rideStop();$('rideEff').addEventListener('input',e=>{RIDE.eff=e.target.value/100;});
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
 $('walkMenu').onclick=()=>wipe(()=>{WALK.mp=false;walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
 $('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';if(phase==='menu')$('menu').style.display='flex';};
@@ -4787,7 +4837,7 @@ const PREP={roll:false,drink:false,gel:false,rollT:0};let RACE_BONUS=0;
 function prepPct(){return (PREP.roll?5:0)+(PREP.drink?3:0)+(PREP.gel?5:0);}
 // rollers: you sit on your own bike (worn wheels and helmet), pedal with the slider, the wheels and all three drums turn; 10 s of riding = warmed up
 function rideModel(){if(RIDE.M)return RIDE.M;const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);M.g.children[0].visible=false;return RIDE.M=M;}
-function rollerNear(P){let best=null,bd=0.6;for(const R of ROLLERS){const dx=P.x-R.x,dz=P.z-R.z,c=Math.cos(R.rot),s=Math.sin(R.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;
+function rollerNear(P){let best=null,bd=0.6;for(const R of ROLLERS){if(R.mp)continue;const dx=P.x-R.x,dz=P.z-R.z,c=Math.cos(R.rot),s=Math.sin(R.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;
     const d=Math.hypot(Math.max(0,Math.abs(lx)-0.33),Math.max(0,Math.abs(lz)-0.95));if(d<bd){bd=d;best=R;}}return best;}
 function rackNear(P){let best=null,bd=0.65;for(const K of RACKS){const d=Math.hypot(Math.max(0,Math.abs(P.x-K.x)-K.hu),Math.max(0,Math.abs(P.z-K.z)-K.hv));if(d<bd){bd=d;best=K;}}return best;}
 function bikePickOpen(K){WALK.pick=K;const cur=wornBike(),box=$('bikeSw');box.innerHTML='';
@@ -4796,7 +4846,7 @@ function bikePickOpen(K){WALK.pick=K;const cur=wornBike(),box=$('bikeSw');box.in
   $('bikePick').style.display='block';$('walkAct').style.display='none';$('walkAct').dataset.k='';tone(660,0.08,0.05,'triangle');}
 function bikePickClose(){WALK.pick=null;$('bikePick').style.display='none';}
 $('bikePickX').onclick=()=>bikePickClose();
-function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;rideHideBaked(R,true);
+function rideStart(R){if(WALK.mp)mpChatOpen(false);const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;rideHideBaked(R,true);
   WALK.ride={R,t:0,x0:WALK.pos.x,z0:WALK.pos.z};RIDE.v=R.v||0;RIDE.t=0;WALK.spd=0;WALK.r.g.visible=false;
   const fw=R.rot;WALK.pos.set(R.x,FLOOR_Y,R.z);WALK.head=fw;WALK.yaw=fw+0.9;WALK.pitch=0.22;   // camera from behind-side, so you see the legs and the drums
   $('rideEff').value=Math.round(RIDE.eff*100);$('rideUI').style.display='flex';document.body.classList.add('riding');rideCount();tone(520,0.08,0.04,'triangle');}
@@ -4952,13 +5002,13 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(WALK.mp)mpTick(
   if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
   if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
   // the action button: right up to a bike on the rollers / the bottle / the gel
-  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P),K=R?null:rackNear(P);if(R)ac={k:'roll',R};else if(K)ac=WALK.pick?null:{k:'rack',K};else if(advNear(P))ac={k:'talk'};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
+  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P),K=R?null:rackNear(P);if(R)ac={k:'roll',R};else if(K)ac=WALK.pick?null:{k:'rack',K};else if(advNear(P))ac={k:'talk'};else if(WALK.zone==='albi')ac={k:'albi'};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
   else if(WALK.sit&&WALK.sit.up<0&&WALK.sit.t>0.8&&!WALK.act&&!(WALK.acCD>0)){const S=snackNear(P);if(S)ac={k:S.kind,S};}   // sitting next to it: have it without getting up
   if(WALK.pick&&(busy||rackNear(P)!==WALK.pick))bikePickClose();   // walked away from the rack
   advTick(dt,P);snackTags();
-  const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='rack'?'🚲 Vybrat kolo':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':key==='talk'?'💬 Promluvit':'';ab.style.display=key?'block':'none';}WALK.ac=ac;
+  const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='rack'?'🚲 Vybrat kolo':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':key==='talk'?'💬 Promluvit':key==='albi'?(ALBI_ME?'🙋 Hrát zase za sebe':'🔄 Chceš hrát za Albiho?'):'';ab.style.display=key?'block':'none';}WALK.ac=ac;
   if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
-function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else if(A.k==='rack')bikePickOpen(A.K);else if(A.k==='talk')advTalk();else snackStart(A.S);}
+function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else if(A.k==='rack')bikePickOpen(A.K);else if(A.k==='talk')advTalk();else if(A.k==='albi'){albiSwap();$('walkAct').dataset.k='~';}else snackStart(A.S);}
 if(/#(debug|turbo)/.test(location.hash))window.__WALK=()=>({WALK,walkFree,walkZones,walkCols,BOOTHS,LADDER,NAV,RESC,walkJump,step:n=>{for(let i=0;i<n;i++)walkTick(1/30);},crash:()=>crashRider(player,'slip')});
 // ---------- menu backdrop: the bunch rolls round in a paceline, camera cuts between shots ----------
 const _mt=new THREE.Vector3(),_ml=new THREE.Vector3();let menuShot=-1;

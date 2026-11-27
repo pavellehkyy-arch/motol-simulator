@@ -465,7 +465,7 @@
       sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno, popis vzhledu a chování).');
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
       sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
-      sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb, přezdívku (jen schválenou) a anonymní číslo účtu, dokud tam jsi. Nikam se to neukládá.');
+      sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb, přezdívku (jen schválenou), anonymní číslo účtu a zprávy, které napíšeš do chatu, dokud tam jsi. Zprávy vidí jen hráči, kteří jsou zrovna s tebou na ploše. Nikam se to neukládá.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
       sec('Technické záznamy:', 'když hra mluví se serverem (přihlášení, žebříček, Plocha online), Supabase si kvůli provozu a bezpečnosti zapíše IP adresu, čas a typ prohlížeče a zařízení. Vidí je jen autor hry, používá je jen k opravě chyb a ochraně před zneužitím a nejpozději po 7 dnech se samy smažou.');
       sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');

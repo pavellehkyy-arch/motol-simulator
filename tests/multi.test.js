@@ -160,3 +160,27 @@ test('jen jeden Realtime kanál: opakovaný start ani návrat z výpadku neotev�
   M.stop();
   assert.strictEqual(M.channels(), 0);
 });
+
+test('chat: odeslání, příjem, čištění textu a limit 1 zpráva za 2 s', async () => {
+  const { M, socks } = setup();
+  M.start(); await tick();
+  const ws = socks[0], j = okJoin(ws, { [A]: { metas: [{}] } });
+  const got = []; M.onChat = (c) => got.push(c);
+  assert.strictEqual(M.say('  ahoj‮   všichni  '), true);
+  const out = ws.out.filter((m) => m.event === 'broadcast' && m.payload.event === 'c');
+  assert.strictEqual(out.length, 1);
+  assert.strictEqual(out[0].payload.payload.m, 'ahoj všichni');
+  assert.strictEqual(M.say('hned znovu'), false);   // moc rychle
+  assert.strictEqual(M.say('   '), false);
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'c', payload: { u: A, m: 'x'.repeat(300) } } });
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'c', payload: { u: A, m: 'spam' } } });   // hned po první: zahodit
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'c', payload: { u: 'cizi:1', m: 'nejsem v místnosti' } } });
+  assert.strictEqual(got.length, 2);
+  assert.strictEqual(got[0].me, true);
+  assert.strictEqual(got[1].u, A);
+  assert.strictEqual(got[1].text.length, 120);
+  assert.strictEqual(M.chat.length, 2);
+  M.stop();
+  assert.strictEqual(M.chat.length, 0);
+  M._reset();
+});

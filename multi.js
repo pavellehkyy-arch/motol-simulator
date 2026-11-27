@@ -1,7 +1,7 @@
 /* Motol Simulator – plocha online (Supabase Realtime přes WebSocket, bez knihoven).
    Hráči na ploše se vidí: každý posílá svou polohu do soukromého kanálu plocha:N (max. 8 hráčů v místnosti).
    Pustí jen přihlášeného s přezdívkou (ověřuje server). Do databáze se nic neukládá.
-   Hra volá Multi.start(), Multi.stop(), Multi.send(stav) a čte Multi.peers / Multi.status / Multi.count(). */
+   Hra volá Multi.start(), Multi.stop(), Multi.send(stav), Multi.say(text) (chat) a čte Multi.peers / Multi.status / Multi.count(). */
 (function () {
   'use strict';
   var G = typeof window !== 'undefined' ? window : globalThis;
@@ -28,7 +28,7 @@
   M.stop = function () {
     want = false; gen++; clearTimers();
     if (ws) { if (topic) msg('phx_leave', {}); try { ws.close(); } catch (e) {} }
-    ws = null; topic = ''; reset(); setStatus('off');
+    ws = null; topic = ''; reset(); M.chat = []; setStatus('off');
   };
   /* ostatní hráči v místnosti: unikátní účty podle presence key (účet:zařízení) bez mého účtu,
      takže se nepočítá ani můj druhý telefon/okno, ani můj starý záznam po znovunačtení stránky */
@@ -48,6 +48,22 @@
     if (M.status !== 'on' || !tracked) return false;
     st.u = me; lastSent = nowMs(); M.stats.tx++;
     return msg('broadcast', { type: 'broadcast', event: 'p', payload: st });
+  };
+
+  /* chat: krátká zpráva všem v místnosti (max. 120 znaků, nejvýš 1 za 2 s); nic se neukládá */
+  var CHAT_MAX = 120, CHAT_GAP = 2000, lastChat = 0, chatIn = {};
+  M.chat = [];   // posledních 20 zpráv: { u, me, text, t }
+  M.onChat = null;
+  function cleanText(t) { return String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX); }
+  function pushChat(c) { M.chat.push(c); if (M.chat.length > 20) M.chat.shift(); if (typeof M.onChat === 'function') { try { M.onChat(c); } catch (e) {} } }
+  M.say = function (text) {
+    var t = cleanText(text);
+    if (!t || M.status !== 'on' || !tracked) return false;
+    if (nowMs() - lastChat < CHAT_GAP) return false;
+    lastChat = nowMs();
+    if (!msg('broadcast', { type: 'broadcast', event: 'c', payload: { u: me, m: t } })) return false;
+    M.stats.tx++; pushChat({ u: me, me: true, text: t, t: nowMs() });
+    return true;
   };
 
   function connect() {
@@ -135,7 +151,15 @@
       var x = +s.x, y = +s.y, z = +s.z, h = +s.h;
       if (!isFinite(x) || !isFinite(y) || !isFinite(z) || !isFinite(h)) return;
       var P = M.peers[s.u] || (M.peers[s.u] = { id: s.u });
-      M.stats.rx++; P.x = x; P.y = y; P.z = z; P.h = h; P.v = +s.v || 0; P.st = s.st | 0; P.c = s.c | 0; P.t = nowMs();
+      M.stats.rx++; P.x = x; P.y = y; P.z = z; P.h = h; P.v = +s.v || 0; P.st = s.st | 0; P.c = s.c | 0; P.a = s.a | 0; P.t = nowMs();
+    }
+    if (m.event === 'broadcast' && p.event === 'c') {
+      var c = p.payload;
+      if (!c || typeof c.u !== 'string' || c.u === me || !present[c.u]) { M.stats.bad++; return; }
+      var tx = cleanText(c.m), acc = c.u.split(':')[0], tn = nowMs();
+      if (!tx || tn - (chatIn[acc] || 0) < CHAT_GAP - 300) return;   // cizí klient, co posílá moc rychle
+      chatIn[acc] = tn; M.stats.rx++;
+      pushChat({ u: c.u, me: false, text: tx, t: tn });
     }
   }
   /* jména: jen schválené přezdívky ze serveru (ostatní jsou „Hráč“) */
@@ -160,5 +184,5 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible' && want && M.status === 'error') { clearTimeout(retryT); retries = 0; connect(); }
   });
-  M._reset = function () { M.stop(); names = {}; asked = {}; };
+  M._reset = function () { M.stop(); names = {}; asked = {}; M.chat = []; chatIn = {}; lastChat = 0; };
 })();
