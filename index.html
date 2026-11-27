@@ -279,7 +279,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v2.7</div>
+    <div class="sub">v2.8</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -2280,9 +2280,9 @@ function physics(R,dt){
     if(draft>0.05)draft=Math.min(0.66,draft+0.045*Math.max(0,n-1));
     if(nA>=2)draft=Math.max(draft,Math.min(0.32,0.11*nA));   // inside a bunch the air is moving with you even a few lengths back
     if(mode==='keirin'&&dernyOn()){const gap=gapTo(R,DERNY),dd=Math.abs(DERNY.w-R.w);if(gap>0.3&&gap<7&&dd<0.9)draft=Math.max(draft,0.55*(1-(gap-1.6)/5.4)*(1-dd/0.9*0.5));}}   // deeper in the bunch = more shelter; the derny + its upright pilot = a big hole in the air
-  R.draft=draft;if(mode==='sprint')hookSling(R,dt);
+  R.draft=draft;if(mode==='sprint'||(R.player&&SLING_BUNCH()))hookSling(R,dt);
   const m=80,v=R.v;const onBand=R.w<-0.05;
-  const Fp=(P>0?Math.min(P/Math.max(v,0.6),420):Math.max(P/Math.max(v,2),-160))+(mode==='sprint'&&R.hkT>0&&P>0.9*R.ftp?HK_F*R.hkK*Math.min(1,R.hkT/0.4):0);   // + the slingshot out of the hook
+  const Fp=(P>0?Math.min(P/Math.max(v,0.6),420):Math.max(P/Math.max(v,2),-160))+(R.hkT>0&&(mode==='sprint'||R.player)&&P>0.9*R.ftp?HK_F*R.hkK*Math.min(1,R.hkT/0.4)*(mode==='sprint'?1:0.62):0);   // + the slingshot out of the hook
   const Fr=v>0.05?m*9.81*(onBand?0.03:0.0025):0;
   const Fa=0.5*1.2*R.cda*(1-draft)*v*v;
   R.v=Math.max(0,v+(Fp-Fr-Fa)/m*dt);
@@ -2446,7 +2446,7 @@ function botAI(R,dt){const RP=aiPace();
   if(sprinting)vT=25;
   // never ride into the back wheel in front: look further ahead the faster I'm closing
   const clos=ahead?R.v-ahead.v:0,dGap=ahead?1.9+Math.max(0,clos)*1.3:0;
-  if(ahead&&gap<dGap+1.5&&Math.abs(ahead.w-R.w)<0.5&&!(sprinting&&Math.abs(R.targetW-R.w)>0.3))vT=Math.min(vT,vEq(ahead)+(gap-dGap)*0.8);
+  if(ahead&&gap<dGap+1.5&&Math.abs(ahead.w-R.w)<(R.passT>0?0.35:0.5)&&!(sprinting&&Math.abs(R.targetW-R.w)>0.3))vT=Math.min(vT,vEq(ahead)+(gap-dGap)*0.8);
   if(wreck)vT=Math.min(vT,R.v);
   if(wreck&&wreck.brake)vT=Math.min(vT,wreck.brake);
   const cda=R.cda*(1-R.draft),Pneed=(0.5*1.2*cda*vT*vT+80*9.81*0.0025)*vT;
@@ -2464,18 +2464,26 @@ function botAI(R,dt){const RP=aiPace();
   else if(lapsLeft<1.3&&!sprinting&&!keirin)tw=mode==='madison'?Math.min(R.highLane,1.4):R.highLane;   // up the banking for the sprint
   else if(keirin&&!sprinting&&front)tw=0.45;
   if(sprinting){tw=0.55;if(ahead&&gap<16&&ahead.v<R.v-1.2)tw=ahead.w+0.9;}
-  const wantPass=ahead&&(gap<5||lapAhead)&&(vT>ahead.v+0.4||sprinting||R.attackT>0||lapAhead)&&R.pullT<=0;
-  if(wantPass){const up=ahead.w+0.85;if(freeAt(R,up,3))tw=up;else if(R.aggr>0.65&&lapsLeft<1.2)tw=up;else tw=Math.min(tw,ahead.w);}
+  const PASSM=(mode==='scratch'||mode==='points'||mode==='elim')&&!sprinting&&!wreck;   // bunch races: overtaking with a plan (not the sprint, keirin, kilo, madison)
+  const wantPass=ahead&&(gap<5||lapAhead||(PASSM&&packTw==null&&gap<dGap+4&&clos>0.6))&&(vT>ahead.v+0.4||sprinting||R.attackT>0||lapAhead)&&R.pullT<=0;   // closing fast: decide before the brake has to bite
+  if(wantPass){const up=ahead.w+(PASSM?0.9:0.85),dn=ahead.w-0.9;if(freeAt(R,up,3))tw=up;else if(PASSM&&packTw==null&&dn>=0.45&&freeAt(R,dn,3))tw=dn;else if(R.aggr>0.65&&lapsLeft<1.2)tw=up;else tw=Math.min(tw,ahead.w);
+    if(PASSM&&packTw==null&&!(R.passT>0)&&Math.abs(tw-ahead.w)>0.8){R.passT=2.2;R.passW=tw;R.passO=ahead;}}
+  if(PASSM&&R.passT>0){R.passT-=dt;const o=R.passO;if(!o||o.crashed||!o.model.g.visible||gapTo(R,o)<-2.5||(packTw!=null&&!R.dodge))R.passT=0;else if(!wantPass||o!==ahead)tw=R.passW;}   // hold the line round him, tuck back in only once you're 2.5 m clear
+  else if(!PASSM)R.passT=0;
+  R.dodge=false;if(PASSM&&ahead&&!lapAhead&&ahead.v<R.v-3.5&&gap<dGap+6){const up=ahead.w+1.0,dn=ahead.w-1.0,okU=up<TW-1.0&&freeAt(R,up,2.5),okD=dn>=0.4&&freeAt(R,dn,2.5);   // somebody nearly stopped in front (a crash, a man who sat up): swerve round him now
+    tw=okD&&(!okU||R.w<ahead.w)?dn:okU?up:(ahead.w<1.6?up:Math.max(0.4,dn));R.dodge=true;R.passT=1.6;R.passW=tw;R.passO=ahead;}
   if(R.attackT>0&&R.mark&&R.bridge&&!sprinting)tw=R.bridge.w;
   else if(R.attackT>0&&!wantPass)tw=ahead&&gap<8?ahead.w+0.85:0.55;
   if(g.gapFront>40&&(!anyA||gapA>15)&&!sprinting&&!(R.attackT>0))tw=0.45;   // dropped / lapped: hold the black line, the others pass above
   if(wreck)tw=wreck.mad?wreck.w:wreck.w+1.8;
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
   if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&(gap<3.5||lapAhead&&gap<8);tw=passing?Math.min(tw,ahead.w+0.8):R.pullT>0?1.0:(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}
+  if(PASSM&&!R.player&&player.model.g.visible&&!player.crashed){const P=player,gp=gapTo(P,R),dw=R.w-P.w;   // you're coming round him: he holds his line, never moves across into you
+    if(gp>-0.6&&gp<3.5&&Math.abs(dw)<1.1&&Math.abs(dw)>0.3&&P.v>R.v-0.5&&(tw-R.w)*Math.sign(dw)<0)tw=R.w;}
   if(R.held&&neutral&&(raceTime<6||R.v<6)&&!wreck)tw=clamp(R.w,0.4,0.75);   // let go low by his holder: rides straight off in his line, no climbing up the banking
   R.targetW=clamp(tw,mode==='madison'?0.25:0.4,mode==='madison'?3.2:TW-1.0);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
-  steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0);
+  steerBot(R,dt,(sprinting&&R.aggr>0.8)||R.pushedT>0||R.dodge,R.dodge?2.2:R.passT>0?1.6:undefined);
 }
 function steerBot(R,dt,force,rate){rate=rate||1.1;
   const st=clamp(R.targetW-R.w,-rate*dt,rate*dt);let nw=R.w+st;
@@ -2539,12 +2547,12 @@ function resolveContacts(dt){
       const dwE=o=>o.player&&o.dwA!=null&&Math.abs(o.dwA)<Math.abs(o.dw)?o.dwA:o.dw;   // the player: how he really moved, not what he asked for (pinned by a slide or a shoulder, he isn't steering into anybody)
       const rel=Math.abs(dwE(A)-dwE(B)),pl=A===player||B===player;
       const aInto=dwE(A)*Math.sign(B.w-A.w||1);   // rider behind steering into the wheel in front
-      if(rel>(pl?0.35:0.7)&&aInto>0.3&&(Math.sign(B.w-A.w)===Math.sign(A.dw-B.dw)||adw<0.12)){
+      if(rel>(pl?0.35:mode==='sprint'?0.7:0.9)&&aInto>(mode==='sprint'?0.3:0.45)&&(Math.sign(B.w-A.w)===Math.sign(A.dw-B.dw)||adw<0.12)){
         if(mode==='sprint'&&!A.player){if(B.player&&Math.abs(B.dw)>0.5){A.hookBy=B;crashRider(A,'hook');}else{A.v=Math.max(0,A.v-6*dt);A.w=clamp(A.w+Math.sign(A.w-B.w||1)*0.8*dt,0.2,TW-0.8);}continue;}   // sprint: the bot rides his own wheel carefully – only your swerve can take him down
         crashRider(A,'hook');continue;}}
     if(ds>=1.2){                                                    // rear contact
       const closing=A.v-B.v;
-      if(it===0&&solid(A)&&solid(B)&&closing>(A===player?2.5:(B===player?3.0:4.2))&&adw<0.45){crashRider(A,'rear');crashRider(B,'hit');continue;}
+      if(it===0&&solid(A)&&solid(B)&&closing>(mode==='sprint'?(A===player?2.5:(B===player?3.0:4.2)):(A===player?3.0:(B===player?3.5:5.0)))&&adw<0.45){crashRider(A,'rear');crashRider(B,'hit');continue;}
       if(B.resting&&!A.resting&&!(B.slowT>0)){B.w+=0.6*dt*8;continue;}
       if(A.resting&&B.resting&&!(A.slowT>0)&&!(B.slowT>0)){B.w+=(B.w<TW-0.9?1:-1)*0.6*dt*8;continue;}   // two resting riders up on the banking: the slower one moves over, nobody gets stopped dead
       A.s-=BIKE_L-ds;if(A.v>B.v)A.v=B.v;continue;}
@@ -4302,13 +4310,13 @@ const SP_LAPS=5,SP_LANE=0.9;let SP=null;
 // ---------- sprint: "nasávání" in the hook and the slingshot out of it ----------
 // sitting right on his wheel you ride in his hole in the air; run up into it from a gap of 3–4 m (the "nasávací mezera")
 // and you charge faster. Pull out beside him while you're still on him and you get thrown past – a short extra push.
-const HK_F=48;
-function hookSling(R,dt){if(R.hkT>0){R.hkT-=dt;return;}
+const HK_F=48,SLING_BUNCH=()=>mode==='scratch'||mode==='points'||mode==='elim'||mode==='madison';   // in the bunch races only you get it: a weaker, shorter push that costs energy, at most once in 6 s
+function hookSling(R,dt){if(R.hkCd>0)R.hkCd-=dt;if(R.hkT>0){R.hkT-=dt;return;}const bunch=mode!=='sprint';
   let L=null,lg=1e9;for(const o of riders){if(o===R||o.crashed||!o.model.g.visible)continue;const g=gapTo(R,o);if(g>0.3&&g<7&&g<lg){lg=g;L=o;}}
-  if(L&&R.draft>0.16&&Math.abs(L.w-R.w)<0.6&&R.v>6.5){const clos=R.v-L.v;R.hk=Math.min(1,(R.hk||0)+dt*(0.2+clamp(clos,0,3)*0.25+(lg>2.2&&lg<5?0.12:0)));R.hkLead=L;return;}
+  if(L&&R.draft>(bunch?0.2:0.16)&&Math.abs(L.w-R.w)<0.6&&R.v>6.5&&!(bunch&&(lg>=4.5||R.hkCd>0))){const clos=R.v-L.v;R.hk=Math.min(1,(R.hk||0)+dt*(0.2+clamp(clos,0,3)*0.25+(lg>2.2&&lg<5?0.12:0)));R.hkLead=L;return;}
   if(!(R.hk>0))return;const H=R.hkLead,g=H?gapTo(R,H):99;
-  if(H&&!H.crashed&&R.hk>=0.3&&g>-0.6&&g<4.5&&Math.abs(H.w-R.w)>=0.6&&R.v>=H.v-0.4){R.hkT=0.7+1.1*R.hk;R.hkK=R.hk;R.hk=0;
-    if(R===player&&phase==='race'){showMsg('🚀<small>Vystřelil ses z háku!</small>',1.0);tone(520,0.25,0.06,'triangle');tone(780,0.3,0.05,'triangle',0.08);}}
+  if(H&&!H.crashed&&R.hk>=0.3&&g>-0.6&&g<4.5&&Math.abs(H.w-R.w)>=0.6&&R.v>=H.v-0.4){R.hkT=bunch?Math.min(1.2,0.5+0.7*R.hk):0.7+1.1*R.hk;R.hkK=R.hk;R.hk=0;if(bunch){R.hkCd=6;R.energy=Math.max(0,R.energy-(2+2*R.hkK));}
+    if(R===player&&phase==='race'){showMsg(bunch?'🚀<small>Prak ze závětří!</small>':'🚀<small>Vystřelil ses z háku!</small>',1.0);tone(520,0.25,0.06,'triangle');tone(780,0.3,0.05,'triangle',0.08);}}
   else R.hk=Math.max(0,R.hk-dt*0.6);}
 function spWarn(){const C=SP&&SP.cur;if(!C||C.decided||C.foul||C.phase1||player.v<6)return;   // a bump at walking pace off the start is nothing
  if((C.warnT||0)>raceTime)return;C.warnT=raceTime+2.5;C.warn=(C.warn||0)+1;
