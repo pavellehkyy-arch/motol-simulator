@@ -467,6 +467,7 @@
       sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
       sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb, přezdívku (jen schválenou) a anonymní číslo účtu, dokud tam jsi. Nikam se to neukládá.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
+      sec('Technické záznamy:', 'když hra mluví se serverem (přihlášení, žebříček, Plocha online), Supabase si kvůli provozu a bezpečnosti zapíše IP adresu, čas a typ prohlížeče a zařízení. Vidí je jen autor hry, používá je jen k opravě chyb a ochraně před zneužitím a nejpozději po 7 dnech se samy smažou.');
       sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');
       sec('Jak dlouho:', 'dokud máš účet. Návrhy ze schránky a vyřízené žádosti o trenéra se mažou po roce.');
       sec('Tvoje práva:', 'můžeš zjistit, co o tobě máme, nechat to opravit, dostat kopii nebo smazat účet. Napiš z e-mailu, kterým se přihlašuješ, na ' + CONTACT + '. Stížnost můžeš podat i Úřadu pro ochranu osobních údajů (uoou.gov.cz).');
