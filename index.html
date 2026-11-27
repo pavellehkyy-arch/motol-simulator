@@ -123,6 +123,9 @@ tr.me td{color:#ffd166;font-weight:800}
 .pop{max-height:calc(100vh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
 #shop{touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}#shop *{touch-action:pan-y}#shop #shopPrev{touch-action:none}
 #shopNote.err{display:block!important;color:#c0392b;opacity:1!important;font-weight:700}
+#shopList .si{display:flex;align-items:center;gap:10px;padding:6px 8px;margin:3px 0;border:2px solid transparent;border-top-color:#0001;border-radius:12px;cursor:pointer;transition:transform .15s,background .15s,border-color .15s,box-shadow .15s}
+#shopList .si.worn{background:#eef7e8}#shopList .si.sel{border-color:#1a1a1a;background:#f3ffd0;box-shadow:0 0 0 3px #c6ff1a inset,0 3px 10px rgba(0,0,0,.18);transform:scale(1.025)}
+#shopTabs button{transition:transform .15s,background .15s}#shopTabs button:active{transform:scale(.94)}
 @media (max-height:520px){   /* phone browser on its side (toolbars eat the height): everything fits without scrolling, the preview sits beside the list */
 #shop{padding:8px 12px!important}#shop>div:first-child{margin-bottom:0!important}#shop>div:first-child span:first-child{font-size:20px!important}#shop>div:first-child>b{visibility:hidden}#shopTabs{position:absolute;top:9px;left:44px;margin:0!important}#shopTabs button{padding:5px 12px!important}
 #shopNote,#shopClose{display:none!important}#shopBody{flex-wrap:nowrap!important;gap:8px!important}
@@ -132,6 +135,10 @@ body.walking #results{background:none;pointer-events:none;align-items:center;pad
 body.cerwalk #againBtn,body.cerwalk #menuBtn{display:none}
 body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,body.cerwalk #walkMsg{display:none}
 #walkMenu{position:absolute;top:12px;right:12px;padding:9px 14px;font-size:14px}
+#walkAct{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));padding:13px 20px;font-size:16px;min-width:0;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#rideUI{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));pointer-events:none}#rideUI>*{pointer-events:auto}
+#rideCnt{min-width:64px;text-align:center;font-size:14px;font-weight:800;background:rgba(10,20,35,.75);border-radius:10px;padding:7px 10px}#rideEff{flex:1;min-width:120px;max-width:520px;height:36px;accent-color:#c6ff1a;touch-action:none}#rideOff{padding:11px 16px;font-size:15px;min-width:0}body.riding #joy{display:none}
+body.cerwalk #walkAct,body.cerwalk #rideUI{display:none!important}
 #walkMsg{position:absolute;left:50%;top:20%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:15px;font-weight:800;background:rgba(10,20,35,.8);border-radius:12px;padding:10px 16px;pointer-events:none;display:none}
 #wipe i{position:absolute;top:-20%;bottom:-20%;width:60%;left:-80%;transform:skewX(-18deg)}
 #wipe i:nth-child(1){background:#c6ff1a}#wipe i:nth-child(2){background:#e63946}#wipe i:nth-child(3){background:#0d1b33}
@@ -265,7 +272,7 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.4</div>
+    <div class="sub">v1.5</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -277,7 +284,7 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
 <div id="wipe"><i></i><i></i><i></i></div>
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
-<div id="walkUI"><div id="joy"><i></i></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div></div>
+<div id="walkUI"><div id="joy"><i></i></div><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div><button class="go" id="walkAct" style="display:none"></button><div id="rideUI" style="display:none"><span id="rideCnt"></span><input type="range" id="rideEff" min="0" max="100" value="45" aria-label="Šlapání"><button class="go alt" id="rideOff">Sesednout</button></div></div>
 <div id="walkRace" class="screen" style="display:none"><div class="card mcard">
   <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
   <div id="walkRaceList">
@@ -310,8 +317,8 @@ body.cerwalk #walkUI{right:55%;bottom:auto;height:100%}body.cerwalk #walkMenu,bo
   <div id="cerVK" style="font-size:15px;font-weight:800;color:#c6ff1a;margin-bottom:8px;text-shadow:0 1px 4px rgba(0,0,0,.9)"></div>
 </div>
 <div id="shop" class="pop" style="display:none;position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);max-width:680px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.35;overflow:auto;box-sizing:border-box">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod u stolku</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
-  <div id="shopTabs" style="display:flex;gap:6px;margin:4px 0 6px"><button data-tab="kola" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">🛞 Kola</button><button data-tab="helmy" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">🪖 Helmy</button></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:26px">🛒</span><b style="font-size:17px">Obchod</b><span id="shopVK" style="margin-left:auto;font-size:13px;font-weight:800;padding:4px 9px;border-radius:9px;background:#1a1a1a;color:#c6ff1a"></span><button id="shopX" aria-label="Zavřít" style="font:inherit;font-size:18px;font-weight:800;border:0;background:#eee6d6;color:#1a1a1a;border-radius:10px;width:34px;height:34px;cursor:pointer">✕</button></div>
+  <div id="shopTabs" style="display:flex;gap:6px;margin:4px 0 6px"><button data-tab="kola" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">🛞 Kola</button><button data-tab="helmy" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">🪖 Helmy</button><button data-tab="aero" style="font:inherit;font-size:13.5px;font-weight:800;border:0;border-radius:10px;padding:7px 14px;cursor:pointer">💨 Aero</button></div>
   <div id="shopNote" style="font-size:13px;opacity:.7;margin-bottom:6px"></div>
   <div id="shopBody" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start"><canvas id="shopPrev" style="flex:1 1 170px;min-width:170px;height:190px;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,#fff 0%,#e9e3d3 75%);touch-action:none;cursor:grab"></canvas>
   <div id="shopList" style="flex:1.6 1 230px;min-width:0"></div></div>
@@ -739,12 +746,16 @@ const RM={};function rollerMats(){if(RM.ok)return RM;
   {const c=mkCanvas(256,32),q=c.getContext('2d');q.fillStyle='#202226';q.fillRect(0,0,256,32);q.fillStyle='#e8e8e8';q.font='italic 900 20px system-ui';q.textBaseline='middle';q.fillText('MOTOL',10,17);q.fillStyle='#e63946';q.fillText('ROLL 3',92,17);q.fillStyle='#9aa0a6';q.font='700 11px system-ui';q.fillText('PARABOLIC DRUMS',168,17);
    RM.label=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)});}
   RM.ok=true;return RM;}
-function rollerDrums(g,body,cap,ax){const G=rollerGeos(),M=rollerMats();const Z=[...ROLL_RZ,ROLL_FZ],Y=[ROLL_DY,ROLL_DY,ROLL_FDY];
-  Z.forEach((z,k)=>{const d=new THREE.Mesh(G.drum,body);d.position.set(0,Y[k],z);g.add(d);
-    for(const sx of [-1,1]){const c=new THREE.Mesh(G.cap,cap);c.position.set(sx*(ROLL_L/2+0.012),Y[k],z);g.add(c);const r=new THREE.Mesh(G.capRim,M.black);r.position.set(sx*(ROLL_L/2-0.004),Y[k],z);g.add(r);}
-    const a=new THREE.Mesh(G.axle,ax);a.position.set(0,Y[k],z);g.add(a);});
+function rollerDrums(g,body,cap,ax){const G=rollerGeos(),M=rollerMats();const Z=[...ROLL_RZ,ROLL_FZ],Y=[ROLL_DY,ROLL_DY,ROLL_FDY];g.userData.drums=[];g.userData.pulleys=[];
+  if(!G.mark){G.mark=new THREE.BoxGeometry(ROLL_L*0.96,0.003,0.014);G.bolt=new THREE.CylinderGeometry(0.006,0.006,0.006,6);G.bolt.rotateZ(PI/2);}
+  Z.forEach((z,k)=>{const dg=new THREE.Group();dg.position.set(0,Y[k],z);g.add(dg);g.userData.drums.push(dg);   // each drum turns on its axle (riding on the rollers)
+    dg.add(new THREE.Mesh(G.drum,body));
+    for(const a of [0,PI]){const mk=new THREE.Mesh(G.mark,M.black);mk.position.set(0,Math.cos(a)*ROLL_R,Math.sin(a)*ROLL_R);mk.rotation.x=a;dg.add(mk);}   // two dark grip strips: you see the drum spin
+    for(const sx of [-1,1]){const c=new THREE.Mesh(G.cap,cap);c.position.set(sx*(ROLL_L/2+0.012),0,0);dg.add(c);const r=new THREE.Mesh(G.capRim,M.black);r.position.set(sx*(ROLL_L/2-0.004),0,0);dg.add(r);
+      for(let b=0;b<3;b++){const bo=new THREE.Mesh(G.bolt,M.steel);const a=b*2*PI/3;bo.position.set(sx*(ROLL_L/2+0.031),Math.cos(a)*0.038,Math.sin(a)*0.038);dg.add(bo);}}
+    const a=new THREE.Mesh(G.axle,ax);dg.add(a);});
   // drive belt on the left: rear-most drum to the front drum, round two little pulleys
-  const bx=-(ROLL_L/2+0.045);for(const z of [ROLL_RZ[1],ROLL_FZ]){const p=new THREE.Mesh(G.pulley,M.black);p.position.set(bx,z===ROLL_FZ?ROLL_FDY:ROLL_DY,z);g.add(p);}
+  const bx=-(ROLL_L/2+0.045);for(const z of [ROLL_RZ[1],ROLL_FZ]){const p=new THREE.Mesh(G.pulley,M.black);p.position.set(bx,z===ROLL_FZ?ROLL_FDY:ROLL_DY,z);g.add(p);g.userData.pulleys.push(p);}
   for(const dy of [0.028,-0.028]){const b=new THREE.Mesh(G.belt,M.rubber);place2(b,V(bx,ROLL_DY+dy,ROLL_RZ[1]),V(bx,ROLL_FDY+dy,ROLL_FZ));g.add(b);}}
 // A: folding aluminium frame, silver drums with red end caps, black feet (the silver one in the photo)
 function rollersA(g){const G=rollerGeos(),M=rollerMats();const X=ROLL_L/2+0.075;
@@ -1067,23 +1078,23 @@ function orient(m,a,b,hint,sx,sz){_qoy.subVectors(b,a);const L=_qoy.length()||1e
 const RDG={};
 function riderGeos(){const RG=RDG;if(RG.ok)return RG;
   // torso from the hip joints (t=0) to the base of the neck (t=1); below 0 = glutes on the saddle. front = belly/chest
-  const TOR=[[-0.2,0.045,0.035,0.045],[-0.15,0.105,0.065,0.09],[-0.07,0.145,0.078,0.105],[0,0.158,0.082,0.11],[0.12,0.15,0.09,0.105],[0.28,0.142,0.087,0.102],[0.45,0.15,0.095,0.105],[0.58,0.168,0.12,0.118],[0.72,0.19,0.14,0.126],[0.84,0.196,0.133,0.12],[0.92,0.176,0.108,0.1],[0.99,0.125,0.065,0.07],[1.04,0.068,0.044,0.048],[1.08,0,0,0]];
+  const TOR=[[-0.2,0.045,0.035,0.045],[-0.15,0.105,0.065,0.09],[-0.07,0.145,0.078,0.105],[0,0.158,0.082,0.11],[0.12,0.142,0.088,0.1],[0.28,0.132,0.084,0.092],[0.45,0.142,0.092,0.098],[0.58,0.168,0.12,0.118],[0.72,0.195,0.14,0.126],[0.84,0.205,0.133,0.12],[0.92,0.176,0.108,0.1],[0.99,0.125,0.065,0.07],[1.04,0.068,0.044,0.048],[1.08,0,0,0]];
   RG.torS=loftGeo('torS',TOR,{p:2.3,t1:0.2,seg:LOWEND?14:24});
   RG.torJ=loftGeo('torJ',TOR,{p:2.3,t0:0.2,seg:LOWEND?14:24,v:t=>clamp((t-0.2)/0.8,0,1)});
   // thigh: hip -> knee, big quads on the front, vastus bulge just above the knee
-  const TH=[[-0.14,0.04,0.04,0.04],[-0.08,0.075,0.078,0.078],[0,0.09,0.09,0.09],[0.16,0.096,0.105,0.092],[0.34,0.094,0.108,0.088],[0.52,0.085,0.098,0.078],[0.68,0.075,0.088,0.066],[0.82,0.062,0.072,0.056],[0.94,0.052,0.058,0.05],[1.04,0.044,0.044,0.041],[1.14,0,0,0]];
+  const TH=[[-0.14,0.04,0.04,0.04],[-0.08,0.075,0.078,0.078],[0,0.09,0.09,0.09],[0.16,0.096,0.105,0.092],[0.34,0.09,0.108,0.086],[0.52,0.08,0.095,0.074],[0.68,0.07,0.082,0.062],[0.82,0.062,0.072,0.056],[0.94,0.052,0.058,0.05],[1.04,0.044,0.044,0.041],[1.14,0,0,0]];
   RG.thS=loftGeo('thS',TH,{t1:0.74});RG.thK=loftGeo('thK',TH,{t0:0.74});
   // shin: knee -> ankle, calf belly at the back
-  const SN=[[-0.1,0,0,0],[-0.08,0.035,0.035,0.035],[-0.04,0.048,0.05,0.045],[0.03,0.047,0.044,0.052],[0.15,0.047,0.038,0.066],[0.3,0.049,0.036,0.072],[0.45,0.043,0.033,0.058],[0.65,0.033,0.029,0.038],[0.85,0.028,0.026,0.029],[1,0.03,0.03,0.031],[1.06,0.026,0.026,0.026],[1.09,0,0,0]];
+  const SN=[[-0.1,0,0,0],[-0.08,0.035,0.035,0.035],[-0.04,0.048,0.05,0.045],[0.03,0.047,0.044,0.052],[0.15,0.047,0.038,0.066],[0.3,0.049,0.036,0.078],[0.45,0.042,0.032,0.058],[0.65,0.032,0.027,0.036],[0.85,0.026,0.024,0.027],[1,0.03,0.03,0.031],[1.06,0.026,0.026,0.026],[1.09,0,0,0]];
   RG.shn=loftGeo('shn',SN,{t1:0.74});RG.sock=loftGeo('sock',SN,{t0:0.72});
   // arms
-  const UA=[[-0.12,0,0,0],[-0.09,0.034,0.034,0.034],[-0.03,0.052,0.052,0.052],[0.08,0.058,0.056,0.058],[0.24,0.054,0.052,0.05],[0.42,0.048,0.047,0.045],[0.62,0.042,0.041,0.04],[0.82,0.037,0.035,0.036],[1.02,0.032,0.03,0.032],[1.12,0,0,0]];
+  const UA=[[-0.12,0,0,0],[-0.09,0.034,0.034,0.034],[-0.03,0.052,0.052,0.052],[0.08,0.052,0.05,0.052],[0.24,0.047,0.045,0.043],[0.42,0.042,0.041,0.039],[0.62,0.037,0.036,0.035],[0.82,0.037,0.035,0.036],[1.02,0.032,0.03,0.032],[1.12,0,0,0]];
   RG.uaS=loftGeo('uaS',UA,{t1:0.55,seg:LOWEND?10:14});RG.uaK=loftGeo('uaK',UA,{t0:0.55,seg:LOWEND?10:14});RG.uaL=loftGeo('uaL',UA,{seg:LOWEND?10:14});
-  const FA=[[-0.1,0,0,0],[-0.07,0.03,0.03,0.03],[-0.02,0.038,0.037,0.04],[0.16,0.042,0.039,0.043],[0.36,0.038,0.033,0.036],[0.55,0.031,0.026,0.029],[0.72,0.025,0.021,0.023],[0.82,0.023,0.019,0.021],[0.86,0,0,0]];
+  const FA=[[-0.1,0,0,0],[-0.07,0.03,0.03,0.03],[-0.02,0.038,0.037,0.04],[0.16,0.039,0.036,0.04],[0.36,0.035,0.03,0.033],[0.55,0.031,0.026,0.029],[0.72,0.025,0.021,0.023],[0.82,0.023,0.019,0.021],[0.86,0,0,0]];
   RG.fa=loftGeo('fa',FA,{seg:LOWEND?10:14});
   // fist round the bar (metres along the forearm direction, centred on the grip)
   RG.fist=loftGeo('fist',[[-0.085,0,0,0],[-0.075,0.02,0.018,0.018],[-0.045,0.034,0.022,0.024],[-0.015,0.04,0.029,0.03],[0.015,0.04,0.031,0.03],[0.035,0.032,0.026,0.024],[0.05,0,0,0]],{seg:12,p:2.4});
-  RG.neck=loftGeo('neck',[[-0.06,0.03,0.03,0.03],[-0.02,0.052,0.052,0.055],[0.18,0.055,0.054,0.058],[0.48,0.051,0.05,0.054],[0.78,0.046,0.045,0.049],[1.0,0.038,0.038,0.04],[1.06,0,0,0]],{seg:14});
+  RG.neck=loftGeo('neck',[[-0.06,0.03,0.03,0.03],[-0.02,0.056,0.054,0.056],[0.18,0.052,0.05,0.054],[0.48,0.046,0.045,0.048],[0.78,0.042,0.041,0.044],[1.0,0.038,0.038,0.04],[1.06,0,0,0]],{seg:14});
   // head: skull, cheekbones, jaw and chin (metres, centre ≈ ear level, face = +z)
   {const sk=loftGeo('skull',[[-0.135,0,0,0],[-0.125,0.025,0.03,0.025,0.012],[-0.105,0.045,0.06,0.045,0.014],[-0.08,0.057,0.078,0.056,0.012],[-0.05,0.066,0.09,0.07,0.008],[-0.012,0.073,0.096,0.084],[0.03,0.077,0.095,0.092],[0.07,0.074,0.085,0.093],[0.1,0.062,0.068,0.082],[0.125,0.035,0.036,0.05],[0.137,0,0,0]],{seg:LOWEND?14:22});
     const tmp=new THREE.Group();const a=new THREE.Mesh(sk);tmp.add(a);
@@ -1449,8 +1460,8 @@ const SHOEG={};function makeShoe(B,shoeM,soleM,boaM,capM,pedM,sx){const g=new TH
   g.add(new THREE.Mesh(B.shoe,shoeM),new THREE.Mesh(SHOEG[sx].sole,soleM),new THREE.Mesh(SHOEG[sx].boa,boaM));
   return g;}
 // ---------- posture: where the hips, the base of the neck and the hands are, in bike space ----------
-const PZ={drops:{hip:[0,1.05,-0.2],N:[0,1.215,0.35],grip:[0.205,0.79,0.548],pitch:0.42},sprint:{hip:[0,1.05,-0.185],N:[0,1.175,0.375],pitch:0.6},
-  tops:{hip:[0,1.045,-0.225],N:[0,1.37,0.18],grip:[0.15,0.906,0.47],pitch:0.12},stand:{hip:[0,1.07,-0.03],N:[0,1.3,0.45],pitch:0.5},
+const PZ={drops:{hip:[0,1.05,-0.2],N:[0,1.27,0.34],grip:[0.205,0.79,0.548],pitch:0.42},sprint:{hip:[0,1.05,-0.185],N:[0,1.21,0.37],pitch:0.6},
+  tops:{hip:[0,1.045,-0.225],N:[0,1.38,0.2],grip:[0.15,0.906,0.47],pitch:0.12},stand:{hip:[0,1.07,-0.03],N:[0,1.3,0.45],pitch:0.5},
   aero:{hip:[0,1.06,-0.17],N:[0,1.2,0.41],grip:[0.055,1.02,0.645],elbow:[0.088,0.985,0.355],pitch:0.7},horns:[0.212,0.91,0.6]};
 const _qhp=V(),_qNn=V(),_qdr=V(),_qF=V(),_qXA=V(1,0,0),_qhj=V(),_qpd=V(),_qak=V(),_qkn=V(),_qfv=V(),_quv=V(),_qfx=V(),_qu=V(),_qn=V(),_qt1=V(),_qt2=V(),_qsa=V(),_qgr=V(),_qel=V(),_qel2=V(),_qbb=V();
 function mix3(out,arr,k){out.x+=(arr[0]-out.x)*k;out.y+=(arr[1]-out.y)*k;out.z+=(arr[2]-out.z)*k;return out;}
@@ -1479,13 +1490,13 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
   _qdr.subVectors(_qNn,_qhp);const TL=_qdr.length();_qdr.multiplyScalar(1/TL);_qF.set(0,-_qdr.z,_qdr.y).normalize();
   for(const m of M.torso)orient(m,_qhp,_qNn,_qF,M.bw*(1+0.012*sb),1+0.03*sb);
   // head & neck: the neck rises forward out of the flat back, the face looks up the track
-  _qt1.copy(_qdr).multiplyScalar(0.85).add(_qt2.set(0,0.5,0.12)).normalize();_qak.copy(_qNn).addScaledVector(_qt1,0.14);   // head centre
+  _qt1.copy(_qdr).multiplyScalar(0.8).add(_qt2.set(0,0.68,0.1)).normalize();_qak.copy(_qNn).addScaledVector(_qt1,0.14);   // head centre
   _qt2.set(0,-_qt1.z,_qt1.y);orient(M.neck,_qt1.copy(_qNn).addScaledVector(_qdr,-0.02),_qak,_qt2,M.nk,M.nk);
   M.head.position.copy(_qak);M.head.rotation.set(pitch-0.12*Math.abs(yaw)+(lookPitch||0)+0.012*sb,yaw,0.06*sp*sa);
   // arms
   if(M.aero){_qgr.set(...P0.grip);mix3(_qgr,PZ.horns,st);}else{_qgr.set(...PZ.drops.grip);mix3(_qgr,PZ.tops.grip,su);}
   for(const A of M.rig){const s=A.s;
-    _qsa.copy(_qNn).addScaledVector(_qdr,-0.065).addScaledVector(_qF,0.05);_qsa.x+=s*0.168*M.bw;
+    _qsa.copy(_qNn).addScaledVector(_qdr,-0.065).addScaledVector(_qF,0.05);_qsa.x+=s*0.178*M.bw;
         A.a.copy(_qsa);A.h.set(s*_qgr.x,_qgr.y,_qgr.z);rollP(A.h);
     ARMPOLE.set(s*0.28,-0.42,-0.86);rIK(A.a,A.h,A.L1,A.L2,ARMPOLE,A.e);
     if(M.aero&&st<1){_qel.set(s*P0.elbow[0],P0.elbow[1],P0.elbow[2]);rollP(_qel);A.e.lerp(_qel,1-st);}   // forearms resting on the pads
@@ -1872,7 +1883,7 @@ function updateJudges(dt){if(!JUDGE_RIGS.length)return;checkBlueBand();
     poseHuman(r,T,angry?Math.min(1,k*1.6):k);}}
 function freeSpot(margin,tries){const poly=infieldPoly(margin);for(let i=0;i<(tries||60);i++){const x=(Math.random()-.5)*60,z=(Math.random()-.5)*30;if(inPoly(x,z,poly)&&Math.hypot(x-STAIR.cx,z-STAIR.cz)>4.5)return [x,z];}return null;}
 // infield layout following the sketch: booths 3–14 with benches, round podium 15, rollers (*) and hanging stands (o)
-const OBST={cols:[],rollers:[],hangs:[],walk:[]};let LADDER=null;
+const OBST={cols:[],rollers:[],hangs:[],walk:[]};let LADDER=null;const ROLLERS=[];   // the bikes on rollers you can get on (walk)
 // a solid box for walking on the infield: centre, half sizes, turned like a group with rotation.y = rot (hu along its local x, hv along its local z)
 function OB(cx,cz,rot,hu,hv){return {cx,cz,ux:Math.cos(rot),uz:-Math.sin(rot),hu,hv};}
 function buildInfield(){
@@ -1909,7 +1920,7 @@ function buildInfield(){
   rollers.forEach(([x,z],i)=>{const g=new THREE.Group();g.position.set(x,y0,z);g.rotation.y=i%3===1?PI:0;scene.add(g);   // bike along the green line of the sketch
     (i%2?rollersB:rollersA)(g);
     const c=bikeCols[i%bikeCols.length];const b=makeBike({frame:c[0],accent:c[1],discR:i%3===0,discF:i%7===3,spokes:[3,5,24,4][i%4],aero:i%4===1});b.g.position.y=ROLL_Y;g.add(b.g);
-    OBST.walk.push(OB(x,z,0,0.33,0.95));});
+    OBST.walk.push(OB(x,z,0,0.33,0.95));ROLLERS.push({g,bike:b,x,z,rot:g.rotation.y,v:0});});
   // bike racks (as on the photo): a black bar at saddle height on posts, parallel to the home straight;
   // each bike hangs by the saddle nose hooked over the bar, perpendicular to it, front wheel just above the floor
   OBST.cols=cols;OBST.rollers=[];for(const [x,z] of rollers)for(const dz of [-0.55,0.55])OBST.rollers.push([x,z+dz]);OBST.hangs=[];
@@ -2105,7 +2116,7 @@ function resetRiders(){
   order.forEach((ri,slot)=>{const R=riders[ri];const row=slot>>1;
     Object.assign(R,{s:SF-1.2-row*2.3,w:slot%2?1.9:0.8,v:0,h:0,power:0,energy:100,wp:22000,crank:Math.random()*6,draft:0,finished:false,time:0,targetW:0,lane:0.4+Math.random()*1.0,mood:1,sprintAt:170+Math.random()*190,attackT:0,lean:0,dw:0,cda:R.player?0.25:0.26,realP:0,crashed:false,crash:null,targetWp:0,latched:false,eRate:0,intent:0,pushedT:0,contact:0,pullT:0,swing:0,str:R.player?1:0.85+Math.random()*0.3,aggr:Math.random(),highLane:1.6+Math.random()*1.8,pullAt:55+Math.random()*20,ftp:R.player?330:Math.round(TSTAT[R.team].ftp[0]+Math.random()*(TSTAT[R.team].ftp[1]-TSTAT[R.team].ftp[0]))});
     if(!R.player){const T=TSTAT[R.team];R.str=T.str[0]+Math.random()*(T.str[1]-T.str[0]);R.aggr=T.aggr[0]+Math.random()*(T.aggr[1]-T.aggr[0]);R.lane=T.lane+Math.random()*0.5;R.front=T.front;}
-    R.wp=R.player?20000:R.kick?25000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='teamsprint'||mode==='elim'||mode==='keirin'||mode==='sprint'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.mark=false;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
+    R.wp=R.player?20000*(1+RACE_BONUS/100):R.kick?25000:19000+Math.random()*5000;R.recK=R.player?1.8:1.6+Math.random()*0.7;R.endur=R.player||mode==='kilo'||mode==='teamsprint'||mode==='elim'||mode==='keirin'||mode==='sprint'?1:0.62+Math.random()*0.2;R.frontT=0;   /* every bot has his own hidden tank and recovery */R.pullLen=14+Math.random()*10;R.thinkT=0;R.bridge=null;R.mark=false;R.grp=null;R.brkFlag=false;R.highLane=1.0+Math.random()*0.9;
     if(mode==='kilo'&&R===player){R.s=START_S-0.6;R.w=0.5;}
     R.targetWp=R.w;R.model.g.rotation.set(0,0,0);
     R.h=surfY(R.s,R.w);R.targetW=R.w;R.prevS=R.s;});
@@ -2428,12 +2439,12 @@ function botAI(R,dt){const RP=aiPace();
   const capP0=keirin?(sprinting?R.ftp*3.45:bridging?R.ftp*3.5:R.ftp*2.3):sprinting?R.ftp*(inter?2.2:3.45):bridging?R.ftp*3.3:R.attackT>0?R.ftp*1.7:front&&(chasing||g.brk)?R.ftp*(0.95+0.6*R.energy/100):lapsLeft>2.5?R.ftp*(0.95+0.4*R.energy/100):R.ftp*1.45,capP=empty?R.ftp*0.68:packLim&&R.energy>15?Math.max(packLim,capP0):capP0;
   const closing=!front&&anyA&&gapA>3.5&&gapA<GROUP_GAP*1.5&&R.energy>12;   // a short dig to get back on a wheel is always worth it
   if(R.held&&neutral&&raceTime<4&&!wreck)vT=Math.max(vT,Math.min(NEU_V,2+raceTime*2.2));   // standing start: the whole held column rolls off together, nobody waits for the man in front
-  const Rv=vEq(R);const tight=ahead&&gap<dGap+1&&clos>0.8&&Math.abs(ahead.w-R.w)<0.5;R.power=clamp(Pneed+(sprinting||R.attackT>0||tight?620:380)*(vT-Rv)*(vT<Rv-0.3?Rv/5:1),wreck||tight?-2000:-900,closing&&!empty?Math.max(capP,R.ftp*1.35):capP);   // no brakes on a track bike: you back off the pedals
+  const Rv=neutral&&mode!=='madison'?R.v:vEq(R);const tight=ahead&&gap<dGap+1&&clos>0.8&&Math.abs(ahead.w-R.w)<0.5;R.power=clamp(Pneed+(sprinting||R.attackT>0||tight?620:380)*(vT-Rv)*(vT<Rv-0.3?Rv/5:1),wreck||tight?-2000:-900,closing&&!empty?Math.max(capP,R.ftp*1.35):capP);   // no brakes on a track bike: you back off the pedals
   if(raceTime<5)R.power=clamp(R.power,0,R.ftp*1.2);
   // ---- line ----
   let tw=packTw!=null?packTw:front?lineW:(ahead&&gap<10?ahead.w:anyA&&gapA<12?anyA.w:lineW);   // get on a wheel – the draft is everything
   if(packTw!=null&&ahead&&gap<5&&((lapsLeft<2.2&&R.aggr>0.5&&R.energy>40)||vEq(ahead)<(B.vHead||RP)-1.0)&&!(lapsLeft<1.3)){const up=ahead.w+0.75,dn=ahead.w-0.75,fu=up<2.3&&slotFree(R,up),fd=dn>=0.4&&slotFree(R,dn);tw=fd?dn:fu?up:R.w;}   // come past in the pack: below if there's room, else above
-  if(isNeutral()&&R.w<1.6&&ahead&&ahead.w>R.w+0.9)tw=Math.min(tw,Math.max(R.w,0.45));   // neutral lap: the men from the rail come down into the line, the ones let go low stay low
+  if(isNeutral()&&R.w<1.6&&ahead&&ahead.w>R.w+0.9)tw=Math.min(tw,Math.max(R.w,0.45));if(isNeutral()&&mode!=='madison'&&!R.held&&R.w>1.6&&raceTime<8)tw=Math.min(tw,1.2);   // neutral lap: the men from the rail come down into the line, the ones let go low stay low
   if(R.pullT>0)tw=lineW+0.8;
   else if(lapsLeft<1.3&&!sprinting&&!keirin)tw=mode==='madison'?Math.min(R.highLane,1.4):R.highLane;   // up the banking for the sprint
   else if(keirin&&!sprinting&&front)tw=0.45;
@@ -2670,7 +2681,7 @@ function makeStanding(R,rank){const M=makeRider(Object.assign({},R,{aero:false,n
   M.head.position.copy(_qak);M.head.rotation.set(up?-0.18:0.04,sway*0.3,0);
   // arms
   for(const A of M.rig){const s=A.s;
-    _qsa.copy(_sN).addScaledVector(_sD,-0.065).addScaledVector(_sF,0.01);_qsa.x+=s*0.168*M.bw;A.a.copy(_qsa);
+    _qsa.copy(_sN).addScaledVector(_sD,-0.065).addScaledVector(_sF,0.01);_qsa.x+=s*0.178*M.bw;A.a.copy(_qsa);
     if(up){A.h.set(s*0.36,_sN.y+0.5,0.1);ARMPOLE.set(s*1,-0.2,-0.25);}else{A.h.set(s*0.235,_sN.y-0.6,0.06);ARMPOLE.set(s*0.25,0,-1);}
     rIK(A.a,A.h,A.L1,A.L2,ARMPOLE,A.e);armPlace(A,A.a,A.e,A.h);capPlace(A,M,_qsa,_sF);}
   // legs: straight, feet a little apart, shoes flat on the step
@@ -2731,43 +2742,66 @@ const SHOP_ITEMS=[   // price in penízky; w = extra watts (only what you wear c
   {id:'helm_road',tab:'helmy',kind:'road',name:'Silniční helma',desc:'Černobílá, plná větráků. Základ, máš ji vždycky.',price:0,w:0,free:true},
   {id:'helm_aero',tab:'helmy',kind:'aero',name:'Aero helma',desc:'Hladká bílá skořepina, málo větráků. +10 W',price:1500,w:10},
   {id:'helm_shield',tab:'helmy',kind:'shield',name:'Aero helma se štítem',desc:'Bílá perleť a duhový štít na magnetech. +20 W',price:2500,w:20},
-  {id:'helm_tt',tab:'helmy',kind:'tt',name:'Časovkářská helma',desc:'Černá kapka s ocasem a velkým štítem. +35 W',price:4000,w:35}];
+  {id:'helm_tt',tab:'helmy',kind:'tt',name:'Časovkářská helma',desc:'Černá kapka s ocasem a velkým štítem. +35 W',price:4000,w:35},
+  {id:'aero_covers',tab:'aero',part:'covers',name:'Aero návleky na tretry',desc:'Hladké černé návleky přes tretry s vysokými ponožkami. +8 W',price:1200,w:8},
+  {id:'aero_gloves',tab:'aero',part:'gloves',name:'Aero rukavice',desc:'Bílé rukavice s dlouhou manžetou a pruhy. +5 W',price:800,w:5}];
+const AERO_ICO={covers:'<path d="M12 2h9v12l9 5c2 1 2 4-1 4H8c-2 0-3-1-2-3l6-6z" fill="#17181a"/><path d="M12 5h9M12 8h9M12 11h9" stroke="#55585d" stroke-width="1.2"/><path d="M6 21h24" stroke="#3a3c40" stroke-width="1.5"/>',
+  gloves:'<path d="M9 25V12c0-2 3-2 3 0V5c0-2 3-2 3 0v6V3c0-2 3-2 3 0v8V5c0-2 3-2 3 0v9l2-3c1-2 4-1 3 1l-4 8c-1 3-3 5-6 5z" fill="#f4f4f2" stroke="#8d9196" stroke-width="1"/><path d="M12 9v14M15 8v15M18 8v15" stroke="#c8ccd1" stroke-width=".8"/><path d="M12 5v2M15 3v2M18 3v2M21 5v2" stroke="#17181a" stroke-width="2.4" stroke-linecap="round"/>'};
 const HELM_ICO={road:'<path d="M3 17C3 8 11 4 19 4c7 0 12 4 13 10l-2 4H5z" fill="#17181a"/><path d="M8 7l9-1M7 10l12-1M8 13l11-1M21 6l7 2M21 9l8 3" stroke="#e9ecef" stroke-width="1.6" stroke-linecap="round"/><path d="M22 18h8l2-4c-3 1-6 2-10 4z" fill="#eceeef"/><path d="M3 17l-2 1 4 1z" fill="#17181a"/>',
   aero:'<path d="M3 18C3 9 10 4 18 4c8 0 14 5 14 12l-2 2H5z" fill="#eef0f2" stroke="#9aa2ac" stroke-width="1"/><path d="M6 14l5-3 2 4-5 2z" fill="#26272a"/><path d="M8 7c6-2 14-1 20 4" stroke="#b5bcc5" stroke-width="1" fill="none"/>',
   shield:'<path d="M3 18C3 9 10 4 18 4c8 0 13 5 13 11v3H5z" fill="#f3f1f7" stroke="#a49fb2" stroke-width="1"/><path d="M3 15c0 4 1 7 4 8h8c-1-3-1-6-1-8z" fill="url(#ir)"/><circle cx="5" cy="15" r="1.2" fill="#111"/><path d="M15 6l3 4" stroke="#26272a" stroke-width="2.4" stroke-linecap="round"/><defs><linearGradient id="ir"><stop offset="0" stop-color="#ff2f1c"/><stop offset=".6" stop-color="#ffb300"/><stop offset="1" stop-color="#cfe34a"/></linearGradient></defs>',
   tt:'<path d="M2 17C2 8 8 4 14 4c9 0 15 4 21 13l-2 1H4z" fill="#1b1c1f"/><path d="M2 14c0 5 1 8 4 10h9c-1-3-1-7-1-10z" fill="#7a8088"/><path d="M5 15h8" stroke="#c6ccd3" stroke-width="1"/>'};
 const WHEEL_ICO=k=>'<circle cx="18" cy="13" r="11.5" fill="'+(k==='disc'?'#1b1c1f':'none')+'" stroke="#1b1c1f" stroke-width="2.2"/>'+(k==='wire'?Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return '<path d="M18 13L'+(18+Math.cos(a)*10.5).toFixed(1)+' '+(13+Math.sin(a)*10.5).toFixed(1)+'" stroke="#55585d" stroke-width=".7"/>';}).join(''):k===5?Array.from({length:5},(_,i)=>{const a=i*2*Math.PI/5-Math.PI/2;return '<path d="M18 13L'+(18+Math.cos(a)*10.5).toFixed(1)+' '+(13+Math.sin(a)*10.5).toFixed(1)+'" stroke="#1b1c1f" stroke-width="2.6" stroke-linecap="round"/>';}).join(''):'')+'<circle cx="18" cy="13" r="2.2" fill="#8d9196"/>';
-let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0,shopTab='kola',shopEquipNext=null,shopErr='';
+let SHOP=null,shopTag=null,cerYaw=0,cerPitch=0,cerDrag=null,cerDragT=0,shopTab='kola',shopEquipNext=null,shopErr='',shopSel=null;
 function shopOwned(){try{return JSON.parse(localStorage.getItem('motol_shop')||'{}')||{};}catch(e){return {};}}
+function aeroOwned(id,own){const it=SHOP_ITEMS.find(i=>i.id===id);return !!it&&it.tab==='aero'&&!!(own||shopOwned())[id];}
+function aeroWorn(id,own){if(!aeroOwned(id,own))return false;let v=null;try{v=localStorage.getItem('motol_'+id);}catch(e){}return v!=='0';}   // aero bits: each on or off on its own; bought = on
 function helmOwned(id,own){const it=SHOP_ITEMS.find(i=>i.id===id);return !!it&&it.tab==='helmy'&&(it.free||!!(own||shopOwned())[id]);}
 function wheelOwned(id,slot,own){const it=SHOP_ITEMS.find(i=>i.id===id);return !!it&&it.slot===slot&&(it.free||!!(own||shopOwned())[id]);}
 // one wheel per slot (f/r); nothing chosen yet = the best one you own (players who bought a disc before keep riding it)
 function wornWheel(slot,own){own=own||shopOwned();let h=null;try{h=localStorage.getItem('motol_wheel_'+slot);}catch(e){}if(wheelOwned(h,slot,own))return h;
   let b='wire_'+slot;for(const it of SHOP_ITEMS)if(it.slot===slot&&own[it.id]&&it.w>SHOP_ITEMS.find(i=>i.id===b).w)b=it.id;return b;}
-function wearItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it)return;if(it.slot){if(!wheelOwned(id,it.slot))return;try{localStorage.setItem('motol_wheel_'+it.slot,id);}catch(e){}}else{if(!helmOwned(id))return;try{localStorage.setItem('motol_helm',id);}catch(e){}}
+function wearItem(id,off){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it)return;shopSel=id;if(it.tab==='aero'){if(!aeroOwned(id))return;try{localStorage.setItem('motol_'+id,off?'0':'1');}catch(e){}}else if(it.slot){if(!wheelOwned(id,it.slot))return;try{localStorage.setItem('motol_wheel_'+it.slot,id);}catch(e){}}else{if(!helmOwned(id))return;try{localStorage.setItem('motol_helm',id);}catch(e){}}
   shopEquipNext=null;shopErr='';tone(740,0.1,0.06,'triangle');renderShop();}
 function wornHelm(){let h=null;try{h=localStorage.getItem('motol_helm');}catch(e){}return helmOwned(h)?h:'helm_road';}   // only one helmet on the head; the road one is always there
-function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||it.free||shopOwned()[id]||getVK()<it.price)return;shopEquipNext=id;shopErr='';if(window.Online&&Online.loggedIn()){Promise.resolve(Online.buy(id)).then(r=>{if(r&&r.ok===false){shopEquipNext=null;shopErr='Nákup se nepovedl: '+({network:'nejde internet.',not_enough_money:'na účtu nemáš dost penízků.',already_owned:'tuhle věc už máš.'}[r.err]||'zkus to znovu ('+r.err+').');renderShop();if(Online.sync)Online.sync();}}).catch(()=>{});return;}
+function buyItem(id){const it=SHOP_ITEMS.find(i=>i.id===id);if(!it||it.soon||it.free||shopOwned()[id]||getVK()<it.price)return;shopEquipNext=id;shopSel=id;shopErr='';if(window.Online&&Online.loggedIn()){Promise.resolve(Online.buy(id)).then(r=>{if(r&&r.ok===false){shopEquipNext=null;shopErr='Nákup se nepovedl: '+({network:'nejde internet.',not_enough_money:'na účtu nemáš dost penízků.',already_owned:'tuhle věc už máš.'}[r.err]||'zkus to znovu ('+r.err+').');renderShop();if(Online.sync)Online.sync();}}).catch(()=>{});return;}
   const o=shopOwned();o[id]=1;try{localStorage.setItem('motol_shop',JSON.stringify(o));}catch(e){}addVK(-it.price);tone(880,0.15,0.08,'triangle');renderShop();}
 // worn gear on the hero: swap the wheels (spoked / 5-spoke / disc) on both of his bikes, put the worn helmet on and add the watts
 function applyGear(){const own=shopOwned();const ne=shopEquipNext&&SHOP_ITEMS.find(i=>i.id===shopEquipNext);   // what you just bought goes straight on
-  if(ne&&(ne.slot?wheelOwned(ne.id,ne.slot,own):helmOwned(ne.id,own))){try{localStorage.setItem(ne.slot?'motol_wheel_'+ne.slot:'motol_helm',ne.id);}catch(e){}shopEquipNext=null;}
-  const hz=wornHelm(),hk=SHOP_ITEMS.find(i=>i.id===hz).kind,wr=wornWheel('r',own),wf=wornWheel('f',own);let w=0;for(const it of SHOP_ITEMS)if(it.id===hz||it.id===wr||it.id===wf)w+=it.w||0;player.gearW=w;player.helm=hk;
+  if(ne&&(ne.tab==='aero'?aeroOwned(ne.id,own):ne.slot?wheelOwned(ne.id,ne.slot,own):helmOwned(ne.id,own))){try{localStorage.setItem(ne.tab==='aero'?'motol_'+ne.id:ne.slot?'motol_wheel_'+ne.slot:'motol_helm',ne.tab==='aero'?'1':ne.id);}catch(e){}shopEquipNext=null;}
+  const hz=wornHelm(),hk=SHOP_ITEMS.find(i=>i.id===hz).kind,wr=wornWheel('r',own),wf=wornWheel('f',own),cov=aeroWorn('aero_covers',own),glv=aeroWorn('aero_gloves',own);let w=0;
+  for(const it of SHOP_ITEMS)if(it.id===hz||it.id===wr||it.id===wf||(it.tab==='aero'&&aeroWorn(it.id,own)))w+=it.w||0;player.gearW=w;player.helm=hk;
   const want=[wr,wf].map(id=>SHOP_ITEMS.find(i=>i.id===id).wk);   // wheels[0] = rear, wheels[1] = front (makeBike)
-  for(const M of [player.mAero,player.mStd,SPV&&SPV.M,...HERO_FIGS]){if(!M)continue;setRiderHelm(M,hk);if(!M.wheels)continue;M.gear=M.gear||['wire','wire'];
-    for(let i=0;i<2;i++){if(M.gear[i]===want[i]||!M.wheels[i])continue;const old=M.wheels[i],nw=makeWheel(want[i]);nw.position.copy(old.position);nw.rotation.x=old.rotation.x;
-      nw.traverse(o=>{if(o.isMesh)o.castShadow=true;});old.parent.add(nw);old.parent.remove(old);M.wheels[i]=nw;M.gear[i]=want[i];}}}
+  const sel=SPV&&shopSel&&SHOP_ITEMS.find(i=>i.id===shopSel);
+  for(const M of [player.mAero,player.mStd,sel?null:SPV&&SPV.M,RIDE.M,...HERO_FIGS])if(M)gearOn(M,hk,want,cov,glv);   // the preview tries on what you picked in the list
+  if(sel){const tw=want.slice();if(sel.slot)tw[sel.slot==='r'?0:1]=sel.wk;gearOn(SPV.M,sel.kind||hk,tw,sel.part==='covers'?true:cov,sel.part==='gloves'?true:glv);}}
+function gearOn(M,hk,want,cov,glv){setRiderHelm(M,hk);aeroOn(M,cov,glv);if(!M.wheels)return;M.gear=M.gear||['wire','wire'];
+  for(let i=0;i<2;i++){if(M.gear[i]===want[i]||!M.wheels[i])continue;const old=M.wheels[i],nw=makeWheel(want[i]);nw.position.copy(old.position);nw.rotation.x=old.rotation.x;
+    nw.traverse(o=>{if(o.isMesh)o.castShadow=true;});old.parent.add(nw);old.parent.remove(old);M.wheels[i]=nw;M.gear[i]=want[i];}}
+// aero overshoes (photo): smooth black covers over the shoes, tall grey socks with dark stripes; aero gloves: white with pinstripes and a long cuff
+const AEROM={};function aeroMats(){if(AEROM.ok)return AEROM;
+  AEROM.cover=new THREE.MeshPhongMaterial({color:0x111214,specular:0x777777,shininess:95});
+  {const c=mkCanvas(64,256),q=c.getContext('2d');const gr=q.createLinearGradient(0,0,0,256);gr.addColorStop(0,'#b9bcc0');gr.addColorStop(0.55,'#55585d');gr.addColorStop(1,'#151618');q.fillStyle=gr;q.fillRect(0,0,64,256);
+   q.fillStyle='rgba(10,10,12,.55)';for(let y=6;y<256;y+=11)q.fillRect(0,y,64,4+y/90);const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;AEROM.sock=new THREE.MeshPhongMaterial({map:t,specular:0x333333,shininess:30});}
+  {const c=mkCanvas(128,64),q=c.getContext('2d');q.fillStyle='#f6f6f4';q.fillRect(0,0,128,64);q.fillStyle='rgba(150,155,160,.5)';for(let x=8;x<128;x+=21)q.fillRect(x,0,2,64);q.fillStyle='#1a1a1a';q.fillRect(0,0,128,5);
+   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;AEROM.glove=new THREE.MeshPhongMaterial({map:t,specular:0x666666,shininess:45});}
+  AEROM.ok=true;return AEROM;}
+function aeroOn(M,cov,glv){if(!cov&&!glv&&!AEROM.ok)return;const A=aeroMats();
+  if(M.legs)for(const L of M.legs){const up=L.shoe.children[0];if(!L.m0)L.m0={up:up.material,sock:L.sock.material,boa:L.shoe.children[2]};
+    up.material=cov?A.cover:L.m0.up;L.sock.material=cov?A.sock:L.m0.sock;if(L.m0.boa)L.m0.boa.visible=!cov;}
+  if(M.rig)for(const R of M.rig){if(!R.g0)R.g0=R.glove.material;R.glove.material=glv?A.glove:R.g0;R.glove.scale.setScalar(glv?1.06:1);}}
 window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js calls this after a purchase or an account sync
+const RIDE={M:null,v:0,eff:0.45,crank:0,t:0,st:0,su:0,sp:0,br:0,last:null};   // riding on the rollers on the walk (see PREP)
 let SPV=null;applyGear();
 function renderShop(){applyGear();const vk=getVK(),own=shopOwned(),hz=wornHelm(),wz={f:wornWheel('f',own),r:wornWheel('r',own)};$('shopVK').textContent='💰 '+vk.toLocaleString('cs-CZ');
   for(const b of document.querySelectorAll('#shopTabs [data-tab]')){const on=b.dataset.tab===shopTab;b.style.background=on?'#1a1a1a':'#eee6d6';b.style.color=on?'#c6ff1a':'#1a1a1a';}
-  const sn=$('shopNote');sn.classList.toggle('err',!!shopErr);if(shopErr){sn.textContent=shopErr;}else sn.textContent=shopTab==='kola'?'Vepředu i vzadu máš vždycky jedno kolo. Watty dávají jen ta nasazená a sčítají se.':'Na hlavě máš vždycky jednu helmu. Watty dává jen ta nasazená.';
+  const sn=$('shopNote');sn.classList.toggle('err',!!shopErr);if(shopErr){sn.textContent=shopErr;}else sn.textContent=shopTab==='kola'?'Vepředu i vzadu máš vždycky jedno kolo. Watty dávají jen ta nasazená a sčítají se.':shopTab==='aero'?'Návleky i rukavice můžeš nosit zároveň. Watty dává jen to, co máš na sobě.':'Na hlavě máš vždycky jednu helmu. Watty dává jen ta nasazená.';
   const btn=(lab,on,attr,bg)=>'<button '+attr+' '+(on?'':'disabled ')+'style="font:inherit;font-size:13px;font-weight:800;border:0;border-radius:10px;padding:8px 10px;min-width:92px;cursor:'+(on?'pointer':'default')+';background:'+(on?bg:'#d9d4c7')+';color:'+(on?'#fff':'#5a5648')+'">'+lab+'</button>';
   $('shopList').innerHTML=SHOP_ITEMS.filter(it=>it.tab===shopTab).map(it=>{let b;
-    const has=it.slot?wheelOwned(it.id,it.slot,own):helmOwned(it.id,own),worn=it.slot?wz[it.slot]===it.id:it.id===hz;
-    b=worn?btn(it.slot?'✔ Nasazené':'✔ Nasazená',false,''):has?btn('Nasadit',true,'data-wear="'+it.id+'"','#2a9d4b'):btn(it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰',!it.soon&&vk>=it.price,'data-buy="'+it.id+'"','#e63946');
-    const ic=it.kind?'<svg viewBox="0 0 36 26" width="34" height="25">'+HELM_ICO[it.kind]+'</svg>':it.wk?'<svg viewBox="0 0 36 26" width="34" height="25">'+WHEEL_ICO(it.wk)+'</svg>':it.ic;
-    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid #0001"><span style="font-size:28px;width:34px;text-align:center;line-height:0">'+ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+b+'</div>';}).join('');}
+    const aero=it.tab==='aero',has=aero?aeroOwned(it.id,own):it.slot?wheelOwned(it.id,it.slot,own):helmOwned(it.id,own),worn=aero?aeroWorn(it.id,own):it.slot?wz[it.slot]===it.id:it.id===hz;
+    b=aero&&worn?btn('✔ Sundat',true,'data-off="'+it.id+'"','#55585d'):worn?btn(it.slot?'✔ Nasazené':'✔ Nasazená',false,''):has?btn('Nasadit',true,'data-wear="'+it.id+'"','#2a9d4b'):btn(it.soon?'Brzy · '+it.price+' 💰':it.price+' 💰',!it.soon&&vk>=it.price,'data-buy="'+it.id+'"','#e63946');
+    const ic=it.kind?'<svg viewBox="0 0 36 26" width="34" height="25">'+HELM_ICO[it.kind]+'</svg>':it.wk?'<svg viewBox="0 0 36 26" width="34" height="25">'+WHEEL_ICO(it.wk)+'</svg>':it.part?'<svg viewBox="0 0 36 26" width="34" height="25">'+AERO_ICO[it.part]+'</svg>':it.ic;
+    return '<div class="si'+(it.id===shopSel?' sel':'')+(worn?' worn':'')+'" data-sel="'+it.id+'"><span style="font-size:28px;width:34px;text-align:center;line-height:0">'+ic+'</span><div style="flex:1"><b>'+it.name+'</b><div style="font-size:12.5px;opacity:.7">'+it.desc+'</div></div>'+b+'</div>';}).join('');}
 // 3D preview in the shop: the hero on his bike (wheels tab) or a close-up of the head (helmets tab); own small renderer, runs only while the shop is open
 function shopPreview(){if(SPV)return SPV;const cv=$('shopPrev');const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
   const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xffffff,0x9a8f7c,0.7));const d=new THREE.DirectionalLight(0xffffff,0.8);d.position.set(2,4,3);sc.add(d);const d2=new THREE.DirectionalLight(0xcfe0ff,0.45);d2.position.set(-3,2,-2.5);sc.add(d2);
@@ -2777,18 +2811,21 @@ function shopPreview(){if(SPV)return SPV;const cv=$('shopPrev');const r=new THRE
   cv.addEventListener('pointermove',e=>{const D=SPV.drag;if(!D)return;SPV.yaw=D.yaw-(e.clientX-D.x)*0.012;SPV.pitch=clamp(D.pitch+(e.clientY-D.y)*0.006,-0.3,0.9);});
   const up=()=>{SPV.drag=null;SPV.t=performance.now();};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
   applyGear();return SPV;}
-const _spH=V(),_spB=V(0,0.72,0.05);
+const _spH=V(),_spB=V(0,0.72,0.05),_spA=V(0,0.55,0.2),_spG=V(0,0.86,0.5);
 function shopPrevLoop(){const P=SPV;if(!P||$('shop').style.display==='none'){if(P)P.run=false;return;}
   const cv=P.r.domElement,w=cv.clientWidth|0,h=cv.clientHeight|0;if(w>0&&h>0&&(cv.width!==Math.round(w*P.r.getPixelRatio())||cv.height!==Math.round(h*P.r.getPixelRatio()))){P.r.setSize(w,h,false);P.cam.aspect=w/h;P.cam.updateProjectionMatrix();}
-  if(!P.drag&&performance.now()-P.t>1500)P.yaw+=0.006;
-  const helm=shopTab==='helmy';P.M.g.updateMatrixWorld(true);P.M.head.getWorldPosition(_spH);
-  const tg=helm?_spH.setY(_spH.y+0.03):_spB,dist=helm?0.62:3.0;P.tg.lerp(tg,0.15);P.dist+=(dist-P.dist)*0.15;
+  if(P.spin>0){const d=Math.min(P.spin,0.09);P.spin-=d;P.yaw+=d*2*PI;}   // a quick turn of the hero when you pick something
+  else if(!P.drag&&performance.now()-P.t>1500)P.yaw+=0.006;
+  const helm=shopTab==='helmy',aero=shopTab==='aero';P.M.g.updateMatrixWorld(true);P.M.head.getWorldPosition(_spH);
+  const hands=aero&&shopSel==='aero_gloves',tg=helm?_spH.setY(_spH.y+0.03):hands?_spG:aero?_spA:_spB,dist=helm?0.62:hands?1.2:aero?1.75:3.0;P.tg.lerp(tg,0.15);P.dist+=(dist-P.dist)*0.15;
   const cp=Math.cos(P.pitch);P.cam.position.set(P.tg.x+Math.sin(P.yaw)*cp*P.dist,P.tg.y+Math.sin(P.pitch)*P.dist,P.tg.z+Math.cos(P.yaw)*cp*P.dist);P.cam.lookAt(P.tg);
   P.r.render(P.sc,P.cam);requestAnimationFrame(shopPrevLoop);}
-function openShop(){shopErr='';$('shop').style.display='block';renderShop();$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');
+function openShop(){shopErr='';shopSel=null;$('shop').style.display='block';renderShop();$('ceremony').style.display='none';tone(660,0.12,0.06,'triangle');
   try{const P=shopPreview();if(!P.run){P.run=true;requestAnimationFrame(shopPrevLoop);}}catch(e){$('shopPrev').style.display='none';}}
-$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy],[data-wear]');if(!b)return;if(b.dataset.wear)wearItem(b.dataset.wear);else buyItem(b.dataset.buy);});
-$('shopTabs').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tab]');if(b&&b.dataset.tab!==shopTab){shopTab=b.dataset.tab;shopErr='';tone(660,0.06,0.04,'triangle');renderShop();}});
+$('shopList').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-buy],[data-wear],[data-off]');if(b){if(b.dataset.wear)wearItem(b.dataset.wear);else if(b.dataset.off)wearItem(b.dataset.off,true);else buyItem(b.dataset.buy);shopSpin();return;}
+  const r=e.target.closest&&e.target.closest('[data-sel]');if(r&&r.dataset.sel!==shopSel){shopSel=r.dataset.sel;tone(620,0.05,0.035,'triangle');renderShop();shopSpin();}});   // tap a row: it lights up and the preview tries it on
+function shopSpin(){if(SPV){SPV.spin=1;SPV.t=performance.now();}}
+$('shopTabs').addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tab]');if(b&&b.dataset.tab!==shopTab){shopTab=b.dataset.tab;shopErr='';shopSel=null;shopSpin();tone(660,0.06,0.04,'triangle');renderShop();}});
 $('shopClose').onclick=$('shopX').onclick=()=>{$('shop').style.display='none';if(phase==='ceremony')$('ceremony').style.display='block';};
 function buildShop(){   // the white table already standing on the infield by the back straight (infield layout, item 6) – here just an invisible tap target and the floating cart
   const TX=-2.3,TZ=-10.4,y0=FLOOR_Y,g=new THREE.Group();g.position.set(TX,y0,TZ);scene.add(g);
@@ -3893,7 +3930,8 @@ let wipeBusy=false;
 function wipe(fn){if(wipeBusy)return;wipeBusy=true;const w=$('wipe');w.classList.remove('go');void w.offsetWidth;w.classList.add('go');tone(180,0.35,0.05,'sawtooth');tone(360,0.3,0.04,'triangle',0.1);
   setTimeout(()=>{fn();},430);setTimeout(()=>{w.classList.remove('go');wipeBusy=false;},950);}
 function startRace(m){wipe(()=>beginRace(m));}
-function beginRace(m,keep){if(!keep){if(!m&&OMNI)m='omnium';OMNI=m==='omnium'?{ev:0,tot:new Map(),res:[]}:null;}if(OMNI)m=OM_EV[OMNI.ev].m;TEMPO=!!OMNI&&OM_EV[OMNI.ev].id==='tempo';
+function beginRace(m,keep){if(keep&&OMNI&&prepPct()){RACE_BONUS+=prepPct();PREP.roll=PREP.drink=PREP.gel=false;PREP.rollT=0;}   // omnium: what you pick up on the floor between events adds on
+  if(!keep){RACE_BONUS=prepPct();PREP.roll=PREP.drink=PREP.gel=false;PREP.rollT=0;if(!m&&OMNI)m='omnium';OMNI=m==='omnium'?{ev:0,tot:new Map(),res:[]}:null;}if(OMNI)m=OM_EV[OMNI.ev].m;TEMPO=!!OMNI&&OM_EV[OMNI.ev].id==='tempo';
   $('tsPick').style.display='none';$('omniNext').style.display='none';$('againBtn').style.display='';$('resClose').style.display='';if(player)player.hfK=undefined;$('skipResc').style.display='none';$('viewRow').style.display='flex';clearCeremony();resetStats();clearCans();raceBonus=0;yellT=6;throwT=14;$('boss').style.opacity=0;if(m)mode=m;initAudio();if(mode==='sprint')spNewMatch();resetRiders();setEffort(mode==='kilo'?0.9:mode==='teamsprint'?(TS_POS===1?0.9:0.6):mode==='keirin'?0.8:mode==='sprint'?0.42:0.55);raceTime=0;countT=3.999;resultsShown=false;finishWait=0;camInit=false;lastBeep=4;
   $('menu').style.display='none';$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';drawLapBoard(Math.ceil(LAPS));
   radioReset();phase='intro';introT=0;buildIntroPath();const mt=OMNI?omIntro():MODE_TXT[mode];$('introMode').textContent=mt[0];$('introSub').innerHTML=mt[1]+(mode==='keirin'?'<br><b style="color:#ffd166">Los: startuješ z pozice '+player.draw+' ze 6</b>':mode==='teamsprint'&&TSP?'<br><b style="color:#ffd166">Jedeš jako '+TS_POS+'. jezdec · soupeř: '+TSP.teams[1].name+' ('+TSP.teams[1].m.map(r=>r.name).join(', ')+')</b>':mode==='sprint'?'<br><b style="color:#ffd166">Soupeř: '+SP.opp.name+' ('+TEAMS[SP.opp.team].name+') · 1. rozjížďka – '+spDrawTxt()+'</b>':'')+'<br><span style="color:#fff;opacity:.85;font-size:13px">'+CTL_TXT+'</span>';
@@ -3912,7 +3950,7 @@ function updateIntro(dt){introT+=dt;const u=clamp(introT/INTRO_DUR,0,1),e=u<0.5?
   introPath.getPoint(e,camPos);introLook.getPoint(Math.min(1,e*1.05),camLook);camUp.set(0,1,0);camera.position.copy(camPos);camera.up.copy(camUp);camera.lookAt(camLook);
   for(const R of riders)if(R.model.g.visible){R.crank+=dt*0.4*Math.sin(introT*2+R.s);}
   if(introT>=INTRO_DUR){endIntro();}}
-function endIntro(){if(phase!=='intro')return;$('intro').style.display='none';raceCamTarget(player,0);camPos.copy(_t);camLook.copy(_l);camUp.copy(_u);camInit=true;phase='countdown';countT=3.999;lastBeep=4;$('ctl').style.display='flex';$('hud').style.display='block';}
+function endIntro(){if(phase!=='intro')return;$('intro').style.display='none';raceCamTarget(player,0);camPos.copy(_t);camLook.copy(_l);camUp.copy(_u);camInit=true;phase='countdown';countT=3.999;lastBeep=4;$('ctl').style.display='flex';$('hud').style.display='block';if(RACE_BONUS)showMsg('⚡ +'+RACE_BONUS+' % energie',2.5);}
 function skipIntro(){if(phase==='intro')introT=Math.max(introT,INTRO_DUR-0.5);}
 $('intro').addEventListener('pointerdown',e=>{e.preventDefault();skipIntro();});
 // same skip button as for the ambulance (bottom left) + Space / Enter / Esc on the keyboard
@@ -4172,7 +4210,7 @@ function setupSprint(){const P=player,O=SP.opp;
   for(const R of [P,O]){const pos=R===P?SP.drawP:3-SP.drawP;R.draw=pos;R.wp*=1.2;   // a bigger tank for the slow tactical laps, but a full-gas kick still lasts only ~250 m
     Object.assign(R,{s:START_S-0.6,w:pos===1?0.5:1.5,v:0,t200:null,spJump:false,spChase:false,spReactT:0,spFoulT:0,spLaneIn:false,spPrevW:null,spSlowT:0,hk:0,hkT:0,hkK:0,hkLead:null,hookBy:null,lastShover:null,spSide:0,spSwT:0,spStuckT:0,spBackT:0,spAP:0,spPv:null});
     R.targetW=R.w;R.targetWp=R.w;R.h=surfY(R.s,R.w);R.prevS=R.s;}
-  O.aggr=SP.pers.aggr;O.spReact=SP.pers.react+Math.random()*0.1;O.cda=P.cda;O.wp=P.wp;   // 1 on 1: same position on the bike, same tank – the race is won by tactics
+  O.aggr=SP.pers.aggr;O.spReact=SP.pers.react+Math.random()*0.1;O.cda=P.cda;O.wp=P.wp/(1+RACE_BONUS/100);   // 1 on 1: same position on the bike, same tank – the race is won by tactics
   SP.cur={n:SP.heat,drawP:SP.drawP,phase1:true,foul:null,fin:[],finT:0,decided:false,nextT:0,breach:SP.cur&&SP.cur.n===SP.heat?SP.cur.breach:0,
     jumpAt:SP.pers.jump*(0.85+Math.random()*0.3),pJump:null};
   makeKeirinHolders([P,O]);}
@@ -4442,7 +4480,7 @@ function walkGround(x,z){if(RAMP){const R=RAMP,f=frameAt(R.sR),dx=x-f.px,dz=z-f.
     if(Math.abs(a)<R.HWr&&o>R.oT&&o<R.oB)return R.yT+(R.yB-R.yT)*(o-R.oT)/(R.oB-R.oT);}
   const t=podTop(x,z,0.1);if(t>0)return FLOOR_Y+t;
   return groundAt(x,z)+(onCarpet(x,z)?0.22:0);}
-function walkJump(){if(phase!=='walk')return;if(RESC&&RESC.onWalk){walkSkipRescue();return;}if(WALK.hop||WALK.air||WALK.down)return;
+function walkJump(){if(phase!=='walk'||WALK.ride||WALK.act)return;if(RESC&&RESC.onWalk){walkSkipRescue();return;}if(WALK.hop||WALK.air||WALK.down)return;
   if(WALK.climb!=null){if(WALK.pos.y-walkGround(WALK.pos.x,WALK.pos.z)>0.5)walkLeaveLadder();return;}if(WALK.sit){if(WALK.sit.up<0){WALK.sit.up=0;WALK.sit.ux=WALK.pos.x;}return;}
   WALK.air=true;WALK.vy=3.5;WALK.airTop=WALK.pos.y+0.62;tone(300,0.09,0.03,'triangle');}   // ~0.62 m: onto steps 2 and 3 from the floor, onto 1 from them
 function walkTag(ic){const c=mkCanvas(128,128),t=c.getContext('2d');t.fillStyle='rgba(20,40,74,.85)';t.beginPath();t.arc(64,64,58,0,2*PI);t.fill();t.strokeStyle='#c6ff1a';t.lineWidth=6;t.stroke();t.font='64px system-ui';t.textAlign='center';t.textBaseline='middle';t.fillText(ic,64,70);
@@ -4482,11 +4520,11 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   if(cer){WALK_RACED=true;try{WALK_V=coachVerdict();}catch(e){WALK_V=null;}document.body.classList.remove('cerwalk');$('ceremony').style.display='none';cerYaw=cerPitch=0;if(confetti){scene.remove(confetti.mesh);confetti=null;}
     const me=cerObjs.find(o=>o.userData.me);if(RESC){hopFrom=camera.position.clone();hopFrom.y-=0.75;if(RESC.fig)RESC.fig.visible=false;}else if(me&&me.visible){hopFrom=new THREE.Vector3();me.getWorldPosition(hopFrom);me.visible=false;}}
   else clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('ctl').style.display='none';$('menu').style.display='none';
-  riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;player.model.g.visible=false;
+  riders.forEach(R=>R.model.g.visible=true);mode='scratch';if(!OMNI)RACE_BONUS=0;resetRiders();clearHolders();idleT=0;player.model.g.visible=false;
   if(!WALK.r){const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
     WALK.r=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});scene.add(WALK.r.g);}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
   if(!NAV.grid)buildNav();JUDGES.updateMatrixWorld();const p=V(hopFrom?PODX+1.8:PODX+3.2,0,0);JUDGES.localToWorld(p);if(hopFrom&&RESC){p.x=hopFrom.x;p.z=hopFrom.z;}let [ci,cj]=nearestFree(...navCell(p.x,p.z),walkGrid());
-  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;
+  WALK.pos.set(NAV.x0+(ci+0.5)*NAV.c,0,NAV.z0+(cj+0.5)*NAV.c);WALK.pos.y=walkGround(WALK.pos.x,WALK.pos.z);WALK.hop=null;WALK.air=false;WALK.vy=0;WALK.land=0;WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;WALK.r.g.rotation.x=0;WALK.act=null;WALK.ac=null;buildSnacks();snackShow();
   if(hopFrom){WALK.hop={a:hopFrom,b:WALK.pos.clone(),t:0};WALK.pos.copy(hopFrom);}
   const tv=walkZones()[0].p;WALK.head=WALK.yaw=Math.atan2(tv.x-WALK.pos.x,tv.z-WALK.pos.z)+0.5;WALK.pitch=0.32;WALK.spd=0;WALK.zone=null;
   if(cer){WALK.cam.copy(camera.position);WALK.camOk=true;camera.getWorldDirection(WALK.lk).multiplyScalar(6).add(camera.position);WALK.lkOk=true;if(WALK.hop)WALK.head=Math.atan2(WALK.hop.b.x-WALK.hop.a.x,WALK.hop.b.z-WALK.hop.a.z);WALK.yaw=WALK.head;}
@@ -4494,16 +4532,17 @@ function walkStart(fromCer){const cer=fromCer===true&&phase==='ceremony';let hop
   WALK.r.g.visible=true;COACH.g.visible=true;coachToWalkSpot();COACH.mood='idle';for(const t of WALK.tags)t.visible=true;if(shopTag)shopTag.visible=true;
   phase='walk';albiShow(true);document.body.classList.add('walking');player.model.g.visible=false;$('resClose').textContent=$('shopClose').textContent='◀ Zpět na plochu';$('walkUI').style.display='block';if(!WALK.joy)joyHome();walkSay('');initAudio();}
 function walkCerUI(on){document.body.classList.toggle('cerwalk',on);if(phase!=='walk')$('walkUI').style.display=on?'block':'none';if(on){WALK.jx=WALK.jy=0;WALK.joy=null;WALK.k={};joyHome();}}
-function walkStop(){if(WALK.r&&WALK.r.g.parent!==scene){scene.add(WALK.r.g);WALK.r.g.rotation.set(0,0,0);}if(RESC&&RESC.onWalk)clearRescue();WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
+function walkStop(){if(WALK.ride)rideStop();if(WALK.act){WALK.act=null;snackShow();}$('walkAct').style.display='none';$('walkAct').dataset.k='';if(WALK.r&&WALK.r.g.parent!==scene){scene.add(WALK.r.g);WALK.r.g.rotation.set(0,0,0);}if(RESC&&RESC.onWalk)clearRescue();WALK.climb=null;WALK.sit=null;WALK.down=false;WALK.onSt=false;WALK.fall=false;albiShow(false);document.body.classList.remove('walking');clearCeremony();$('resClose').textContent=$('shopClose').textContent='◀ Zpět na vyhlášení';if(WALK.zone)walkClose(WALK.zone);WALK.zone=null;$('walkUI').style.display='none';$('walkRace').style.display='none';walkSay('');
   $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
   if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
 // joystick: touch anywhere on the left side, the ring jumps under your thumb; the right side turns the camera
 const JOY_R=56,JOY=$('joy');
 function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
 const wui=$('walkUI');
-wui.addEventListener('pointerdown',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.target.closest('button'))return;e.preventDefault();
-  if(phase==='walk'){const n=performance.now();if(n-WALK.tapT<320&&Math.hypot(e.clientX-WALK.tapX,e.clientY-WALK.tapY)<90){walkJump();WALK.tapT=0;}else{WALK.tapT=n;WALK.tapX=e.clientX;WALK.tapY=e.clientY;}}   // double tap anywhere: jump
-  if(e.clientX<innerWidth*0.45&&!WALK.joy){const j=$('joy');const x=clamp(e.clientX,70,innerWidth-70),y=clamp(e.clientY,70,innerHeight-70);j.style.left=x+'px';j.style.top=y+'px';WALK.joy={id:e.pointerId,x,y};}
+wui.addEventListener('pointerdown',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.target.closest('button,input,#rideUI'))return;e.preventDefault();
+  if(phase==='walk'&&e.pointerType!=='mouse'){const n=performance.now();if(n-WALK.tapT<320&&Math.hypot(e.clientX-WALK.tapX,e.clientY-WALK.tapY)<90){walkJump();WALK.tapT=0;}else{WALK.tapT=n;WALK.tapX=e.clientX;WALK.tapY=e.clientY;}}   // double tap anywhere: jump
+  if(e.clientX<innerWidth*0.45&&!WALK.joy&&!(e.pointerType==='mouse'&&phase==='walk')&&!WALK.ride){   // with a mouse you walk on the keys and drag anywhere to look round
+   const j=$('joy');const x=clamp(e.clientX,70,innerWidth-70),y=clamp(e.clientY,70,innerHeight-70);j.style.left=x+'px';j.style.top=y+'px';WALK.joy={id:e.pointerId,x,y};}
   else if(!WALK.look)WALK.look={id:e.pointerId,x:e.clientX,y:e.clientY};try{wui.setPointerCapture(e.pointerId);}catch(_){}});
 wui.addEventListener('pointermove',e=>{const J=WALK.joy,L=WALK.look;
   if(J&&J.id===e.pointerId){let dx=e.clientX-J.x,dy=e.clientY-J.y;const d=Math.hypot(dx,dy);if(d>JOY_R){dx*=JOY_R/d;dy*=JOY_R/d;}JOY.firstChild.style.transform='translate('+dx+'px,'+dy+'px)';WALK.jx=dx/JOY_R;WALK.jy=-dy/JOY_R;}
@@ -4513,9 +4552,10 @@ wui.addEventListener('pointerup',joyUp);wui.addEventListener('pointercancel',joy
 const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
 window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
-addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)walkJump();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>wipe(walkStart);
+$('walkAct').onclick=walkAction;$('rideOff').onclick=()=>rideStop();$('rideEff').addEventListener('input',e=>{RIDE.eff=e.target.value/100;});
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
 $('walkMenu').onclick=()=>wipe(()=>{walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
 $('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';if(phase==='menu')$('menu').style.display='flex';};
@@ -4547,14 +4587,14 @@ function downPose(T,t){T.l0h=-0.15;T.l1h=-0.4;T.l0k=0.2;T.l1k=0.65;T.a0x=-0.3;T.
 function ladderDir(){const L=LADDER,dx=L.b.x-L.a.x,dz=L.b.z-L.a.z,dl=Math.hypot(dx,dz);return [dx/dl,dz/dl];}
 function walkTryClimb(ux,uz,amt){const L=LADDER;if(!L||amt<0.3||WALK.air)return false;const [lx,lz]=ladderDir(),px=WALK.pos.x-L.a.x,pz=WALK.pos.z-L.a.z,along=px*lx+pz*lz,side=pz*lx-px*lz;
   if(along<-0.95||along>0.15||Math.abs(side)>0.5||ux*lx+uz*lz<0.55)return false;
-  WALK.climb=0;WALK.clT=0;WALK.cl0=WALK.pos.clone();WALK.clTop=false;WALK.spd=0;walkSay('<small>🪜 Lezeš po žebříku · nahoru/dolů joystickem · skok dolů: dvojklik nebo mezerník</small>',3.5);tone(500,0.06,0.03,'triangle');return true;}
+  WALK.climb=0;WALK.clT=0;WALK.cl0=WALK.pos.clone();WALK.clTop=false;WALK.spd=0;tone(500,0.06,0.03,'triangle');return true;}
 function walkClimbTick(dt,mx,mz,amt){const L=LADDER,len=L.a.distanceTo(L.b),[lx,lz]=ladderDir(),ml=Math.hypot(mx,mz);
   WALK.head+=_angTo(WALK.head,Math.atan2(lx,lz))*Math.min(1,dt*8);
   const inp=amt>0.15&&ml>1e-3?clamp((mx*lx+mz*lz)/ml*1.4,-1,1)*amt:0;WALK.clV=inp;
   WALK.climb=Math.min(1,WALK.climb+inp*0.85*dt/len);WALK.clT+=dt;WALK.ph+=dt*Math.abs(inp)*6.5;
   if(WALK.climb<0){WALK.climb=null;const P=WALK.pos;P.set(L.a.x-lx*0.55,0,L.a.z-lz*0.55);P.y=walkGround(P.x,P.z);walkMove(P,0,0,P.y);return;}   // stepped back off at the bottom
   _wl.lerpVectors(L.a,L.b,Math.max(0,WALK.climb));if(WALK.clT<0.45){const k=_sm(WALK.clT/0.45);WALK.pos.lerpVectors(WALK.cl0,_wl,k);}else WALK.pos.copy(_wl);
-  if(WALK.climb>=1&&!WALK.clTop){WALK.clTop=true;walkSay('<b>Jsi nahoře!</b> Dvojklik / mezerník = skok dolů 😬',3);}
+  if(WALK.climb>=1&&!WALK.clTop)WALK.clTop=true;
   if(WALK.climb<0.95)WALK.clTop=false;}
 function walkLeaveLadder(){const [lx,lz]=ladderDir();let sd=Math.sign(WALK.jx+(WALK.k.r?1:0)-(WALK.k.l?1:0))||1;   // off to the side you lean the stick to (right if none)
   const sx=lz*sd,sz=-lx*sd;WALK.climb=null;WALK.air=true;WALK.fall=true;WALK.vy=2.4;WALK.vx=sx*1.9+lx*0.3;WALK.vz=sz*1.9+lz*0.3;WALK.airTop=WALK.pos.y;WALK.head=Math.atan2(WALK.vx,WALK.vz);tone(300,0.09,0.03,'triangle');}
@@ -4573,7 +4613,7 @@ function walkSkipRescue(){const R=RESC;if(!R||!R.onWalk||R.st==='done')return;co
 // ---------- booths: in through the doorway, walk into the bench and you sit down; move the stick away (or jump) and you get up ----------
 function walkTrySit(ux,uz,amt){if(amt<0.2||WALK.air)return false;const P=WALK.pos;
   for(const B of BOOTHS){const inX=(P.x-B.xb)*B.open;if(inX<0.3||inX>1.2||P.z<B.zc-B.bl/2-0.05||P.z>B.zc+B.bl/2+0.05)continue;
-    if(ux*B.open<-0.45&&inX<0.51+WR+0.1){WALK.sit={B,t:0,up:-1,x0:P.x,z0:P.z,h0:WALK.head,z:clamp(P.z,B.zc-B.bl/2+0.3,B.zc+B.bl/2-0.3)};WALK.spd=0;walkSay('<small>🪑 Sedíš · pohni se a vstaneš</small>',2.5);return true;}}return false;}
+    if(ux*B.open<-0.45&&inX<0.51+WR+0.1){WALK.sit={B,t:0,up:-1,x0:P.x,z0:P.z,h0:WALK.head,z:clamp(P.z,B.zc-B.bl/2+0.3,B.zc+B.bl/2-0.3)};WALK.spd=0;return true;}}return false;}
 function walkSitTick(dt,mx,mz,amt){const S=WALK.sit,B=S.B,P=WALK.pos,ml=Math.hypot(mx,mz),sx=B.xb+B.open*0.3,fx=B.xb+B.open*(0.51+WR+0.06),face=B.open>0?PI/2:-PI/2;
   if(S.up<0){S.t+=dt;const k=_sm(Math.min(1,S.t/0.7));P.x=_mix(S.x0,sx,k);P.z=_mix(S.z0,S.z,k);WALK.head=S.h0+_angTo(S.h0,face)*_sm(Math.min(1,S.t/0.45));
     if(amt<0.15)S.rel=true;
@@ -4582,11 +4622,84 @@ function walkSitTick(dt,mx,mz,amt){const S=WALK.sit,B=S.B,P=WALK.pos,ml=Math.hyp
   else{S.up+=dt;const k=_sm(Math.min(1,S.up/0.5));P.x=_mix(S.ux,fx,k);if(S.up>=0.5){WALK.sit=null;WALK.spd=0;}}
   P.y=walkGround(P.x,P.z);}
 function walkSitK(){const S=WALK.sit;if(!S)return 0;return S.up<0?_sm(Math.min(1,S.t/0.7)):1-_sm(Math.min(1,S.up/0.45));}
-function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.g.visible)animCoach(dt,RCOACH);   // the bunch keeps rolling round the track while you walk
+// ---------- before the race: warm up on the rollers, a drink from the bottle, an energy gel in the booth – each gives a little extra energy for the next race ----------
+const PREP={roll:false,drink:false,gel:false,rollT:0};let RACE_BONUS=0;
+function prepPct(){return (PREP.roll?5:0)+(PREP.drink?3:0)+(PREP.gel?5:0);}
+// rollers: you sit on your own bike (worn wheels and helmet), pedal with the slider, the wheels and all three drums turn; 10 s of riding = warmed up
+function rideModel(){if(RIDE.M)return RIDE.M;const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);M.g.children[0].visible=false;return RIDE.M=M;}
+function rollerNear(P){let best=null,bd=0.6;for(const R of ROLLERS){const dx=P.x-R.x,dz=P.z-R.z,c=Math.cos(R.rot),s=Math.sin(R.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;
+    const d=Math.hypot(Math.max(0,Math.abs(lx)-0.33),Math.max(0,Math.abs(lz)-0.95));if(d<bd){bd=d;best=R;}}return best;}
+function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;
+  WALK.ride={R,t:0,x0:WALK.pos.x,z0:WALK.pos.z};RIDE.v=R.v||0;RIDE.t=0;WALK.spd=0;WALK.r.g.visible=false;
+  const fw=R.rot;WALK.pos.set(R.x,FLOOR_Y,R.z);WALK.head=fw;WALK.yaw=fw+0.9;WALK.pitch=0.22;   // camera from behind-side, so you see the legs and the drums
+  $('rideEff').value=Math.round(RIDE.eff*100);$('rideUI').style.display='flex';document.body.classList.add('riding');rideCount();tone(520,0.08,0.04,'triangle');}
+function rideStop(){const W=WALK.ride;if(!W)return;const R=W.R;RIDE.last=R;R.v=RIDE.v;
+  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;WALK.ride=null;WALK.acCD=0.8;$('rideUI').style.display='none';document.body.classList.remove('riding');
+  const c=Math.cos(R.rot),s=Math.sin(R.rot),P=WALK.pos;let ok=false;
+  for(const sd of [1,-1]){const x=R.x+c*0.75*sd,z=R.z-s*0.75*sd;if(walkFree(x,z)){P.x=x;P.z=z;ok=true;break;}}   // step off to the side of the bike
+  if(!ok){P.x=W.x0;P.z=W.z0;}P.y=walkGround(P.x,P.z);WALK.head=Math.atan2(R.x-P.x,R.z-P.z)+PI;WALK.r.g.visible=true;WALK.spd=0;tone(420,0.08,0.04,'triangle');}
+function rideCount(){$('rideCnt').textContent=PREP.roll?'✔ +5 %':'⏱ '+Math.floor(PREP.rollT)+'/10 s';}
+function rollerSpin(R,dt){if(!R||!R.g.userData.drums)return;const a=R.v*dt;for(const d of R.g.userData.drums)d.rotation.x-=a/ROLL_R;for(const p of R.g.userData.pulleys)p.rotation.x-=a/0.028;}
+function rideTick(dt){const W=WALK.ride,R=W.R,M=RIDE.M,K=WALK.k;W.t+=dt;
+  if(K.f)RIDE.eff=Math.min(1,RIDE.eff+dt*0.6);if(K.b)RIDE.eff=Math.max(0,RIDE.eff-dt*0.6);if(K.f||K.b)$('rideEff').value=Math.round(RIDE.eff*100);
+  const vT=W.t<0.6?0:3.5+RIDE.eff*13.5;RIDE.v+=(vT-RIDE.v)*Math.min(1,dt*(vT>RIDE.v?0.9:0.6));R.v=RIDE.v;   // light resistance: you spin up quickly, the drums keep turning a moment when you ease off
+  RIDE.crank+=RIDE.v/7.6*2*PI*dt;for(const w of M.wheels)w.rotation.x+=RIDE.v/0.34*dt;rollerSpin(R,dt);
+  if(RIDE.v>5&&RIDE.eff>0.3&&!PREP.roll){PREP.rollT+=dt;if(PREP.rollT>=10){PREP.roll=true;tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
+  if(((W.c=(W.c||0)+dt))>0.25){W.c=0;rideCount();}
+  // free rollers: the bike drifts a few cm over the drums and the rider keeps it straight with small corrections; the harder you go, the more it lives
+  const t=W.t,e=RIDE.eff,amp=0.012+0.02*e,x=amp*Math.sin(t*0.83)+amp*0.6*Math.sin(t*2.1+1)+0.004*Math.sin(RIDE.crank);
+  M.g.position.x=x;M.g.rotation.z=-x*0.9-0.012*e*Math.sin(RIDE.crank);M.g.rotation.y=-0.25*amp*Math.cos(t*0.83);
+  const sT=e>0.92?1:0,uT=e<0.25?1:0,pT=clamp((e-0.7)/0.25,0,1);RIDE.st+=(sT-RIDE.st)*Math.min(1,dt*4);RIDE.su+=(uT-RIDE.su)*Math.min(1,dt*1.5);RIDE.sp+=(pT-RIDE.sp)*Math.min(1,dt*3);RIDE.br+=dt*(1.5+2.5*e);
+  poseRider(M,RIDE.crank,RIDE.st,RIDE.su*(1-RIDE.st),RIDE.sp*(1-RIDE.st)*(1-RIDE.su),Math.sin(RIDE.br),0.25*Math.sin(t*0.4)*(1-e),0.4+e*1.2,0.15);}
+// booths: a bottle stands on the bench (booth 1 on the sketch), a gel lies there (booth 2) – both groups of booths
+const SNACKS=[];
+function bottleMesh(){const g=new THREE.Group();const red=new THREE.MeshPhongMaterial({color:0xd8232a,specular:0x996666,shininess:70}),wh=new THREE.MeshPhongMaterial({color:0xf4f4f2,specular:0xffffff,shininess:60});
+  const pts=[[0,0],[0.033,0],[0.036,0.006],[0.036,0.07],[0.031,0.085],[0.031,0.1],[0.036,0.115],[0.036,0.16],[0.034,0.168],[0,0.168]].map(p=>new THREE.Vector2(p[0],p[1]));
+  g.add(new THREE.Mesh(new THREE.LatheGeometry(pts,20),red));
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.037,0.037,0.026,20),wh);cap.position.y=0.18;g.add(cap);
+  const nz=new THREE.Mesh(new THREE.CylinderGeometry(0.011,0.015,0.026,12),wh);nz.position.y=0.206;g.add(nz);
+  const tip=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.008,10),wh);tip.position.y=0.222;g.add(tip);
+  for(const y of [0.035,0.135]){const r=new THREE.Mesh(new THREE.TorusGeometry(0.0362,0.0018,4,24),red);r.rotation.x=PI/2;r.position.y=y;g.add(r);}
+  return g;}
+let _gelTex=null;function gelTex(){if(_gelTex)return _gelTex;const c=mkCanvas(64,160),q=c.getContext('2d');q.fillStyle='#121212';q.fillRect(0,0,64,160);
+  q.fillStyle='#e3202f';q.beginPath();q.moveTo(0,40);q.lineTo(64,30);q.lineTo(64,125);q.lineTo(0,140);q.fill();q.fillStyle='#ffd400';q.fillRect(8,86,48,12);
+  q.fillStyle='#fff';q.fillRect(8,58,40,8);q.fillRect(8,70,30,8);q.fillStyle='#ff8a1c';q.fillRect(8,108,44,7);return _gelTex=new THREE.CanvasTexture(c);}
+function gelMesh(){const g=new THREE.Group(),m=new THREE.MeshPhongMaterial({map:gelTex(),specular:0x555555,shininess:60}),blk=new THREE.MeshPhongMaterial({color:0x121212,shininess:40});
+  const b=new THREE.Mesh(new THREE.BoxGeometry(0.052,0.12,0.007),[blk,blk,blk,blk,m,m]);b.position.y=0.06;g.add(b);
+  const tab=new THREE.Mesh(new THREE.BoxGeometry(0.022,0.03,0.005),blk);tab.position.y=0.133;g.add(tab);return g;}
+function buildSnacks(){if(SNACKS.length)return;walkCols();const y=FLOOR_Y+0.01+0.48;
+  const pick=[[-19.0,1,'drink'],[11.65,2,'drink'],[-13.55,0,'gel'],[17.05,0,'gel']];   // [column x, booth (0 = back straight end), what]
+  for(const [xc,i,kind] of pick){const B=BOOTHS.find(b=>Math.abs((b.xb+b.xf)/2-xc)<0.1&&Math.abs(b.zc-[-3.4,0,3.4][i])<0.2);if(!B)continue;
+    const x=B.xb+B.open*0.3,z=B.zc+(B.bl/2-0.3)*(i===0?1:-1),m=kind==='drink'?bottleMesh():gelMesh();
+    if(kind==='gel'){m.rotation.set(-PI/2,0,0.5);m.position.set(x+0.04*B.open,y+0.004,z-0.06);}else{m.position.set(x+0.02*B.open,y,z);m.rotation.y=0.6;}
+    scene.add(m);SNACKS.push({kind,m,B,home:[m.position.clone(),m.rotation.clone()],x,z});}}
+function snackShow(){for(const S of SNACKS){S.m.visible=S.kind==='drink'||!PREP.gel;if(S.m.parent!==scene){scene.add(S.m);}S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}}
+function snackNear(P){let best=null,bd=1.05;for(const S of SNACKS){if(S.kind==='drink'?PREP.drink:PREP.gel)continue;const B=S.B,inX=(P.x-B.xb)*B.open;if(inX<0||inX>3.0||P.z<B.z0||P.z>B.z1)continue;
+    const d=Math.hypot(P.x-S.x,P.z-S.z);if(d<bd){bd=d;best=S;}}return best;}
+function snackStart(S){WALK.act={S,t:0,h0:WALK.head,hT:Math.atan2(S.x-WALK.pos.x,S.z-WALK.pos.z)};WALK.spd=0;tone(500,0.06,0.03,'triangle');}
+const SN_DUR={drink:3.0,gel:2.6};
+function snackTick(dt){const A=WALK.act,S=A.S,t=A.t+=dt,r=WALK.r;WALK.head=A.h0+_angTo(A.h0,A.hT)*_sm(Math.min(1,t/0.35));
+  const take=0.55,back=S.kind==='drink'?2.45:99;
+  if(t>=take&&!A.held){A.held=true;r.arms[0].hand.add(S.m);if(S.kind==='drink'){S.m.rotation.set(PI/2+0.25,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.1);}else{S.m.rotation.set(PI/2+0.2,0,PI);S.m.position.set(0,-0.03,0).addScaledVector(V(0,1,0).applyEuler(S.m.rotation),-0.05);}}
+  if(S.kind==='drink'&&t>1.1&&t<2.2&&!A.glug){A.glug=true;for(let i=0;i<4;i++)setTimeout(()=>tone(180+Math.random()*40,0.05,0.025,'sine'),i*230);}
+  if(S.kind==='gel'&&t>1.15&&!A.squeeze){A.squeeze=true;tone(240,0.08,0.025,'sine');}
+  if(t>=back&&A.held&&!A.back){A.back=true;scene.add(S.m);S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}
+  if(S.kind==='gel'&&t>=2.0&&S.m.visible){for(const G of SNACKS)if(G.kind==='gel')G.m.visible=false;}   // the empty wrapper goes in your pocket
+  if(t>=SN_DUR[S.kind]){WALK.act=null;if(S.kind==='drink'){PREP.drink=true;walkSay('💧 +3 % energie',1.6);}else{PREP.gel=true;walkSay('⚡ +5 % energie',1.6);}tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
+// pick it up from the bench, up to the mouth, head back to drink (or squeeze the gel), then put the bottle back
+function snackPose(T,t,kind){const D=SN_DUR[kind],k1=_sm(t/0.45),k2=_sm((t-0.55)/0.5),k3=kind==='drink'?_sm((t-2.0)/0.5):_sm((t-1.9)/0.5),k4=kind==='drink'?_sm((t-2.5)/0.4):0;
+  const reach=k1*(1-k2)+k3*(1-k4)*(kind==='drink'?1:0),mouth=k2*(1-k3),tip=_sm((t-1.0)/0.3)*(1-k3);
+  T.lean=0.72*reach;T.l0k=T.l1k=0.85*reach;T.l0h=T.l1h=-0.6*reach;T.y=-0.15*reach;
+  T.a0x=-0.25*reach-1.05*mouth-0.25*tip;T.a0z=0.08*reach-0.25*mouth;T.e0=-0.15*reach-1.75*mouth+0.25*tip;T.a0y=0.45*mouth;
+  T.hx=0.3*reach-0.45*tip;T.mo=0.5*tip;
+  if(kind==='gel'){const tear=_sm((t-0.75)/0.25)*(1-_sm((t-1.15)/0.25));T.a1x=-0.85*tear-0.2*mouth;T.e1=-1.5*tear-0.3*mouth;T.a1z=0.1;}   // tear the top off with the other hand
+  return T;}
+function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch keeps rolling round the track while you walk
   const K=WALK.k;if(K.tl)WALK.yaw+=dt*1.8;if(K.tr)WALK.yaw-=dt*1.8;
   let ix=WALK.jx+(K.r?1:0)-(K.l?1:0),iy=WALK.jy+(K.f?1:0)-(K.b?1:0);const im=Math.hypot(ix,iy);if(im>1){ix/=im;iy/=im;}const amt=Math.min(1,im);
   const fx=Math.sin(WALK.yaw),fz=Math.cos(WALK.yaw),mx=fx*iy-fz*ix,mz=fz*iy+fx*ix,ml=Math.hypot(mx,mz);
-  const resc=!!(RESC&&RESC.onWalk),busy=resc||WALK.down||WALK.climb!=null||!!WALK.sit||!!WALK.hop;
+  const resc=!!(RESC&&RESC.onWalk),busy=resc||WALK.down||WALK.climb!=null||!!WALK.sit||!!WALK.hop||!!WALK.ride||!!WALK.act;
+  if(!WALK.ride&&RIDE.last&&RIDE.last.v>0.01){RIDE.last.v*=Math.exp(-dt*0.7);rollerSpin(RIDE.last,dt);}   // the drums run down after you get off
   const top=K.run||(WALK.jy>0.8&&amt>0.9)?4.3:1.7*Math.max(amt,0.35),tgt=amt>0.08&&!busy?top:0;WALK.spd+=(tgt-WALK.spd)*Math.min(1,dt*(tgt>WALK.spd?4:8));
   const h0=WALK.head;
   if(ml>1e-3&&!busy&&!WALK.fall){const d=_angTo(WALK.head,Math.atan2(mx,mz));WALK.head+=d*Math.min(1,dt*(WALK.spd>2.4?6:9));}
@@ -4595,12 +4708,14 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.
   else if(resc){updateRescue(dt);if(RESC.st==='done'&&RESC.t>0.4)walkOffStretcher();}
   else if(WALK.down);
   else if(WALK.climb!=null)walkClimbTick(dt,mx,mz,amt);
+  else if(WALK.ride)rideTick(dt);
+  else if(WALK.act)snackTick(dt);
   else if(WALK.sit)walkSitTick(dt,mx,mz,amt);
   else if(WALK.fall){P.x+=WALK.vx*dt;P.z+=WALK.vz*dt;if(!walkInside(P.x,P.z)){P.x-=WALK.vx*dt;P.z-=WALK.vz*dt;WALK.vx=WALK.vz=0;}}   // off the ladder: flying, nothing to steer
   else if(WALK.spd>0.02){const ux=ml>1e-3?mx/ml:Math.sin(WALK.head),uz=ml>1e-3?mz/ml:Math.cos(WALK.head),st=WALK.spd*dt;
     const moved=walkMove(P,ux*st,uz*st,P.y);if(moved<st*0.35)WALK.spd*=0.85;   // up against something: don't keep the full stride going on the spot
     if(!walkTryClimb(ux,uz,amt))walkTrySit(ux,uz,amt);}
-  if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit){const gy=walkGround(P.x,P.z);
+  if(!WALK.hop&&!resc&&WALK.climb==null&&!WALK.sit&&!WALK.ride){const gy=walkGround(P.x,P.z);
     if(!WALK.air&&!WALK.down&&gy<P.y-0.2){WALK.air=true;WALK.vy=0;WALK.airTop=P.y;}   // stepped off the podium edge: fall
     if(WALK.air){WALK.vy-=9.81*dt;P.y+=WALK.vy*dt;if(P.y<=gy&&WALK.vy<=0){const drop=(WALK.airTop||gy)-gy;P.y=gy;WALK.air=false;WALK.land=0.2;
         if(WALK.fall){WALK.fall=false;walkMove(P,0,0,P.y);if(drop>1.5)walkHardLanding();else tone(110,0.07,0.05,'sine');}else tone(110,0.07,0.05,'sine');}}
@@ -4614,6 +4729,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.
   for(const k in T)delete T[k];
   if(WALK.down||WALK.onSt)downPose(T,r.t);
   else if(WALK.climb!=null)climbPose(T,WALK.ph,Math.abs(WALK.clV||0)+(WALK.clT<0.45?1:0));
+  else if(WALK.act){heroGait(T,0,0,0,r.t,0);snackPose(T,WALK.act.t,WALK.act.S.kind);}
   else if(WALK.sit){heroGait(T,0,0,0,r.t,0);const k=walkSitK(),S=sitPose({},k,r.t);for(const q in S)T[q]=(T[q]||0)*(1-k)+S[q];}
   else{heroGait(T,WALK.ph,a,run,r.t,turn);
     if(WALK.air){const f=WALK.fall?1:0;T.l0h=T.l1h=-0.55+0.3*f;T.l0k=T.l1k=0.95-0.4*f;T.a0x=T.a1x=-0.7-1.4*f;T.a0z=T.a1z=0.08+0.9*f;T.e0=T.e1=-0.6;T.mo=f*0.8;}   // tuck in the air – or flail when it's a long way down
@@ -4627,15 +4743,20 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(RCOACH&&RCOACH.
     if(RESC.st==='run'){const t=RESC.tgt,dx=t.x-c.x,dz=t.z-c.z,d=Math.hypot(dx,dz)||1;_wl.set(t.x-dx/d*1.5,FLOOR_Y+0.6,t.z-dz/d*1.5);_wc.set(t.x+dx/d*3.2+dz/d*1.2,FLOOR_Y+2.0,t.z+dz/d*3.2-dx/d*1.2);}
     else{const fy=RESC.crew.rotation.y,ex=Math.sin(fy),ez=Math.cos(fy);_wl.set(c.x,c.y+0.9,c.z);_wc.set(c.x+ez*6-ex*2.5,c.y+3.6,c.z-ex*6-ez*2.5);}
     WALK.cam.lerp(_wc,Math.min(1,dt*2.2));WALK.lk.lerp(_wl,Math.min(1,dt*3.5));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(WALK.lk);}
-  else{const cp=Math.cos(WALK.pitch),sp=Math.sin(WALK.pitch);let D=3.6;for(let q=0;q<10;q++){const x=P.x-fx*cp*D,z=P.z-fz*cp*D;if(walkInside(x,z)||D<=1.3)break;D-=0.25;}
-    const ly=WALK.down?0.35:WALK.sit?0.95:1.35;_wc.set(P.x-fx*cp*D,P.y+ly+0.2+sp*D,P.z-fz*cp*D);_wl.set(P.x+fx*0.6,P.y+ly,P.z+fz*0.6);
+  else{const cp=Math.cos(WALK.pitch),sp=Math.sin(WALK.pitch);let D=WALK.ride?2.7:3.6;for(let q=0;q<10;q++){const x=P.x-fx*cp*D,z=P.z-fz*cp*D;if(walkInside(x,z)||D<=1.3)break;D-=0.25;}
+    const ly=WALK.down?0.35:WALK.ride?1.05:WALK.sit?0.95:1.35;_wc.set(P.x-fx*cp*D,P.y+ly+0.2+sp*D,P.z-fz*cp*D);_wl.set(P.x+fx*0.6,P.y+ly,P.z+fz*0.6);
     if(!WALK.camOk){WALK.cam.copy(_wc);WALK.camOk=true;}if(!WALK.lkOk){WALK.lk.copy(_wl);WALK.lkOk=true;}const ck=WALK.hop?dt*3:dt*10;WALK.cam.lerp(_wc,Math.min(1,ck));WALK.lk.lerp(_wl,Math.min(1,ck*1.2));camera.position.copy(WALK.cam);camera.up.set(0,1,0);camera.lookAt(WALK.lk);}
+  if(window.__wcam)window.__wcam(camera,WALK);   // debug view
   // zones: come up to it and it opens, walk away and it closes
   const Z=walkZones();let near=null,nd=1e9;for(const z of Z){const d=Math.hypot(z.p.x-P.x,z.p.z-P.z);if(z.tag)z.tag.position.y+=((z.id==='start'?z.p.y:FLOOR_Y)+z.h+Math.sin(idleT*2.2+z.h)*0.08-z.tag.position.y);if(d<z.r+(z.id===WALK.zone?0.5:0)&&d<nd){near=z.id;nd=d;}}
   if(WALK.air)near=WALK.zone;else if(podTop(P.x,P.z,0.1)>0||busy)near=null;   // mid-jump nothing flips; up on the podium, on the ladder, on a bench or on the stretcher no panel covers the view
   if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
   if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
+  // the action button: right up to a bike on the rollers / the bottle / the gel
+  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P);if(R)ac={k:'roll',R};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
+  const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':'';ab.style.display=key?'block':'none';}WALK.ac=ac;
   if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
+function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else snackStart(A.S);}
 if(/#(debug|turbo)/.test(location.hash))window.__WALK=()=>({WALK,walkFree,walkZones,walkCols,BOOTHS,LADDER,NAV,RESC,walkJump,step:n=>{for(let i=0;i<n;i++)walkTick(1/30);},crash:()=>crashRider(player,'slip')});
 // ---------- menu backdrop: the bunch rolls round in a paceline, camera cuts between shots ----------
 const _mt=new THREE.Vector3(),_ml=new THREE.Vector3();let menuShot=-1;
@@ -4657,6 +4778,7 @@ let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?
 let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;if(hasalSrc)hasalMix();
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}
+  if(RCOACH)RCOACH.g.visible=phase!=='walk'&&phase!=='ceremony'&&phase!=='menu';   // the boss on the barrier only during a race; on the floor he stands by the booths
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
   if(phase==='walk'){walkTick(dt);renderer.render(scene,camera);return;}
   if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);walkCerTick();renderer.render(scene,camera);return;}
