@@ -63,7 +63,7 @@ function makeEnv() {
     if (path === '/rest/v1/rpc/submit_feedback') {
       if (!authed) return json(401, { message: 'JWT' });
       srv.feedback = srv.feedback || [];
-      if (srv.feedback.length >= 3) return json(400, { code: 'P0001', message: 'feedback_limit' });
+      if (srv.feedback.length >= 20) return json(400, { code: 'P0001', message: 'feedback_limit' });
       srv.feedback.push(body.p_message); return json(200, 'ok');
     }
     return json(404, { message: 'nezname ' + path });
@@ -231,7 +231,7 @@ test('odhlášení vynuluje telefon a smaže frontu', async () => {
   assert.strictEqual(store.motol_outbox, undefined);
 });
 
-test('návrhy: bez přihlášení se nic neposílá, prázdný a dlouhý se odmítne, limit 3 denně', async () => {
+test('návrhy: bez přihlášení se nic neposílá, prázdný a dlouhý se odmítne, limit 20 denně', async () => {
   const { O, srv } = makeEnv();
   let r = await O.sendFeedback('Přidejte tandem');
   assert.deepStrictEqual(r, { ok: false, err: 'not_authenticated' });
@@ -239,8 +239,8 @@ test('návrhy: bez přihlášení se nic neposílá, prázdný a dlouhý se odm�
   await O.verify('a@b.cz', '123456');
   assert.strictEqual((await O.sendFeedback('  a ')).err, 'feedback_short');
   assert.strictEqual((await O.sendFeedback('x'.repeat(1001))).err, 'feedback_long');
-  for (let i = 0; i < 3; i++) assert.strictEqual((await O.sendFeedback('  návrh ' + i + '  ')).ok, true);
-  assert.deepStrictEqual(srv.feedback, ['návrh 0', 'návrh 1', 'návrh 2']);
-  r = await O.sendFeedback('čtvrtý');
+  for (let i = 0; i < 20; i++) assert.strictEqual((await O.sendFeedback('  návrh ' + i + '  ')).ok, true);
+  assert.deepStrictEqual(srv.feedback, Array.from({ length: 20 }, (_, i) => 'návrh ' + i));
+  r = await O.sendFeedback('dvacátý první');
   assert.strictEqual(r.err, 'feedback_limit');
 });
