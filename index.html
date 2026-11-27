@@ -4540,7 +4540,7 @@ const JOY_R=56,JOY=$('joy');
 function joyHome(){const j=$('joy');j.style.left=(Math.max(80,innerWidth*0.12))+'px';j.style.top=(innerHeight-Math.max(80,innerHeight*0.2))+'px';j.firstChild.style.transform='';}
 const wui=$('walkUI');
 wui.addEventListener('pointerdown',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.target.closest('button,input,#rideUI'))return;e.preventDefault();
-  if(phase==='walk'){const n=performance.now();if(n-WALK.tapT<320&&Math.hypot(e.clientX-WALK.tapX,e.clientY-WALK.tapY)<90){walkJump();WALK.tapT=0;}else{WALK.tapT=n;WALK.tapX=e.clientX;WALK.tapY=e.clientY;}}   // double tap anywhere: jump
+  if(phase==='walk'&&e.pointerType!=='mouse'){const n=performance.now();if(n-WALK.tapT<320&&Math.hypot(e.clientX-WALK.tapX,e.clientY-WALK.tapY)<90){walkJump();WALK.tapT=0;}else{WALK.tapT=n;WALK.tapX=e.clientX;WALK.tapY=e.clientY;}}   // double tap anywhere: jump
   if(e.clientX<innerWidth*0.45&&!WALK.joy&&!(e.pointerType==='mouse'&&phase==='walk')&&!WALK.ride){   // with a mouse you walk on the keys and drag anywhere to look round
    const j=$('joy');const x=clamp(e.clientX,70,innerWidth-70),y=clamp(e.clientY,70,innerHeight-70);j.style.left=x+'px';j.style.top=y+'px';WALK.joy={id:e.pointerId,x,y};}
   else if(!WALK.look)WALK.look={id:e.pointerId,x:e.clientX,y:e.clientY};try{wui.setPointerCapture(e.pointerId);}catch(_){}});
@@ -4552,7 +4552,7 @@ wui.addEventListener('pointerup',joyUp);wui.addEventListener('pointercancel',joy
 const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
 window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
-addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>wipe(walkStart);
 $('walkAct').onclick=walkAction;$('rideOff').onclick=()=>rideStop();$('rideEff').addEventListener('input',e=>{RIDE.eff=e.target.value/100;});
@@ -4634,17 +4634,17 @@ function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y
   const fw=R.rot;WALK.pos.set(R.x,FLOOR_Y,R.z);WALK.head=fw;WALK.yaw=fw+0.9;WALK.pitch=0.22;   // camera from behind-side, so you see the legs and the drums
   $('rideEff').value=Math.round(RIDE.eff*100);$('rideUI').style.display='flex';document.body.classList.add('riding');rideCount();tone(520,0.08,0.04,'triangle');}
 function rideStop(){const W=WALK.ride;if(!W)return;const R=W.R;RIDE.last=R;R.v=RIDE.v;
-  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;WALK.ride=null;$('rideUI').style.display='none';document.body.classList.remove('riding');
+  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;WALK.ride=null;WALK.acCD=0.8;$('rideUI').style.display='none';document.body.classList.remove('riding');
   const c=Math.cos(R.rot),s=Math.sin(R.rot),P=WALK.pos;let ok=false;
   for(const sd of [1,-1]){const x=R.x+c*0.75*sd,z=R.z-s*0.75*sd;if(walkFree(x,z)){P.x=x;P.z=z;ok=true;break;}}   // step off to the side of the bike
   if(!ok){P.x=W.x0;P.z=W.z0;}P.y=walkGround(P.x,P.z);WALK.head=Math.atan2(R.x-P.x,R.z-P.z)+PI;WALK.r.g.visible=true;WALK.spd=0;tone(420,0.08,0.04,'triangle');}
-function rideCount(){$('rideCnt').textContent=PREP.roll?'✔ +5 %':'⏱ '+Math.floor(PREP.rollT)+' s';}
+function rideCount(){$('rideCnt').textContent=PREP.roll?'✔ +5 %':'⏱ '+Math.floor(PREP.rollT)+'/10 s';}
 function rollerSpin(R,dt){if(!R||!R.g.userData.drums)return;const a=R.v*dt;for(const d of R.g.userData.drums)d.rotation.x-=a/ROLL_R;for(const p of R.g.userData.pulleys)p.rotation.x-=a/0.028;}
 function rideTick(dt){const W=WALK.ride,R=W.R,M=RIDE.M,K=WALK.k;W.t+=dt;
   if(K.f)RIDE.eff=Math.min(1,RIDE.eff+dt*0.6);if(K.b)RIDE.eff=Math.max(0,RIDE.eff-dt*0.6);if(K.f||K.b)$('rideEff').value=Math.round(RIDE.eff*100);
   const vT=W.t<0.6?0:3.5+RIDE.eff*13.5;RIDE.v+=(vT-RIDE.v)*Math.min(1,dt*(vT>RIDE.v?0.9:0.6));R.v=RIDE.v;   // light resistance: you spin up quickly, the drums keep turning a moment when you ease off
   RIDE.crank+=RIDE.v/7.6*2*PI*dt;for(const w of M.wheels)w.rotation.x+=RIDE.v/0.34*dt;rollerSpin(R,dt);
-  if(RIDE.v>3&&!PREP.roll){PREP.rollT+=dt;if(PREP.rollT>=10){PREP.roll=true;tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
+  if(RIDE.v>5&&RIDE.eff>0.3&&!PREP.roll){PREP.rollT+=dt;if(PREP.rollT>=10){PREP.roll=true;tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
   if(((W.c=(W.c||0)+dt))>0.25){W.c=0;rideCount();}
   // free rollers: the bike drifts a few cm over the drums and the rider keeps it straight with small corrections; the harder you go, the more it lives
   const t=W.t,e=RIDE.eff,amp=0.012+0.02*e,x=amp*Math.sin(t*0.83)+amp*0.6*Math.sin(t*2.1+1)+0.004*Math.sin(RIDE.crank);
@@ -4684,7 +4684,7 @@ function snackTick(dt){const A=WALK.act,S=A.S,t=A.t+=dt,r=WALK.r;WALK.head=A.h0+
   if(S.kind==='drink'&&t>1.1&&t<2.2&&!A.glug){A.glug=true;for(let i=0;i<4;i++)setTimeout(()=>tone(180+Math.random()*40,0.05,0.025,'sine'),i*230);}
   if(S.kind==='gel'&&t>1.15&&!A.squeeze){A.squeeze=true;tone(240,0.08,0.025,'sine');}
   if(t>=back&&A.held&&!A.back){A.back=true;scene.add(S.m);S.m.position.copy(S.home[0]);S.m.rotation.copy(S.home[1]);}
-  if(S.kind==='gel'&&t>=2.0&&S.m.visible){S.m.visible=false;}   // the empty wrapper goes in your pocket
+  if(S.kind==='gel'&&t>=2.0&&S.m.visible){for(const G of SNACKS)if(G.kind==='gel')G.m.visible=false;}   // the empty wrapper goes in your pocket
   if(t>=SN_DUR[S.kind]){WALK.act=null;if(S.kind==='drink'){PREP.drink=true;walkSay('💧 +3 % energie',1.6);}else{PREP.gel=true;walkSay('⚡ +5 % energie',1.6);}tone(880,0.12,0.06,'triangle');setTimeout(()=>tone(1175,0.16,0.06,'triangle'),120);}}
 // pick it up from the bench, up to the mouth, head back to drink (or squeeze the gel), then put the bottle back
 function snackPose(T,t,kind){const D=SN_DUR[kind],k1=_sm(t/0.45),k2=_sm((t-0.55)/0.5),k3=kind==='drink'?_sm((t-2.0)/0.5):_sm((t-1.9)/0.5),k4=kind==='drink'?_sm((t-2.5)/0.4):0;
@@ -4753,7 +4753,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);   // the bunch ke
   if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
   if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
   // the action button: right up to a bike on the rollers / the bottle / the gel
-  let ac=null;if(!busy&&!WALK.air){const R=rollerNear(P);if(R)ac={k:'roll',R};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
+  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P);if(R)ac={k:'roll',R};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
   const ab=$('walkAct'),key=ac?ac.k:'';if(ab.dataset.k!==key){ab.dataset.k=key;ab.textContent=key==='roll'?'🚲 Nasednout na válce':key==='drink'?'💧 Napít se':key==='gel'?'⚡ Dát si gel':'';ab.style.display=key?'block':'none';}WALK.ac=ac;
   if(WALK.msgT>0){WALK.msgT-=dt;if(WALK.msgT<=0)walkSay('');}}
 function walkAction(){const A=WALK.ac;if(phase!=='walk'||!A||WALK.ride||WALK.act)return;if(A.k==='roll')rideStart(A.R);else snackStart(A.S);}
