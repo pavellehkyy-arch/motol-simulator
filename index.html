@@ -4646,8 +4646,8 @@ function walkStop(){mpLeave();bikePickClose();if(WALK.ride)rideStop();if(WALK.ac
   $('againBtn').style.display='';$('menuBtn').style.display='';$('results').style.display='none';$('shop').style.display='none';$('coachBox').style.display='none';
   if(WALK.r)WALK.r.g.visible=false;COACH.g.visible=false;if(COACH.home){COACH.g.position.copy(COACH.home[0]);COACH.g.rotation.y=COACH.home[1];}for(const t of WALK.tags)t.visible=false;if(shopTag)shopTag.visible=false;player.model.g.visible=true;}
 // ---------- PLOCHA ONLINE: the other logged-in players on the floor (multi.js, Supabase Realtime; online.js lets in only logged-in players with a nickname) ----------
-// we send our position 5x a second while moving (every 3 s standing still), the others are drawn as plain figures with their nickname over the head; they walk through you (no collisions)
-const MP={figs:{},sendT:0,keepT:0,badgeT:0,last:null},MP_MAX=7;
+// we send our position 3x a second while moving (every 3 s standing still), the others are drawn as plain figures with their nickname over the head; they walk through you (no collisions)
+const MP={figs:{},seen:{},sendT:0,keepT:0,badgeT:0,last:null},MP_MAX=7;
 const MP_TOPS=[0xe63946,0x2a9df4,0xf4a261,0x2ec4b6,0x9b5de5,0xffd166,0x06d6a0,0xef476f,0x118ab2,0xf15bb5],MP_HAIR=[0x3b2a1e,0x161616,0x8a5a2b,0xd8b26a];
 function mpHash(s){let h=7;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
 function mpTagTex(sp,nick,gold){const c=mkCanvas(256,64),g=c.getContext('2d');g.font='800 30px system-ui';const tw=g.measureText(nick).width+(gold?66:0),w=Math.min(252,tw+28),x0=128-w/2;
@@ -4657,7 +4657,7 @@ function mpTagTex(sp,nick,gold){const c=mkCanvas(256,64),g=c.getContext('2d');g.
 function mpFig(id){const k=mpHash(id),r=makeHuman({top:MP_TOPS[k%MP_TOPS.length],pants:0x111111,shoes:0xf0f0f0,hair:MP_HAIR[(k>>4)%MP_HAIR.length],skin:SKINS[(k>>8)%SKINS.length]});
   r.t=r.t||0;scene.add(r.g);const tag=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true}));tag.scale.set(1.3,0.325,1);scene.add(tag);mpTagTex(tag,'Hráč',false);
   return {r,T:{},tag,nick:'Hráč',ph:0,spd:0,x:0,y:0,z:0,h:0};}
-function mpDrop(id){const F=MP.figs[id];if(!F)return;scene.remove(F.r.g);scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();delete MP.figs[id];}
+function mpDrop(id){const F=MP.figs[id];if(!F)return;scene.remove(F.r.g);F.r.g.traverse(o=>{if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==F.tag.material.map)m.map.dispose();m.dispose();});});scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();delete MP.figs[id];}
 function mpJoin(){if(!window.Multi)return;Multi.start();MP.last=null;MP.sendT=MP.keepT=0;$('mpBadge').style.display='block';mpBadge();}
 function mpLeave(){if(window.Multi)Multi.stop();for(const id in MP.figs)mpDrop(id);$('mpBadge').style.display='none';}
 function mpBadge(){const M=window.Multi,st=M?M.status:'off';
@@ -4665,11 +4665,11 @@ function mpBadge(){const M=window.Multi,st=M?M.status:'off';
 function mpState(){return WALK.ride?5:(WALK.down||WALK.onSt)?3:WALK.climb!=null?2:(WALK.sit||(WALK.act&&WALK.act.sit))?1:WALK.air?4:0;}
 function mpTick(dt){const M=window.Multi;if(!M)return;
   MP.sendT-=dt;MP.keepT-=dt;
-  if(M.status==='on'&&MP.sendT<=0){MP.sendT=0.2;const P=WALK.pos,st=mpState(),L=MP.last;
+  if(M.status==='on'&&MP.sendT<=0){MP.sendT=0.33;const P=WALK.pos,st=mpState(),L=MP.last;
     const moved=!L||Math.hypot(P.x-L.x,P.z-L.z)>0.03||Math.abs(P.y-L.y)>0.03||Math.abs(_angTo(L.h,WALK.head))>0.05||L.st!==st;
     if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+WALK.spd.toFixed(2),st};if(M.send(s)){MP.last=s;MP.keepT=3;}}}
   if(M.prune)M.prune();
-  const seen={},now=Date.now();let n=0;
+  const seen=MP.seen,now=Date.now();for(const q in seen)delete seen[q];let n=0;
   for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id];let F=MP.figs[id];if(!F){F=MP.figs[id]=mpFig(id);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}
     const nm=M.name(id),nk=nm?nm.nick+(nm.gold?'★':''):'Hráč';if(F.nick!==nk){F.nick=nk;mpTagTex(F.tag,nm?nm.nick:'Hráč',!!(nm&&nm.gold));}
     // between messages: glide towards the last position, a little ahead along the way they were walking
@@ -4680,7 +4680,7 @@ function mpTick(dt){const M=window.Multi;if(!M)return;
     const a=clamp(F.spd/1.2,0,1),run=_sm((F.spd-2.1)/1.6),stride=1.3+1.4*run;F.ph+=dt*F.spd*2*PI/stride;
     if(p.st===3)downPose(T,r.t);
     else if(p.st===2){F.ph+=Math.abs(dy)*k*9;climbPose(T,F.ph,Math.abs(dy)>0.02?1:0);}
-    else if(p.st===1){heroGait(T,0,0,0,r.t,0);Object.assign(T,sitPose({},1,r.t));}
+    else if(p.st===1){heroGait(T,0,0,0,r.t,0);sitPose(T,1,r.t);}
     else heroGait(T,F.ph,a,run,r.t,0);
     poseHuman(r,T,1-Math.exp(-dt*12));const lie=p.st===3;
     r.g.visible=F.tag.visible=p.st!==5;   // on the rollers: hidden for now
@@ -4713,7 +4713,7 @@ addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
 addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>{WALK.mp=false;wipe(walkStart);};
-$('btnWalkMp').onclick=()=>{if(!(window.Online&&Online.multi&&window.Multi)){const b=$('btnWalkMp').querySelector('span');b.textContent='online teď nejde, zkus to později';return;}Online.multi(()=>{WALK.mp=true;wipe(walkStart);});};
+$('btnWalkMp').onclick=()=>{if(!(window.Online&&Online.multi&&window.Multi)){const b=$('btnWalkMp').querySelector('span');b.textContent='online teď nejde, zkus to později';setTimeout(()=>{b.textContent='potkej ostatní přihlášené hráče';},3000);return;}Online.multi(()=>{WALK.mp=true;wipe(walkStart);});};
 $('walkAct').onclick=walkAction;$('rideOff').onclick=()=>rideStop();$('rideEff').addEventListener('input',e=>{RIDE.eff=e.target.value/100;});
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
 $('walkMenu').onclick=()=>wipe(()=>{WALK.mp=false;walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});

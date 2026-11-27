@@ -5,12 +5,12 @@
 (function () {
   'use strict';
   var G = typeof window !== 'undefined' ? window : globalThis;
-  var ROOM_MAX = 8, ROOMS = 9, HB = 25000, TOKEN_EVERY = 240000, PEER_TTL = 12000;
+  var ROOM_MAX = 8, ROOMS = 9, HB = 25000, TOKEN_EVERY = 60000, PEER_TTL = 12000;
 
   var M = { peers: {}, status: 'off', room: 0 };
   G.Multi = M;
   var ws = null, want = false, ref = 0, joinRef = null, topic = '', uid = null, room = 1, tracked = false;
-  var hbT = null, tokT = null, retryT = null, retries = 0, present = {}, names = {}, asked = {};
+  var hbT = null, tokT = null, retryT = null, retries = 0, present = {}, names = {}, asked = {}, gen = 0, hbRef = null, lastTok = '';
 
   function O() { return G.Online; }
   function nowMs() { return Date.now(); }
@@ -26,7 +26,7 @@
     want = true; retries = 0; room = 1; connect();
   };
   M.stop = function () {
-    want = false; clearTimers();
+    want = false; gen++; clearTimers();
     if (ws) { if (topic) msg('phx_leave', {}); try { ws.close(); } catch (e) {} }
     ws = null; topic = ''; reset(); setStatus('off');
   };
@@ -45,8 +45,10 @@
     var on = O();
     if (!on || !on.loggedIn || !on.loggedIn() || !on.accessToken) { setStatus('denied'); want = false; return; }
     setStatus('connecting');
-    on.accessToken().then(function (t) {
-      if (!want) return;
+    var g = ++gen;
+    on.accessToken(300).then(function (t) {
+      if (!want || g !== gen) return;
+      lastTok = t;
       uid = on.uid && on.uid();
       if (!t || !uid) { setStatus('denied'); want = false; return; }
       var c = on.config();
@@ -54,22 +56,25 @@
       var W = M._WS || G.WebSocket;
       try { ws = new W(url); } catch (e) { fail(); return; }
       var me = ws;
-      ws.onopen = function () { if (me !== ws) return; join(t); hbT = setInterval(function () { ref++; sendRaw({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(ref) }); }, HB);
+      ws.onopen = function () { if (me !== ws) return; join(t); hbRef = null;
+        hbT = setInterval(function () {   // odpověď na minulý heartbeat nepřišla: spojení je mrtvé
+          if (hbRef) { try { ws.close(); } catch (e) {} return; }
+          ref++; hbRef = String(ref); sendRaw({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: hbRef }); }, HB);
         tokT = setInterval(refreshToken, TOKEN_EVERY); };
       ws.onmessage = function (e) { if (me !== ws) return; var m; try { m = JSON.parse(e.data); } catch (_) { return; } onMsg(m); };
       ws.onclose = function () { if (me !== ws) return; ws = null; clearTimers(); reset(); if (want) fail(); };
       ws.onerror = function () {};
-    }, fail);
+    }, function () { if (g === gen) fail(); });
   }
   function fail() {
     ws = null; clearTimers(); reset();
     if (!want) return;
     setStatus('error');
-    if (retries++ < 6) retryT = setTimeout(function () { if (want) connect(); }, Math.min(20000, 2000 * retries));
+    retries++; retryT = setTimeout(function () { if (want) connect(); }, Math.min(20000, 2000 * retries));
   }
   function refreshToken() {
     var on = O(); if (!on || !on.accessToken) return;
-    on.accessToken().then(function (t) { if (t && topic) msg('access_token', { access_token: t }); });
+    on.accessToken(300).then(function (t) { if (t && topic && t !== lastTok) { lastTok = t; msg('access_token', { access_token: t }); } });
   }
   function join(t) {
     topic = 'realtime:plocha:' + room; ref++; joinRef = String(ref); present = {}; tracked = false;
@@ -77,13 +82,14 @@
       payload: { config: { broadcast: { self: false, ack: false }, presence: { key: uid, enabled: true }, private: true }, access_token: t } });
   }
   function nextRoom() {
-    msg('phx_leave', {});
+    msg('phx_leave', {}); topic = '';
     if (room >= ROOMS) { setStatus('full'); want = false; try { ws.close(); } catch (e) {} return; }
-    room++;
-    O().accessToken().then(function (t) { if (want && ws) join(t); });
+    room++; var g = gen;
+    O().accessToken(300).then(function (t) { if (want && ws && g === gen) join(t); }, function () { if (g === gen && ws) try { ws.close(); } catch (e) {} });
   }
 
   function onMsg(m) {
+    if (m.topic === 'phoenix' && m.ref === hbRef) { hbRef = null; return; }
     if (m.topic !== topic) return;
     var p = m.payload || {};
     if (m.event === 'phx_reply' && m.ref === joinRef) {
@@ -92,10 +98,10 @@
       setTimeout(function () { if (want && ws && jr === joinRef && !tracked) onMsg({ topic: topic, event: 'presence_state', payload: {} }); }, 2000);
       return;
     }
-    if (m.event === 'system' && p.status === 'error') { setStatus('denied'); want = false; try { ws.close(); } catch (e) {} return; }
+    if (m.event === 'system' && p.status === 'error') { try { ws.close(); } catch (e) {} return; }   // např. vypršel token: připojit znovu (bez práva odmítne už join)
     if (m.event === 'phx_error' || m.event === 'phx_close') { if (want) { try { ws.close(); } catch (e) {} } return; }
     if (m.event === 'presence_state') {
-      for (var k in p) if (k !== uid) present[k] = 1;
+      for (var k in p) if (k !== uid) present[k] = (p[k].metas || [1]).length || 1;
       if (!tracked) {
         if (Object.keys(present).length >= ROOM_MAX) { nextRoom(); return; }
         tracked = true; retries = 0; M.room = room; setStatus('on');
@@ -105,8 +111,11 @@
     }
     if (m.event === 'presence_diff') {
       var j = p.joins || {}, l = p.leaves || {}, k2;
-      for (k2 in j) if (k2 !== uid) present[k2] = 1;
-      for (k2 in l) if (k2 !== uid && !j[k2]) { delete present[k2]; delete M.peers[k2]; }
+      for (k2 in j) if (k2 !== uid) present[k2] = (present[k2] || 0) + ((j[k2].metas || [1]).length || 1);
+      for (k2 in l) if (k2 !== uid && !j[k2]) {   // stejný účet ve dvou oknech: smaž až po odchodu posledního
+        var left = (l[k2].metas || []).length, had = present[k2] === true ? 1 : present[k2] || 1;
+        if (had - left > 0) present[k2] = had - left; else { delete present[k2]; delete M.peers[k2]; }
+      }
       askNames(); return;
     }
     if (m.event === 'broadcast' && p.event === 'p') {
@@ -134,5 +143,9 @@
     for (var k in M.peers) if (t - M.peers[k].t > PEER_TTL) delete M.peers[k];
     return t - lastSent;
   };
+  /* návrat do aplikace (mobil v pozadí uspí časovače): hned se připojit znovu */
+  if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && want && M.status === 'error') { clearTimeout(retryT); retries = 0; connect(); }
+  });
   M._reset = function () { M.stop(); names = {}; asked = {}; };
 })();

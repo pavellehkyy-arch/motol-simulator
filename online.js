@@ -94,9 +94,9 @@
     };
     saveSess();
   }
-  function token() {
+  function token(minLeft) {
     if (!S) return Promise.resolve(null);
-    if (S.exp - 60 > now()) return Promise.resolve(S.access);
+    if (S.exp - (minLeft || 60) > now()) return Promise.resolve(S.access);
     if (refreshing) return refreshing;
     refreshing = http('/auth/v1/token?grant_type=refresh_token', { refresh_token: S.refresh }).then(function (r) {
       refreshing = null;
@@ -119,7 +119,7 @@
   O.email = function () { return S ? S.email : ''; };
   O.profile = function () { return P; };
   /* pro multi.js (plocha online): platný token, id účtu a veřejná jména hráčů */
-  O.accessToken = function () { return token(); };
+  O.accessToken = function (minLeft) { return token(minLeft); };
   O.uid = function () {
     try { var b = S.access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(decodeURIComponent(escape(G.atob(b)))).sub || null; } catch (e) { return null; }
   };
@@ -465,7 +465,7 @@
       sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno, popis vzhledu a chování).');
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
       sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
-      sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb a přezdívku (jen schválenou), dokud tam jsi. Nikam se to neukládá.');
+      sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb, přezdívku (jen schválenou) a anonymní číslo účtu, dokud tam jsi. Nikam se to neukládá.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
       sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');
       sec('Jak dlouho:', 'dokud máš účet. Návrhy ze schránky a vyřízené žádosti o trenéra se mažou po roce.');
