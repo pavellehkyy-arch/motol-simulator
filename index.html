@@ -272,7 +272,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI{display:none!important}
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.8</div>
+    <div class="sub">v1.9</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -1894,11 +1894,10 @@ function buildInfield(){
     g.strokeStyle='rgba(120,85,40,.35)';g.lineWidth=3;g.strokeRect(1.5,1.5,253,125);const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;})();
   const ply=new THREE.MeshLambertMaterial({map:plyTex}),edge=mat(0xb8955e),benchM=mat(0xc8a066),legM=mat(0x6e6e6e);
   const box=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);scene.add(b);return b;};
-  // one booth: back wall, side partitions, short front returns, bench along the back wall
+  // one booth: back wall, side partitions (open front, no returns), bench along the back wall
   function booth(xc,z0,z1,open){const W=3.0,H=1.1,T=0.05,L=z1-z0,zc=(z0+z1)/2,xb=xc-open*W/2,xf=xc+open*W/2;
     box(T,H,L,xb,y0+H/2,zc,ply);box(T+0.02,0.04,L,xb,y0+H+0.02,zc,edge);
-    for(const zz of [z0,z1]){box(W,H,T,xc,y0+H/2,zz,ply);box(W,0.04,T+0.02,xc,y0+H+0.02,zz,edge);
-      box(T,H,0.7,xf,y0+H/2,zz+(zz===z0?0.35:-0.35),ply);}
+    for(const zz of [z0,z1]){box(W,H,T,xc,y0+H/2,zz,ply);box(W,0.04,T+0.02,xc,y0+H+0.02,zz,edge);}
     const bl=L-0.5;box(0.42,0.06,bl,xb+open*0.3,y0+0.45,zc,benchM);box(0.42,0.05,bl,xb+open*0.3,y0+0.3,zc,benchM);
     for(const dz of [-bl/2+0.2,bl/2-0.2])box(0.05,0.45,0.05,xb+open*0.3,y0+0.225,zc+dz,legM);
     box(0.05,0.35,bl,xb+open*0.08,y0+0.75,zc,benchM);}
@@ -4468,14 +4467,13 @@ function podLocal(x,z){if(!_podInv){JUDGES.updateMatrixWorld();_podInv=new THREE
 function podArea(l){return l.x>PODX-0.7&&l.x<PODX+1.8&&l.z>-2.25&&l.z<2.25;}
 function podTop(x,z,m){const l=podLocal(x,z);let t=-1;if(!podArea(l))return t;for(const b of POD_BOX)if(l.x>b[0]-m&&l.x<b[1]+m&&l.z>b[2]-m&&l.z<b[3]+m&&b[4]>t)t=b[4];return t;}
 function podPen(x,z,y,R){const l=podLocal(x,z);let p=-1;if(!podArea(l))return p;for(const b of POD_BOX)if(FLOOR_Y+b[4]>y+0.12)p=Math.max(p,Math.min(l.x-b[0]+R,b[1]+R-l.x,l.z-b[2]+R,b[3]+R-l.z));return p;}   // how deep you'd be in a step higher than your feet (<0 = clear)
-// fine collisions on the walk: the real outlines of what stands on the infield (booth walls with their doorways, benches, bikes on rollers, racks, the shop table,
+// fine collisions on the walk: the real outlines of what stands on the infield (booth walls, open at the front, benches, bikes on rollers, racks, the shop table,
 // heaters, the ladder cart, the judges' booth, the TV, the stairwell); you slide along them. The coarse nav grid stays for the medics and the holders.
 const BOOTHS=[];let WCOL=null;const WR=0.23;   // your shoulders
 function walkCols(){if(WCOL)return WCOL;const C=OBST.walk.slice(),t=0.035;BOOTHS.length=0;
   const ab=(x0,z0,x1,z1)=>C.push(OB((x0+x1)/2,(z0+z1)/2,0,Math.abs(x1-x0)/2,Math.abs(z1-z0)/2));
   for(const [xc,zs,open] of OBST.cols)for(let i=0;i<3;i++){const z0=zs[i],z1=zs[i+1],W=3.0,xb=xc-open*W/2,xf=xc+open*W/2,zc=(z0+z1)/2,bl=z1-z0-0.5;
     ab(xb-t,z0,xb+t,z1);for(const zz of [z0,z1])ab(Math.min(xb,xf),zz-t,Math.max(xb,xf),zz+t);   // back wall, partitions
-    ab(xf-t,z0,xf+t,z0+0.7);ab(xf-t,z1-0.7,xf+t,z1);   // short front returns: the doorway is the gap between them
     ab(xb,zc-bl/2,xb+open*0.51,zc+bl/2);BOOTHS.push({xb,xf,open,z0,z1,zc,bl});}   // bench + backrest
   C.push(OB(STAIR.cx,STAIR.cz,Math.atan2(-STAIR.uz,STAIR.ux),2.55+0.12,1.15+0.12));
   JUDGES.updateMatrixWorld();const jr=JUDGES.rotation.y,jp=V(0.375,0,0),tp=V(PODX,0,-2.75);JUDGES.localToWorld(jp);JUDGES.localToWorld(tp);
@@ -4633,7 +4631,7 @@ function walkOffStretcher(){const R=RESC,g=WALK.r.g,a=new THREE.Vector3();R.stre
   walkSay('🩹 <b>Diagnóza:</b> '+DIAG+' · ale jsi zpátky na nohou!',3.5);clearRescue();}
 function walkSkipRescue(){const R=RESC;if(!R||!R.onWalk||R.st==='done')return;const c=R.crew;c.position.copy(R.end);const pod=new THREE.Vector3(PODX,0,0);JUDGES.localToWorld(pod);c.rotation.y=Math.atan2(pod.x-c.position.x,pod.z-c.position.z);
   if(!R.fig.visible){R.fig.visible=true;walkOnStretcher();}R.path=null;R.meds[0].g.position.set(1.15,R.meds[0].g.position.y,1.1);R.meds[1].g.position.set(-1.15,R.meds[1].g.position.y,-0.3);R.stretcher.position.y=0.3;R.stretcher.rotation.x=0;R.st='done';R.t=0;}
-// ---------- booths: in through the doorway, walk into the bench and you sit down; move the stick away (or jump) and you get up ----------
+// ---------- booths: walk in from the open front, walk into the bench and you sit down; move the stick away (or jump) and you get up ----------
 function walkTrySit(ux,uz,amt){if(amt<0.2||WALK.air)return false;const P=WALK.pos;
   for(const B of BOOTHS){if(ADV&&ADV.B===B)continue;const inX=(P.x-B.xb)*B.open;if(inX<0.3||inX>1.2||P.z<B.zc-B.bl/2-0.05||P.z>B.zc+B.bl/2+0.05)continue;
     if(ux*B.open<-0.45&&inX<0.51+WR+0.1){WALK.sit={B,t:0,up:-1,x0:P.x,z0:P.z,h0:WALK.head,z:clamp(P.z,B.zc-B.bl/2+0.3,B.zc+B.bl/2-0.3)};WALK.spd=0;return true;}}return false;}

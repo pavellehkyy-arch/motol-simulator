@@ -436,7 +436,7 @@
     function viewFbLogin() {
       box.appendChild(h('h2', { text: '💡 Návrhy na zlepšení' }));
       box.appendChild(ask('Máš nápad, co na hře zlepšit? Napiš mi ho, ale nejdřív se přihlas.'));
-      box.appendChild(h('p', { text: 'Návrhy můžou posílat jen přihlášení hráči, ať víme, komu případně odpovědět. Přihlášení je přes e-mail s kódem, bez hesla.' }));
+      box.appendChild(h('p', { text: 'Návrhy můžou posílat jen přihlášení hráči. Přihlášení je přes e-mail s kódem, bez hesla.' }));
       box.appendChild(h('button', { class: 'ob', text: 'Přihlásit se', on: { click: function () { ctx.after = 'feedback'; cur = 'login'; ctx.msg = ''; render(); } } }));
       box.appendChild(closeBtn('Teď ne'));
     }
@@ -469,7 +469,7 @@
       box.appendChild(h('div', { class: 'om', text: ctx.msg }));
       box.appendChild(h('button', { class: 'ob', text: 'Odeslat', on: { click: go } }));
       box.appendChild(closeBtn());
-      box.appendChild(h('div', { class: 'os', text: 'Zprávu uložíme na server spolu s tvou přezdívkou a účtem (' + (S.email || '') + '), aby ji autor hry mohl přečíst a případně ti odpovědět e-mailem. Nikomu dalšímu ji nedáváme, po 12 měsících se sama smaže a smazat ji jde i dřív na požádání. Nepiš do ní hesla ani citlivé údaje.' }));
+      box.appendChild(h('div', { class: 'os', text: 'Návrh si přečte jen autor hry. Po roce se sám smaže. Nepiš do něj hesla ani osobní údaje.' }));
       setTimeout(function () { try { ta.focus(); } catch (e) {} }, 50);
     }
     O.feedback = function () { ctx.fbSent = false; open(S ? 'feedback' : 'fbLogin'); };
