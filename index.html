@@ -2001,14 +2001,18 @@ buildInfield();buildHallExtras();buildJudges();buildStairwell();buildCoach();
     const g=o.geometry;if(!g.boundingSphere)g.computeBoundingSphere();bs.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
     const cast=!o.material.isMeshBasicMaterial&&bs.radius<6&&bs.center.y<5;const k=o.material.uuid+(cast?'#c':'');
     if(!buckets.has(k))buckets.set(k,{m:o.material,cast,list:[]});buckets.get(k).list.push(o);drop.push(o);});
-  for(const {m,cast,list} of buckets.values()){let n=0;const parts=list.map(o=>{let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry;if(!g.attributes.normal){g=g.clone();g.computeVertexNormals();}n+=g.attributes.position.count;return [o,g];});
+  const rollerOf=o=>{for(let q=o;q;q=q.parent)for(const R of ROLLERS)if(q===R.bike.g)return R;return null;};   // the bikes on the rollers are baked too – remember where, so the one you ride can be hidden (rideHideBaked)
+  for(const {m,cast,list} of buckets.values()){let n=0;const mine=[];const parts=list.map(o=>{let g=o.geometry.index?o.geometry.toNonIndexed():o.geometry;if(!g.attributes.normal){g=g.clone();g.computeVertexNormals();}n+=g.attributes.position.count;return [o,g];});
     const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let off=0;const v=new THREE.Vector3();
-    for(const [o,g] of parts){const pa=g.attributes.position,na=g.attributes.normal,ua=g.attributes.uv;_n.getNormalMatrix(o.matrixWorld);
+    for(const [o,g] of parts){const pa=g.attributes.position,na=g.attributes.normal,ua=g.attributes.uv;_n.getNormalMatrix(o.matrixWorld);{const R=rollerOf(o);if(R){const e={off,cnt:pa.count};(R.baked=R.baked||[]).push(e);mine.push(e);}}
       for(let i=0;i<pa.count;i++){v.fromBufferAttribute(pa,i).applyMatrix4(o.matrixWorld);P.set([v.x,v.y,v.z],(off+i)*3);v.fromBufferAttribute(na,i).applyMatrix3(_n).normalize();N.set([v.x,v.y,v.z],(off+i)*3);if(ua)U.set([ua.getX(i),ua.getY(i)],(off+i)*2);}
       off+=pa.count;}
     const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.setAttribute('uv',new THREE.BufferAttribute(U,2));
-    const M=new THREE.Mesh(G,m);M.castShadow=cast;M.receiveShadow=!m.isMeshBasicMaterial;M.matrixAutoUpdate=false;scene.add(M);}
+    const M=new THREE.Mesh(G,m);M.castShadow=cast;M.receiveShadow=!m.isMeshBasicMaterial;M.matrixAutoUpdate=false;scene.add(M);for(const e of mine)e.M=M;}
   for(const o of drop)o.parent.remove(o);}
+// hide / show one baked roller bike: squash its vertices to a point (and back) – you ride your own bike on those rollers
+function rideHideBaked(R,hide){if(!R||!R.baked)return;for(const e of R.baked){const A=e.M.geometry.attributes.position,a=A.array,i0=e.off*3,i1=(e.off+e.cnt)*3;
+  if(hide){if(e.save)continue;e.save=a.slice(i0,i1);for(let i=i0;i<i1;i+=3){a[i]=a[i0];a[i+1]=a[i0+1];a[i+2]=a[i0+2];}}else{if(!e.save)continue;a.set(e.save,i0);e.save=null;}A.needsUpdate=true;}}
 
 // lap board
 const lapCanvas=mkCanvas(256,192),lapCtx=lapCanvas.getContext('2d'),lapTex=new THREE.CanvasTexture(lapCanvas);
@@ -4647,12 +4651,12 @@ function prepPct(){return (PREP.roll?5:0)+(PREP.drink?3:0)+(PREP.gel?5:0);}
 function rideModel(){if(RIDE.M)return RIDE.M;const M=makeRider(Object.assign({},player,{aero:false}));scene.remove(M.g);M.g.children[0].visible=false;return RIDE.M=M;}
 function rollerNear(P){let best=null,bd=0.6;for(const R of ROLLERS){const dx=P.x-R.x,dz=P.z-R.z,c=Math.cos(R.rot),s=Math.sin(R.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;
     const d=Math.hypot(Math.max(0,Math.abs(lx)-0.33),Math.max(0,Math.abs(lz)-0.95));if(d<bd){bd=d;best=R;}}return best;}
-function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;
+function rideStart(R){const M=rideModel();R.g.add(M.g);M.g.position.set(0,ROLL_Y,0);M.g.rotation.set(0,0,0);M.g.visible=true;applyGear();R.bike.g.visible=false;rideHideBaked(R,true);
   WALK.ride={R,t:0,x0:WALK.pos.x,z0:WALK.pos.z};RIDE.v=R.v||0;RIDE.t=0;WALK.spd=0;WALK.r.g.visible=false;
   const fw=R.rot;WALK.pos.set(R.x,FLOOR_Y,R.z);WALK.head=fw;WALK.yaw=fw+0.9;WALK.pitch=0.22;   // camera from behind-side, so you see the legs and the drums
   $('rideEff').value=Math.round(RIDE.eff*100);$('rideUI').style.display='flex';document.body.classList.add('riding');rideCount();tone(520,0.08,0.04,'triangle');}
 function rideStop(){const W=WALK.ride;if(!W)return;const R=W.R;RIDE.last=R;R.v=RIDE.v;
-  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;WALK.ride=null;WALK.acCD=0.8;$('rideUI').style.display='none';document.body.classList.remove('riding');
+  if(RIDE.M){RIDE.M.g.visible=false;R.g.remove(RIDE.M.g);}R.bike.g.visible=true;rideHideBaked(R,false);WALK.ride=null;WALK.acCD=0.8;$('rideUI').style.display='none';document.body.classList.remove('riding');
   const c=Math.cos(R.rot),s=Math.sin(R.rot),P=WALK.pos;let ok=false;
   for(const sd of [1,-1]){const x=R.x+c*0.75*sd,z=R.z-s*0.75*sd;if(walkFree(x,z)){P.x=x;P.z=z;ok=true;break;}}   // step off to the side of the bike
   if(!ok){P.x=W.x0;P.z=W.z0;}P.y=walkGround(P.x,P.z);WALK.head=Math.atan2(R.x-P.x,R.z-P.z)+PI;WALK.r.g.visible=true;WALK.spd=0;tone(420,0.08,0.04,'triangle');}
