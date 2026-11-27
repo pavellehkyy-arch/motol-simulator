@@ -272,7 +272,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI{display:none!important}
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.5</div>
+    <div class="sub">v1.6</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -3360,12 +3360,17 @@ function madisonUpdate(dt){if(!MT)return;let med=[];
     const ld=MT.filter(t=>!t.act.crashed).reduce((a,b)=>a.act.s>b.act.s?a:b,MT[0]);if(phase==='race'&&ld.act.s>=START_S)startMadisonRace();}
   for(const T of MT){const A=T.act;if(A.crashed)continue;T.stintT+=dt;
     // intermediate sprints
-    for(let k=T.done+1;k*MAD_EVERY<=MAD_LAPS;k++){const L=START_S+k*MAD_EVERY*L0;if(T.prevS<L&&A.s>=L){const ord=(MT.sprintOrd=MT.sprintOrd||{})[k]=(MT.sprintOrd[k]||0)+1;
+    const eA=effS(A),pe=T.prevS-(A.lapOff||0);   // sprints count on the race distance: a team a lap up does not reach the line a lap early
+    for(let k=T.done+1;k*MAD_EVERY<=MAD_LAPS;k++){const L=START_S+k*MAD_EVERY*L0;if(pe<L&&eA>=L){const ord=(MT.sprintOrd=MT.sprintOrd||{})[k]=(MT.sprintOrd[k]||0)+1;
         const pts=([5,3,2,1][ord-1]||0)*(k*MAD_EVERY===MAD_LAPS?2:1);T.pts+=pts;T.spPts+=pts;T.sprints[k-1]=pts;T.done=k;
         if(T.me&&phase==='race')showMsg('🏁<small>Sprint '+k+': '+ord+'. místo'+(pts?' · +'+pts+' b':'')+'</small>',2.2);}else break;}
     T.prevS=A.s;
     // laps gained / lost on the bunch
-    const diff=A.s-m;const net=diff>0?Math.floor((diff+15)/L0):-Math.floor((-diff+15)/L0);if(net!==T.lapNet){T.pts+=20*(net-T.lapNet);if(T.me&&phase==='race')showMsg(net>T.lapNet?'🔥<small>Získal jsi kolo! +20 b</small>':'😬<small>Ztratil jsi kolo! −20 b</small>',2.2);T.lapNet=net;}
+    // laps gained / lost (as in the points race): +1 once the team catches the bunch from behind, −1 once the bunch catches it; the lap is taken out of
+    // the team's race distance (lapOff on both riders), so it does not finish a lap early and then hand the points back while the bunch rides on
+    if(!MT.neutral&&!A.finished&&med.length>2){const diff=A.s-m,base=T.lapNet*L0;let net=T.lapNet;
+      if(diff>=base+L0-15)net++;else if(diff<=base-L0+15)net--;
+      if(net!==T.lapNet){T.pts+=20*(net-T.lapNet);if(T.me&&phase==='race')showMsg(net>T.lapNet?'🔥<small>Získal jsi kolo! +20 b</small>':'😬<small>Ztratil jsi kolo! −20 b</small>',2.2);T.lapNet=net;A.lapOff=net*L0;if(T.rest)T.rest.lapOff=net*L0;}}
     if(!T.rest||A.finished){T.want=false;continue;}
     const toSp=(nextSprintLine(A.s)-A.s)/L0;
     // every time the active rider laps his resting partner the exchange is compulsory (first half lap of a stint excluded)
@@ -3379,8 +3384,8 @@ function madisonUpdate(dt){if(!MT)return;let med=[];
     else if(!T.me&&T.want&&slingEligible(T))doSling(T,0.5+Math.random()*0.5);
     T.pd=dP;}
   // whistle one lap before each sprint
-  const lead=MT.filter(t=>!t.act.crashed).reduce((a,b)=>a.act.s>b.act.s?a:b);const nl=nextSprintLine(lead.act.s);
-  if(nl-lead.act.s<L0&&MT.whistle!==nl&&nl<FIN-1){MT.whistle=nl;bell();if(phase==='race')showMsg('🔔<small>Sprint za 1 kolo!</small>',1.8);}}
+  const lead=MT.filter(t=>!t.act.crashed).reduce((a,b)=>effS(a.act)>effS(b.act)?a:b);const nl=nextSprintLine(effS(lead.act));
+  if(nl-effS(lead.act)<L0&&MT.whistle!==nl&&nl<FIN-1){MT.whistle=nl;bell();if(phase==='race')showMsg('🔔<small>Sprint za 1 kolo!</small>',1.8);}}
 function updateSlingUI(dt){const show=mode==='madison'&&MT&&phase==='race';const pb=$('pBadge'),sl=$('sling');
   if(!show){pb.style.display='none';sl.style.display='none';if(slingLine)slingLine.visible=false;return;}
   const T=MT.find(t=>t.me),P=PARTNER(),resting=T.rest===player;
