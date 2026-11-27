@@ -116,3 +116,25 @@ test('žebříček: zlatá přezdívka dostane třídu gold, ostatní ne (a ciz�
   assert.strictEqual(gb.length, 1);
   assert.strictEqual(gb[0].textContent, 'GOLD');
 });
+
+test('žebříček: přihlášený mimo první desítku vidí pod ní svůj řádek', async () => {
+  const { O, box } = setup();
+  const top = Array.from({ length: 10 }, (_, i) => ({ place: i + 1, nickname: 'J' + i, best_time_s: String(60 + i), wins: 0 }));
+  const route = { '/rest/v1/rpc/get_leaderboard': top, '/rest/v1/rpc/get_my_rank': { place: 37, nickname: 'Já', best_time_s: 75.5, wins: 0 },
+    '/auth/v1/verify': { access_token: 'A1', refresh_token: 'R1', expires_in: 3600, user: { id: 'u1', email: 'a@b.cz' } },
+    '/rest/v1/rpc/import_local_progress': { imported: true, money: 0 } };
+  O._fetch = async (url) => {
+    const path = url.replace(/^https:\/\/[^/]+/, '').split('?')[0];
+    const d = path.startsWith('/rest/v1/profiles') ? [{ nickname: 'Já', nickname_status: 'approved', money: 0, imported: true }]
+      : path.startsWith('/rest/v1/purchases') ? [] : route[path];
+    return { ok: true, status: 200, text: async () => JSON.stringify(d === undefined ? {} : d) };
+  };
+  await O.verify('a@b.cz', '123456');
+  O._ui.open('board');
+  await new Promise((r) => setTimeout(r, 60));
+  const rows = box.find((e) => e.tag === 'tr');
+  assert.strictEqual(rows.length, 12);                 // 10 + „…“ + můj řádek
+  assert.match(rows[10].textContent, /…/);
+  assert.strictEqual(rows[11].attrs.class || rows[11].className, 'me');
+  assert.match(rows[11].textContent, /37\.Já75,500 s/);
+});

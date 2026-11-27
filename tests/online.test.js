@@ -50,8 +50,9 @@ function makeEnv() {
       if (srv.reject) return json(400, { code: 'P0001', message: 'invalid_time' });
       const w = Math.min(Math.max(body.p_reward, 0), 400);
       srv.profile.money += w; srv.results.push(body);
-      return json(200, { reward: w, money: srv.profile.money });
+      return json(200, Object.assign({ reward: w, money: srv.profile.money }, srv.extra || {}));
     }
+    if (path === '/rest/v1/rpc/get_my_rank') { srv.rankArgs = body; return json(200, srv.myRank === undefined ? null : srv.myRank); }
     if (path === '/rest/v1/rpc/set_nickname') {
       if (body.p_nickname.length < 3) return json(400, { code: 'P0001', message: 'invalid_nickname' });
       srv.profile.nickname = body.p_nickname; srv.profile.nickname_status = 'pending'; return json(200, 'pending');
@@ -243,4 +244,39 @@ test('návrhy: bez přihlášení se nic neposílá, prázdný a dlouhý se odm�
   assert.deepStrictEqual(srv.feedback, ['návrh 0', 'návrh 1', 'návrh 2']);
   r = await O.sendFeedback('čtvrtý');
   assert.strictEqual(r.err, 'feedback_limit');
+});
+
+test('hláška po závodě: rekord, vstup do TOP 10, posun; jinak nic', () => {
+  const { O } = makeEnv();
+  assert.strictEqual(O.recordNote('kilometr', { pb: false, place: 15, prev_place: 16, approved: true }), '');
+  assert.match(O.recordNote('kilometr', { pb: true, place: 15, prev_place: 16, approved: true }), /osobní rekord – Kilometr/);
+  assert.match(O.recordNote('omnium', { pb: false, place: 7, prev_place: 12, approved: true }), /TOP 10! 7\. místo – Omnium/);
+  assert.match(O.recordNote('sprint', { place: 3, prev_place: null, approved: true }), /TOP 10! 3\. místo/);
+  assert.match(O.recordNote('kilometr', { place: 2, prev_place: 5, approved: true }), /Posun na 2\. místo/);
+  assert.strictEqual(O.recordNote('kilometr', { place: 5, prev_place: 5, approved: true }), '');
+  assert.strictEqual(O.recordNote('kilometr', { place: 3, prev_place: 20, approved: false }), '');   // neschválená přezdívka v žebříčku není
+  assert.strictEqual(O.recordNote('kilometr', null), '');
+  assert.strictEqual(O.recordNote('kilometr', { reward: 10, money: 20 }), '');   // starý server
+});
+
+test('výsledek po závodě: po přijetí serverem ukáže hlášku o rekordu', async () => {
+  const { O, srv } = makeEnv();
+  await O.verify('a@b.cz', '123456');
+  const shown = []; O.toast = (t) => shown.push(t);
+  srv.extra = { pb: true, place: 4, prev_place: 11, approved: true };
+  O.report({ mode: 'kilo', time: 65, position: 1, reward: 10 });
+  assert.ok(await until(() => shown.length === 1));
+  assert.match(shown[0], /osobní rekord/);
+  assert.match(shown[0], /TOP 10! 4\. místo – Kilometr/);
+});
+
+test('moje pořadí: bez přihlášení se neptá, přihlášenému vrátí řádek', async () => {
+  const { O, srv } = makeEnv();
+  assert.deepStrictEqual(await O.myRank('kilometr'), { ok: false, err: 'not_authenticated' });
+  await O.verify('a@b.cz', '123456');
+  assert.deepStrictEqual(await O.myRank('kilometr'), { ok: true, row: null });
+  srv.myRank = { place: 37, nickname: 'Ja', best_time_s: 68.4 };
+  const r = await O.myRank('sprint');
+  assert.strictEqual(r.row.place, 37);
+  assert.deepStrictEqual(srv.rankArgs, { p_mode: 'sprint' });
 });

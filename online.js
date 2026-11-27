@@ -193,7 +193,7 @@
       if (m === 'kilometr') r = t !== null ? 1 : null;
       var w = Math.max(0, Math.min(400, Math.round(x.reward || 0)));
       var a = outbox();
-      a.push({ m: m, t: t, p: p, r: r, w: w, e: S.email });
+      a.push({ m: m, t: t, p: p, r: r, w: w, e: S.email, at: Date.now() });
       saveOutbox(a);
       flush();
     } catch (e) {}
@@ -221,6 +221,7 @@
             if (P) P.money = res.data.money;
             setLocalVK(res.data.money);
           }
+          if (res.data && it.at && Date.now() - it.at < 10 * 60 * 1000) O.toast(O.recordNote(it.m, res.data));
           ui();
         } else {
           var c = errCode(res);
@@ -269,6 +270,47 @@
     return rpc('get_leaderboard', { p_mode: mode, p_limit: 10 }, false).then(function (r) {
       return r.ok && Array.isArray(r.data) ? { ok: true, rows: r.data.slice(0, 10) } : { ok: false, err: errCode(r) };
     });
+  };
+
+  /* moje pořadí v disciplíně (i mimo první desítku); null = ještě jsem ji nejel */
+  O.myRank = function (mode) {
+    if (!S) return Promise.resolve({ ok: false, err: 'not_authenticated' });
+    return rpc('get_my_rank', { p_mode: mode }, true).then(function (r) {
+      return r.ok ? { ok: true, row: r.data && typeof r.data === 'object' ? r.data : null } : { ok: false, err: errCode(r) };
+    });
+  };
+
+  /* hláška po závodě: osobní rekord, vstup do TOP 10, posun v pořadí */
+  var MODE_NAME = {};
+  MODES.forEach(function (m) { MODE_NAME[m[0]] = m[1]; });
+  O.recordNote = function (mode, d) {
+    if (!d || typeof d !== 'object') return '';
+    var name = MODE_NAME[mode] || mode, out = [];
+    var pl = typeof d.place === 'number' ? d.place : null, pp = typeof d.prev_place === 'number' ? d.prev_place : null;
+    if (d.pb) out.push('⭐ Nový osobní rekord – ' + name + '!');
+    if (d.approved && pl !== null && pl <= 10) {
+      if (pp === null || pp > 10) out.push('🏆 Jsi v TOP 10! ' + pl + '. místo – ' + name);
+      else if (pl < pp) out.push('▲ Posun na ' + pl + '. místo – ' + name);
+    }
+    return out.join('\n');
+  };
+  var toastT = null;
+  O.toast = function (text) {
+    if (!text || typeof document === 'undefined' || !document.body) return;
+    var el = document.getElementById('onlineToast');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'onlineToast';
+      el.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:95;max-width:90%;box-sizing:border-box;' +
+        'padding:10px 16px;border-radius:14px;background:rgba(10,20,40,.92);color:#fff;border:2px solid #ffd700;' +
+        'font:800 15px/1.35 system-ui,sans-serif;text-align:center;white-space:pre-line;pointer-events:none;' +
+        'box-shadow:0 6px 24px rgba(0,0,0,.5);transition:opacity .4s;opacity:0';
+      document.body.appendChild(el);
+    }
+    el.textContent = text; el.style.display = 'block';
+    setTimeout(function () { el.style.opacity = '1'; }, 20);
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { el.style.opacity = '0'; setTimeout(function () { el.style.display = 'none'; }, 450); }, 5000);
+    if (toastT && toastT.unref) toastT.unref();
   };
 
   /* ---------- okna ---------- */
@@ -519,13 +561,23 @@
         list.textContent = '';
         if (!r.ok) { list.textContent = msgFor(r.err); return; }
         if (!r.rows.length) { list.textContent = 'Zatím tu nikdo není. Buď první!'; return; }
-        var tb = h('table');
-        r.rows.forEach(function (x) {
-          var mine = P && P.nickname && x.nickname === P.nickname;
+        var tb = h('table'), seen = false;
+        function row(x, mine) {
+          var nick = String(x.nickname || 'Ty');
           tb.appendChild(h('tr', { class: mine ? 'me' : '' }, [
-            h('td', { text: x.place + '.' }), h('td', x.badge === 'gold' ? null : { text: String(x.nickname) }, x.badge === 'gold' ? [h('span', { class: 'gold', text: String(x.nickname) }), h('span', { class: 'gb', text: 'GOLD', title: 'Gold účet' })] : null), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
+            h('td', { text: x.place + '.' }), h('td', x.badge === 'gold' ? null : { text: nick }, x.badge === 'gold' ? [h('span', { class: 'gold', text: nick }), h('span', { class: 'gb', text: 'GOLD', title: 'Gold účet' })] : null), h('td', { text: fmtRow(mode, x), style: 'text-align:right' })]));
+        }
+        r.rows.forEach(function (x) {
+          var mine = !!(P && P.nickname && x.nickname === P.nickname);
+          if (mine) seen = true;
+          row(x, mine);
         });
         list.appendChild(tb);
+        if (!seen && S) O.myRank(mode).then(function (m) {
+          if (!alive() || state.boardMode !== mode || !m.ok || !m.row || typeof m.row.place !== 'number') return;
+          if (m.row.place > r.rows.length + 1) tb.appendChild(h('tr', {}, [h('td', { text: '…' }), h('td', {}), h('td', {})]));
+          row(m.row, true);
+        });
       });
     }
     function viewBoard() {
