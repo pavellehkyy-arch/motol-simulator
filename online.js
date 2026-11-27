@@ -21,7 +21,7 @@
     nickname_taken: 'Tahle přezdívka je už obsazená.',
     feedback_short: 'Napiš aspoň pár slov.',
     feedback_long: 'Zpráva je moc dlouhá, max. 1000 znaků.',
-    feedback_limit: 'Dnes jsi poslal už 3 návrhy. Další můžeš zítra.',
+    feedback_limit: 'Dnes jsi poslal už 20 návrhů. Další můžeš zítra.',
     not_authenticated: 'Nejdřív se přihlas.',
     fail: 'Něco se nepovedlo. Zkus to znovu.'
   };
