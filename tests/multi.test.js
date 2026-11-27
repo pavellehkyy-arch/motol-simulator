@@ -52,6 +52,7 @@ test('připojení: soukromý kanál plocha:1 s tokenem, presence a příjem polo
   assert.strictEqual(M.status, 'on');
   assert.ok(ws.out.some((m) => m.event === 'presence' && m.payload.event === 'track'));
   assert.strictEqual(M.count(), 2);
+  assert.strictEqual(M.others(), 1);
   await tick();
   assert.deepStrictEqual(M.name(A), { nick: 'Anna', gold: true });
   // poloha od hráče v místnosti se uloží, od cizího (není v presence) ani nesmysl ne
@@ -116,8 +117,46 @@ test('stejný účet na dvou zařízeních: druhé zařízení je vidět', async
   const j = okJoin(ws, { [other]: { metas: [{}] } });
   const key = j.payload.config.presence.key;
   assert.notStrictEqual(key, other);
-  assert.strictEqual(M.count(), 2);
+  assert.strictEqual(M.others(), 0);   // můj vlastní účet se do ostatních hráčů nepočítá
+  assert.strictEqual(M.count(), 1);
   ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'p', payload: { u: other, x: 1, y: 0, z: 0, h: 0 } } });
   assert.deepStrictEqual(Object.keys(M.peers), [other]);
   M.stop();
+});
+
+test('sám na ploše: počítadlo ukáže jen mě, i když server poslal můj vlastní klíč', async () => {
+  const { M, socks } = setup();
+  M.start(); await tick();
+  const ws = socks[0];
+  const j = okJoin(ws, {});
+  const key = j.payload.config.presence.key;
+  ws.push({ topic: j.topic, event: 'presence_diff', payload: { joins: { [key]: { metas: [{}] } }, leaves: {} } });
+  assert.strictEqual(M.others(), 0);
+  assert.strictEqual(M.count(), 1);
+  M.stop();
+});
+
+test('unikátní hráči: jeden cizí účet na dvou zařízeních je jeden hráč', async () => {
+  const { M, socks } = setup();
+  M.start(); await tick();
+  const ws = socks[0];
+  okJoin(ws, { [A]: { metas: [{}] }, [AID + ':dev2']: { metas: [{}, {}] } });
+  assert.strictEqual(M.others(), 1);
+  assert.strictEqual(M.count(), 2);
+  M.stop();
+});
+
+test('jen jeden Realtime kanál: opakovaný start ani návrat z výpadku neotevře druhý', async () => {
+  const { M, socks } = setup();
+  M.start(); M.start(); await tick();
+  assert.strictEqual(socks.length, 1);
+  assert.strictEqual(joins(socks[0]).length, 1);
+  okJoin(socks[0], {});
+  assert.strictEqual(M.channels(), 1);
+  socks[0].close(); await tick(2100);
+  assert.strictEqual(socks.length, 2);
+  assert.strictEqual(socks[0].readyState, 3);
+  assert.strictEqual(joins(socks[1]).length, 1);
+  M.stop();
+  assert.strictEqual(M.channels(), 0);
 });

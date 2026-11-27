@@ -4660,8 +4660,9 @@ function mpFig(id){const k=mpHash(id),r=makeHuman({top:MP_TOPS[k%MP_TOPS.length]
 function mpDrop(id){const F=MP.figs[id];if(!F)return;scene.remove(F.r.g);F.r.g.traverse(o=>{if(o.geometry&&o.geometry!==G_BOX&&o.geometry!==G_SPH&&o.geometry!==G_SPH_LO)o.geometry.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map&&m.map!==F.tag.material.map)m.map.dispose();m.dispose();});});scene.remove(F.tag);if(F.tag.material.map)F.tag.material.map.dispose();F.tag.material.dispose();delete MP.figs[id];}
 function mpJoin(){if(!window.Multi)return;Multi.start();MP.last=null;MP.sendT=MP.keepT=0;$('mpBadge').style.display='block';mpBadge();}
 function mpLeave(){if(window.Multi)Multi.stop();for(const id in MP.figs)mpDrop(id);$('mpBadge').style.display='none';}
+function mpWho(n){return n<1?'👥 Na ploše jen ty':'👥 Ty + '+n+(n===1?' další hráč':n<5?' další hráči':' dalších hráčů');}
 function mpBadge(){const M=window.Multi,st=M?M.status:'off';
-  $('mpBadge').textContent=st==='on'?'👥 Na ploše: '+M.count()+'  ↑'+M.stats.tx+' ↓'+M.stats.rx+(M.stats.bad?' ✕'+M.stats.bad:''):st==='connecting'?'👥 Připojuji…':st==='error'?'👥 Spojení vypadlo, zkouším znovu…':st==='full'?'👥 Plocha je plná, zkus to později':'👥 Online plocha teď nejde';}
+  $('mpBadge').textContent=st==='on'?mpWho(M.others())+'  ↑'+M.stats.tx+' ↓'+M.stats.rx+(M.stats.bad?' ✕'+M.stats.bad:''):st==='connecting'?'👥 Připojuji…':st==='error'?'👥 Spojení vypadlo, zkouším znovu…':st==='full'?'👥 Plocha je plná, zkus to později':'👥 Online plocha teď nejde';}
 function mpState(){return WALK.ride?5:(WALK.down||WALK.onSt)?3:WALK.climb!=null?2:(WALK.sit||(WALK.act&&WALK.act.sit))?1:WALK.air?4:0;}
 function mpTick(dt){const M=window.Multi;if(!M)return;
   MP.sendT-=dt;MP.keepT-=dt;

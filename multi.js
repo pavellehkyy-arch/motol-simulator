@@ -30,8 +30,17 @@
     if (ws) { if (topic) msg('phx_leave', {}); try { ws.close(); } catch (e) {} }
     ws = null; topic = ''; reset(); setStatus('off');
   };
+  /* ostatní hráči v místnosti: unikátní účty podle presence key (účet:zařízení) bez mého účtu,
+     takže se nepočítá ani můj druhý telefon/okno, ani můj starý záznam po znovunačtení stránky */
+  M.others = function () {
+    var a = {}, n = 0, mine = me ? me.split(':')[0] : uid;
+    for (var k in present) { var acc = String(k).split(':')[0]; if (acc !== mine && !a[acc]) { a[acc] = 1; n++; } }
+    return n;
+  };
   /* počet hráčů v místnosti včetně mě */
-  M.count = function () { return Object.keys(present).length + (tracked && !present[me] ? 1 : 0); };
+  M.count = function () { return M.others() + (tracked ? 1 : 0); };
+  /* kolik Realtime kanálů je otevřených (má být 0 nebo 1) */
+  M.channels = function () { return ws && topic ? 1 : 0; };
   M.name = function (id) { return names[id] || null; };
 
   var lastSent = 0;
@@ -45,6 +54,7 @@
     var on = O();
     if (!on || !on.loggedIn || !on.loggedIn() || !on.accessToken) { setStatus('denied'); want = false; return; }
     setStatus('connecting');
+    if (ws) { var old = ws; ws = null; topic = ''; clearTimers(); try { old.close(); } catch (e) {} }   // nikdy dvě spojení najednou
     var g = ++gen;
     on.accessToken(300).then(function (t) {
       if (!want || g !== gen) return;
