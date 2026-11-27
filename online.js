@@ -305,6 +305,7 @@
       '@media (prefers-reduced-motion:reduce){#onlineOv span.gold,.obd span.gold{animation:none}}' +
       '#onlineOv span.gb,.obd span.gb{display:inline-block;margin-left:5px;padding:1px 4px 0;border-radius:4px;font-size:9px;font-weight:900;letter-spacing:.5px;line-height:1.3;vertical-align:2px;color:#3a2a00;background:linear-gradient(135deg,#a67400,#ffd700 45%,#fff6b0 55%,#c99700);box-shadow:0 0 0 1px #0003}' +
       '#onlineOv .os{font-size:12px;opacity:.7}' +
+      '#onlineOv .olk{font:inherit;font-size:12px;background:none;border:0;padding:6px 0 0;color:#555;text-decoration:underline;cursor:pointer;display:block}' +
       '#onlineOv textarea.oi{font-size:16px;min-height:120px;resize:vertical;line-height:1.35}' +
       '#onlineOv .oq{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px}' +
       '#onlineOv .oq b{flex:none;font-size:30px;line-height:1}' +
@@ -337,7 +338,7 @@
       (kids || []).forEach(function (c) { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
       return e;
     }
-    var cur = 'login', ctx = { email: '', msg: '', busy: false, boardMode: 'kilometr', confirmOut: false, after: '', fb: '', fbSent: false };
+    var cur = 'login', ctx = { email: '', msg: '', busy: false, boardMode: 'kilometr', confirmOut: false, after: '', fb: '', fbSent: false, back: '' };
     function open(v) { cur = v; ctx.msg = ''; ctx.confirmOut = false; if (v !== 'login' && v !== 'code' && v !== 'nick' && v !== 'feedback') ctx.after = ''; ov.style.display = 'flex'; render(); }
     function close() { ov.style.display = 'none'; ctx.after = ''; }
     function afterLogin(def) { var a = ctx.after; ctx.after = ''; open(a || def); }
@@ -351,7 +352,25 @@
       else if (cur === 'account') viewAccount();
       else if (cur === 'feedback') viewFeedback();
       else if (cur === 'fbLogin') viewFbLogin();
+      else if (cur === 'privacy') viewPrivacy();
       else viewBoard();
+    }
+    function privacyLink() { return h('button', { class: 'olk', text: 'Jak nakládáme s údaji', on: { click: function () { ctx.back = cur; cur = 'privacy'; ctx.msg = ''; render(); } } }); }
+    var CONTACT = 'pavellehkyy@gmail.com';
+    function viewPrivacy() {
+      function sec(t, body) { box.appendChild(h('p', null, [h('b', { text: t + ' ' }), body])); }
+      box.appendChild(h('h2', { text: '🔒 Jak nakládáme s údaji' }));
+      sec('Kdo:', 'Hru Motol Simulator provozuje její autor. Kontakt: ' + CONTACT + '.');
+      sec('Bez účtu:', 'nic neodesíláme. Postup, penízky a vybavení se ukládají jen v tvém prohlížeči.');
+      sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy a návrhy ze schránky.');
+      sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
+      sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail nevidí nikdo jiný.');
+      sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
+      sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');
+      sec('Jak dlouho:', 'dokud máš účet. Návrhy ze schránky se mažou po roce.');
+      sec('Tvoje práva:', 'můžeš zjistit, co o tobě máme, nechat to opravit, dostat kopii nebo smazat účet. Napiš z e-mailu, kterým se přihlašuješ, na ' + CONTACT + '. Stížnost můžeš podat i Úřadu pro ochranu osobních údajů (uoou.gov.cz).');
+      box.appendChild(h('div', { class: 'os', text: 'Je ti méně než 15? Ukaž tohle rodičům. Platí od 27. 11. 2026.' }));
+      box.appendChild(h('button', { class: 'ob alt', text: 'Zpět', on: { click: function () { cur = ctx.back || 'login'; ctx.back = ''; ctx.msg = ''; render(); } } }));
     }
     function closeBtn(label) { return h('button', { class: 'ob alt', text: label || 'Zavřít', on: { click: close } }); }
 
@@ -373,6 +392,7 @@
       box.appendChild(h('button', { class: 'ob', text: 'Poslat kód', on: { click: go } }));
       box.appendChild(closeBtn());
       box.appendChild(h('div', { class: 'os', text: 'Ukládáme jen e-mail, přezdívku, výsledky a penízky. Účet jde kdykoli smazat na požádání.' }));
+      box.appendChild(privacyLink());
     }
     function viewCode() {
       var inp = h('input', { class: 'oi', type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', placeholder: 'kód z e-mailu', maxlength: '10' });
@@ -431,6 +451,8 @@
         box.appendChild(h('button', { class: 'ob alt', text: 'Zpět', on: { click: function () { ctx.confirmOut = false; render(); } } }));
       }
       box.appendChild(closeBtn());
+      box.appendChild(h('div', { class: 'os', text: 'Smazání účtu: napiš z tohoto e-mailu na ' + CONTACT + '.' }));
+      box.appendChild(privacyLink());
     }
     /* schránka na návrhy: člověk v kóji na ploše se ptá, co zlepšit */
     function ask(t) { return h('div', { class: 'oq' }, [h('b', { text: '🧔' }), h('p', { text: t })]); }

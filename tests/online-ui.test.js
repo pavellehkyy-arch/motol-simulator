@@ -59,6 +59,17 @@ test('okno přihlášení: zadání e-mailu, špatný e-mail ukáže hlášku', 
   assert.match(texts(box), /platný e-mail/);
 });
 
+test('zásady: odkaz z přihlášení otevře text s kontaktem a Zpět vrátí přihlášení', () => {
+  const { O, box } = setup();
+  O._ui.open('login');
+  btn(box, 'Jak nakládáme s údaji').click();
+  assert.match(texts(box), /Jak nakládáme s údaji/);
+  assert.match(texts(box), /pavellehkyy@gmail\.com/);
+  assert.match(texts(box), /nepoužívá cookies/);
+  btn(box, 'Zpět').click();
+  assert.match(texts(box), /Přihlášení/);
+});
+
 test('všechna okna se vykreslí bez chyby', () => {
   const { O, box, ov } = setup();
   for (const v of ['login', 'code', 'nick', 'account']) { O._ui.open(v); assert.ok(texts(box).length > 10, v); }
