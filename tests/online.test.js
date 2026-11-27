@@ -67,6 +67,13 @@ function makeEnv() {
       if (srv.feedback.length >= 3) return json(400, { code: 'P0001', message: 'feedback_limit' });
       srv.feedback.push(body.p_message); return json(200, 'ok');
     }
+    if (path === '/rest/v1/rpc/submit_coach') {
+      srv.coach = srv.coach || [];
+      if (srv.coach.length >= 5) return json(400, { code: 'P0001', message: 'coach_limit' });
+      srv.coach = srv.coach.filter((c) => c.status !== 'new');
+      srv.coach.push({ name: body.p_name, look: body.p_look, status: 'new' }); srv.coachSent = (srv.coachSent || 0) + 1; return json(200, 'ok');
+    }
+    if (path.startsWith('/rest/v1/coach_requests')) return json(200, (srv.coach || []).slice(-1));
     return json(404, { message: 'nezname ' + path });
   };
   delete require.cache[require.resolve('../online.js')];
@@ -279,4 +286,28 @@ test('moje pořadí: bez přihlášení se neptá, přihlášenému vrátí řá
   const r = await O.myRank('sprint');
   assert.strictEqual(r.row.place, 37);
   assert.deepStrictEqual(srv.rankArgs, { p_mode: 'sprint' });
+});
+
+test('vlastní trenér: bez přihlášení nic, kontrola délek, nová žádost nahradí čekající, profil předá vzhled hře', async () => {
+  const { O, srv } = makeEnv();
+  const seen = [];
+  global.applyCoach = (c) => seen.push(c);
+  assert.deepStrictEqual(await O.sendCoach('Petr', 'kšandy a červené triko'), { ok: false, err: 'not_authenticated' });
+  srv.profile.coach = { name: 'Petr', top: '#c0392b', suspenders: '#222222' };
+  await O.verify('a@b.cz', '123456');
+  assert.deepStrictEqual(O.coach(), srv.profile.coach);
+  assert.deepStrictEqual(seen[seen.length - 1], srv.profile.coach);
+  assert.strictEqual((await O.sendCoach('P', 'kšandy a triko')).err, 'coach_name_short');
+  assert.strictEqual((await O.sendCoach('x'.repeat(31), 'kšandy a triko')).err, 'coach_name_long');
+  assert.strictEqual((await O.sendCoach('Petr', 'ok')).err, 'coach_look_short');
+  assert.strictEqual((await O.sendCoach('Petr', 'x'.repeat(601))).err, 'coach_look_long');
+  assert.strictEqual((await O.sendCoach(' Petr ', ' kšandy a triko ')).ok, true);
+  assert.strictEqual((await O.sendCoach('Pepa', 'čepice a brýle')).ok, true);
+  assert.deepStrictEqual(srv.coach, [{ name: 'Pepa', look: 'čepice a brýle', status: 'new' }]);
+  const r = await O.myCoachRequest();
+  assert.strictEqual(r.req.name, 'Pepa');
+  O.signOut();
+  assert.strictEqual(seen[seen.length - 1], null);           // po odhlášení zase Starej šéf
+  assert.strictEqual(O.coach(), null);
+  delete global.applyCoach;
 });

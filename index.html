@@ -276,7 +276,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v1.18</div>
+    <div class="sub">v1.19</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m2b">
@@ -329,9 +329,9 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
   <button class="go" id="shopClose" style="margin-top:10px;width:100%;min-width:0;padding:10px;font-size:14px">◀ Zpět na vyhlášení</button>
 </div>
 <div id="coachBox" class="pop" style="display:none;position:fixed;left:12px;right:12px;top:50%;transform:translateY(-50%);box-sizing:border-box;max-width:460px;margin:0 auto;background:#fffdf5;color:#1a1a1a;border-radius:16px;padding:14px 16px 12px;box-shadow:0 8px 30px rgba(0,0,0,.45);font-size:15px;line-height:1.45;overflow:auto">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:26px" id="coachFace">🧔</span><b style="font-size:16px">Starej šéf</b><span id="coachMood" style="margin-left:auto;font-size:12px;font-weight:800;padding:3px 8px;border-radius:8px"></span></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:26px" id="coachFace">🧔</span><b style="font-size:16px" id="coachName">Starej šéf</b><span id="coachMood" style="margin-left:auto;font-size:12px;font-weight:800;padding:3px 8px;border-radius:8px"></span></div>
   <div id="coachText"></div>
-  <button class="go" id="coachClose" style="margin-top:12px;width:100%;min-width:0;padding:10px;font-size:14px">Rozumím, šéfe</button>
+  <div style="display:flex;gap:8px;margin-top:12px"><button class="go alt" id="coachCustom" style="flex:0 0 auto;min-width:0;padding:10px 12px;font-size:14px">🎨 Přizpůsobit trenéra</button><button class="go" id="coachClose" style="flex:1;min-width:0;padding:10px;font-size:14px">Rozumím, šéfe</button></div>
 </div>
 <div id="results" class="screen" style="display:none">
   <div class="card">
@@ -1736,7 +1736,8 @@ function makeScanHuman(o){o=o||{};const D=PHOTO_MODEL,S=D.s,G=D.g;
       if(hs==='bald'){const f=cl((hairRow(d)-y)/5+0.5)*cl((y-72)/4)*cl((d-1.25)/0.25);return skinC.clone().lerp(hairC,f);}
       if(o.collar&&y>133&&d<1.0)return C(o.collar);
       const f=cl((hairRow(d)-y)/5+0.5);return f>0?skinC.clone().lerp(hairC,f):skinC;}   // soft hairline
-    if(part==='top'){if(topMap)return white;if(y>=topEnd)return pantsC;if(o.collar&&y<150&&d<1.0)return C(o.collar);return topC;}
+    if(part==='top'){if(topMap)return white;if(y>=topEnd)return pantsC;if(o.collar&&y<150&&d<1.0)return C(o.collar);
+      if(o.sweat&&((y>178&&y<250&&d<0.42)||(y>190&&y<275&&d>1.25&&d<1.95)))return topC.clone().multiplyScalar(0.68);return topC;}   // sweat-soaked chest and armpits
     if(part==='low')return y<topEnd?topC:pantsC;
     if(part==='leg'){if(o.shoeSole&&y>614)return C(o.shoeSole);if(y>597)return shoeC;if(o.legBand&&y>o.legBand[0]&&y<o.legBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return pantsC;}
     if(part==='arm'){if(y>346)return handC;if(o.cuffs&&y>335)return C(o.cuffs);if(o.watch&&sx>0&&y>324&&y<334)return C(o.watch);if(o.armBand&&y>o.armBand[0]&&y<o.armBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return slvC;}
@@ -1818,6 +1819,9 @@ function makeScanHuman(o){o=o||{};const D=PHOTO_MODEL,S=D.s,G=D.g;
   if(o.lanyard){const ly=mat(o.lanyard);for(const s of [-1,1])strip(ly,0.016,0.006,143,s*0.065,222,s*0.018,0.003);
     const bd=new THREE.Mesh(G_BOX,mat(0xffffff));bd.scale.set(0.07,0.09,0.01);bd.position.copy(loc(torso,0,rowH(240),frontZ(240,0)+0.008));torso.add(bd);}
   if(o.belly){const b=new THREE.Mesh(G_SPH,new THREE.MeshLambertMaterial({color:topC}));b.scale.set(0.15,0.15,0.11);b.position.copy(loc(torso,0,rowH(290),frontZ(290,0)-0.07));torso.add(b);}
+  if(o.suspenders){const sm=mat(o.suspenders),bm=mat(0xb8b8b8);for(const s of [-1,1]){   // braces down the front (around the belly), metal clips on the trousers
+      if(o.belly){strip(sm,0.024,0.006,143,s*0.07,250,s*0.075,0.004);strip(sm,0.024,0.006,250,s*0.075,318,s*0.08,0.045);}else strip(sm,0.024,0.006,143,s*0.07,318,s*0.08,0.004);
+      const c=new THREE.Mesh(G_BOX,bm);c.scale.set(0.03,0.02,0.01);c.position.copy(loc(torso,s*0.08,rowH(318),frontZ(318,s*0.08)+(o.belly?0.05:0.01)));torso.add(c);}}
   if(o.chestTex){const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.26,0.34),new THREE.MeshLambertMaterial({map:o.chestTex,transparent:true}));pl.position.copy(loc(torso,0,rowH(232),frontZ(232,0)+0.004));torso.add(pl);}
   const rig={g,body,torso,head,legs,arms,brows,mouth,mouthPos,skin:headM,skinCol:new THREE.Color(1,1,1),cur:{},t:Math.random()*10,scan:true};
   poseHuman(rig,{},1);return rig;}
@@ -2881,13 +2885,21 @@ function coachJacketTex(){const c=mkCanvas(256,128),g=c.getContext('2d');g.fillS
   g.fillStyle='#161616';g.fillRect(0,44,256,26);g.fillRect(52,0,22,128);g.fillRect(182,0,22,128);g.fillStyle='#1f5fbf';g.fillRect(0,74,256,8);
   g.fillStyle='#161616';g.fillRect(0,0,256,8);g.fillStyle='#f2d21b';g.font='900 20px system-ui';g.textAlign='center';g.fillText('ŠÉF',128,64);
   g.fillStyle='#ffffff';g.fillRect(0,96,256,32);g.fillStyle='#1f5fbf';g.font='900 18px system-ui';g.fillText('TRENÉR',128,118);return new THREE.CanvasTexture(c);}
+/* custom coach from the player's account (profiles.coach, filled in by the author from the player's request; only this account sees it):
+   {name, skin, top, sleeve, pants, shoes, hair, hairStyle:'short'|'bald'|'long'|'tousled'|'cap', capCol, mustache, glasses, belly, suspenders:colour, sweat, shirtText, shirtCol} – colours as '#rrggbb' */
+var COACH_CFG=null;   // var: buildCoach runs before this line
+function coachCol(v,d){if(typeof v==='number')return v;if(typeof v==='string'&&/^#?[0-9a-f]{6}$/i.test(v))return parseInt(v.replace('#',''),16);return d;}
+function coachName(){const n=COACH_CFG&&typeof COACH_CFG.name==='string'?COACH_CFG.name.trim().slice(0,30):'';return n||'Starej šéf';}
 function makeCoach(){
   // built like the other people (measured body, clothes coloured by area): yellow-black coach jacket, belly, moustache, cap-less short hair
-  if(SCAN_BODIES){const r=makeHuman({skin:0xd9a77f,top:0xffffff,topMat:new THREE.MeshLambertMaterial({map:coachJacketTex()}),sleeveMat:mat(0xf2d21b),cuffs:0x161616,
+  const C=COACH_CFG;if(SCAN_BODIES){const top=C&&coachCol(C.top,0xffffff),r=makeHuman(C?{skin:coachCol(C.skin,0xd9a77f),top,sleeveMat:mat(coachCol(C.sleeve,top)),pants:coachCol(C.pants,0x1c1c22),shoes:coachCol(C.shoes,0x111111),
+      hair:coachCol(C.hair,0x302722),hairStyle:['short','bald','long','tousled','cap'].includes(C.hairStyle)?C.hairStyle:'short',capCol:coachCol(C.capCol,0x1d3557),mustache:!!C.mustache,glasses:!!C.glasses,belly:!!C.belly,
+      suspenders:C.suspenders?coachCol(C.suspenders,0x1a1a1a):0,sweat:!!C.sweat,chestTex:C.shirtText?textTex(String(C.shirtText).slice(0,14).toUpperCase(),'rgba(0,0,0,0)',C.shirtCol||'#ffffff'):null}
+      :{skin:0xd9a77f,top:0xffffff,topMat:new THREE.MeshLambertMaterial({map:coachJacketTex()}),sleeveMat:mat(0xf2d21b),cuffs:0x161616,
       pants:0x1c1c22,shoes:0x111111,hair:0x302722,hairStyle:'short',mustache:true,belly:true,collar:0x161616,zip:0x161616});
     const g=r.g,head=r.head;head.userData['brow-1']=r.brows[0];head.userData['brow1']=r.brows[1];head.userData.mouth=r.mouth;
     const arms=r.arms.map(a=>({piv:a.shp,el:a.el,hand:a.hand,sx:a.sx}));
-    const tag=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.28),new THREE.MeshBasicMaterial({map:textTex('STAREJ ŠÉF','#161616','#f2d21b'),transparent:true}));tag.position.set(0,2.2,0);g.add(tag);
+    const tag=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.28),new THREE.MeshBasicMaterial({map:textTex(coachName().toUpperCase(),'#161616','#f2d21b'),transparent:true}));tag.position.set(0,2.2,0);g.add(tag);
     const eye=r.brows[0].parent.position.clone().add(r.brows[1].parent.position).multiplyScalar(0.5);   // between the brows, on the face
     const bino=new THREE.Group();for(const sx of [-1,1]){const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.026,0.03,0.11,10),mat(0x1b1b1b));tb.rotation.x=PI/2;tb.position.set(sx*0.033,0,0.05);bino.add(tb);}
     const br=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.02,0.04),mat(0x1b1b1b));br.position.set(0,0,0.045);bino.add(br);bino.position.set(eye.x,eye.y+0.12,eye.z);bino.visible=false;head.add(bino);
@@ -2895,6 +2907,12 @@ function makeCoach(){
     const bn=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.03,0.07,8),mat(0x2f6b2a));bn.position.y=0.07;beer.add(bn);beer.visible=false;arms[1].hand.add(beer);
     return {g,head,arms,skin:r.skin,faceN:0xffffff,faceA:0xff9a8a,mood:'idle',t:0,tag,bino,beer,baseY:0,yaw:0,scan:true};}
   return makeCoachOld();}
+/* online.js calls this after login / logout: rebuild both coaches (floor + barrier) with the account's look */
+window.applyCoach=function(cfg){if(JSON.stringify(cfg||null)===JSON.stringify(COACH_CFG))return;COACH_CFG=cfg||null;
+  const nm=document.getElementById('coachName');if(nm)nm.textContent=coachName();if(!COACH||!RCOACH)return;
+  const swap=o=>{const n=makeCoach(),par=o.g.parent;n.g.position.copy(o.g.position);n.g.rotation.copy(o.g.rotation);n.g.visible=o.g.visible;n.home=o.home;n.baseY=o.baseY;n.s=o.s;n.mood=o.mood;
+    if(par){par.remove(o.g);par.add(n.g);}return n;};
+  COACH=swap(COACH);RCOACH=swap(RCOACH);};
 function makeCoachOld(){   // the old hand-built figure (SCAN_BODIES off)
   const g=new THREE.Group();const skin=new THREE.MeshLambertMaterial({color:0xd9a77f}),pants=mat(0x1c1c22),jac=new THREE.MeshLambertMaterial({map:coachJacketTex()}),sleeve=mat(0xf2d21b),cuff=mat(0x161616);
   for(const sx of [-0.11,0.11]){const l=limb(pants,0.075,G_THIGH);place(l,V(sx,0.95,0),V(sx,0.08,0));g.add(l);const sh=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.28),mat(0x111111));sh.position.set(sx,0.04,0.05);g.add(sh);}
@@ -2925,7 +2943,7 @@ function makeCoachOld(){   // the old hand-built figure (SCAN_BODIES off)
     const el=new THREE.Group();el.position.y=-0.3;piv.add(el);const fa=limb(sleeve,0.045,G_FORE);place(fa,V(0,0,0),V(0,-0.27,0));el.add(fa);
     const cf=limb(cuff,0.046,G_LIMB);place(cf,V(0,-0.24,0),V(0,-0.28,0));el.add(cf);
     const hand=new THREE.Mesh(new THREE.SphereGeometry(0.045,10,8),skin);hand.position.y=-0.31;el.add(hand);arms.push({piv,el,sx});}
-  const tag=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.28),new THREE.MeshBasicMaterial({map:textTex('STAREJ ŠÉF','#161616','#f2d21b'),transparent:true}));tag.position.set(0,2.2,0);g.add(tag);
+  const tag=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.28),new THREE.MeshBasicMaterial({map:textTex(coachName().toUpperCase(),'#161616','#f2d21b'),transparent:true}));tag.position.set(0,2.2,0);g.add(tag);
   const bino=new THREE.Group();for(const sx of [-1,1]){const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.032,0.12,10),mat(0x1b1b1b));tb.rotation.x=PI/2;tb.position.set(sx*0.035,0.02,0.17);bino.add(tb);}
   const br=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.02,0.04),mat(0x1b1b1b));br.position.set(0,0.02,0.16);bino.add(br);bino.visible=false;head.add(bino);
   const beer=new THREE.Group();const bb=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.17,10),mat(0x2f6b2a));bb.position.y=-0.05;beer.add(bb);
@@ -3943,6 +3961,7 @@ function showCoach(){const v=phase==='walk'?(WALK_V||{mood:'happy',lines:['Nazda
   $('coachBox').style.display='block';$('ceremony').style.display='none';
   if(v.mood==='angry'){for(let i=0;i<4;i++)tone(110+Math.random()*40,0.18,0.12,'sawtooth',i*0.16);}else{tone(659,0.15,0.1,'triangle');tone(880,0.25,0.1,'triangle',0.15);}
   try{if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(v.lines.filter(Boolean).join(' '));u.lang='cs-CZ';u.rate=v.mood==='angry'?1.15:1.0;u.pitch=v.mood==='angry'?0.7:1.0;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}
+$('coachCustom').onclick=()=>{$('coachClose').onclick();if(window.Online&&Online.customCoach){if(phase==='walk'){WALK.k={};WALK.jx=WALK.jy=0;WALK.joy=null;joyHome();}Online.customCoach();}else alert('Vlastního trenéra teď nejde objednat – zkus to, až půjde internet.');};
 $('coachClose').onclick=()=>{$('coachBox').style.display='none';if(COACH)COACH.mood='idle';try{speechSynthesis.cancel();}catch(e){}if(phase==='ceremony')$('ceremony').style.display='block';};
 const ray=new THREE.Raycaster(),_ndc=new THREE.Vector2();
 $('c').addEventListener('click',e=>{if(phase!=='ceremony'||!TVMESH)return;const r=$('c').getBoundingClientRect();_ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(_ndc,camera);
@@ -4892,7 +4911,7 @@ function menuTick(dt){idleT+=dt;if(GATE)GATE.visible=false;KBOARD.visible=false;
   camPos.lerp(_mt,k);camLook.lerp(_ml,k);camera.up.set(0,1,0);camera.position.copy(camPos);camera.lookAt(camLook);}
 // ---------- loop ----------
 resetRiders();clearHolders();refSit();
-let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
+let last=performance.now(),idleT=0,lastBeep=4;const TS=location.hash==='#turbo'?10:1;if(TS>1||location.hash==='#debug'){window.__V=THREE.Vector3;window.__J=JUDGE_RIGS;window.__H=()=>HOLDERS;window.__REF=()=>REF;window.__mk=makeBike;window.__scene=scene;window.__coach=()=>({c:COACH,r:RCOACH,cam:camera,ren:renderer,phase});window.__GATE=()=>GATE;window.__anger=()=>angerJudges();window.__STAIR=STAIR;window.__throw=()=>throwBeer();window.__cans=()=>cans.map(c=>{const v=c.mesh.position.clone();v.project(camera);return [+c.t.toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+c.mesh.position.y.toFixed(1)]});window.__bossS=()=>RCOACH.s;window.__R=riders;window.__step=(dt,wp)=>simStep(dt,!!wp);window.__neu=()=>isNeutral();window.__MT=()=>MT;window.__G=()=>({mode,phase,raceTime,neu:isNeutral(),EL,racePace,START_S,FIN,lookVal,headTurn});window.__go=m=>{beginRace(m);};window.__D=DERNY;window.__KR=()=>KR;window.__PR=()=>PR;window.__surf=(a,b)=>{const v=new THREE.Vector3();surf(a,b,v);return v;};window.__pl=player;window.__end=()=>endIntro();window.__eff=e=>setEffort(e);window.__sling=()=>trySling();window.__force=()=>{const T=MT.find(t=>t.me);doSling(T,1);};window.__look=v=>{lookVal=v;};window.__coachpos=()=>{const v=new THREE.Vector3();COACH.head.getWorldPosition(v);v.y-=0.4;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};window.__tvpos=()=>{const v=new THREE.Vector3();TVMESH.getWorldPosition(v);v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};}
 let ldF=0;
 function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__ld)window.__ld(1);const dt=Math.min(0.05,(now-last)/1000);last=now;if(hasalSrc)hasalMix();
   if(!paused){updateJudges(dt*TS);updateHolders(dt*TS);}

@@ -22,6 +22,11 @@
     feedback_short: 'Napiš aspoň pár slov.',
     feedback_long: 'Zpráva je moc dlouhá, max. 1000 znaků.',
     feedback_limit: 'Dnes jsi poslal už 3 návrhy. Další můžeš zítra.',
+    coach_name_short: 'Napiš jméno trenéra (aspoň 2 znaky).',
+    coach_name_long: 'Jméno trenéra je moc dlouhé, max. 30 znaků.',
+    coach_look_short: 'Popiš, jak má trenér vypadat.',
+    coach_look_long: 'Popis je moc dlouhý, max. 600 znaků.',
+    coach_limit: 'Dnes jsi už poslal 5 žádostí. Další můžeš zítra.',
     not_authenticated: 'Nejdřív se přihlas.',
     fail: 'Něco se nepovedlo. Zkus to znovu.'
   };
@@ -29,7 +34,7 @@
   var O = {};
   G.Online = O;
   var S = null;        // přihlášení: {access, refresh, exp, email}
-  var P = null;        // profil ze serveru: {nickname, nickname_status, money, imported}
+  var P = null;        // profil ze serveru: {nickname, nickname_status, money, imported, coach}
   var ui = function () {};
 
   /* ---------- úložiště ---------- */
@@ -135,6 +140,7 @@
     var t = S && S.access;
     S = null; P = null; saveSess();
     LS.del('motol_outbox');
+    coachOut();
     setLocalVK(0); setLocalOwned({});
     if (t) http('/auth/v1/logout', {}, { token: t });
     ui();
@@ -143,7 +149,7 @@
   /* ---------- synchronizace účtu s hrou ---------- */
   var syncing = null;
   function getProfile(t) {
-    return getTable('profiles?select=nickname,nickname_status,money,imported', t).then(function (r) {
+    return getTable('profiles?select=nickname,nickname_status,money,imported,coach', t).then(function (r) {
       return r.ok && Array.isArray(r.data) ? (r.data[0] || null) : undefined;   // undefined = chyba
     });
   }
@@ -158,6 +164,7 @@
         return step.then(function (p2) {
           if (!p2 || !p2.imported) return false;      // převod se nepovedl: místní postup nepřepisujeme
           P = p2;
+          coachOut();
           return getTable('purchases?select=item_id', t).then(function (r) {
             if (r.ok && Array.isArray(r.data)) {
               var o = {}; r.data.forEach(function (x) { o[x.item_id] = 1; });
@@ -263,6 +270,30 @@
     return rpc('submit_feedback', { p_message: t }, true).then(function (r) {
       if (r.ok) return { ok: true };
       return { ok: false, err: r.status === 401 ? 'not_authenticated' : errCode(r) };
+    });
+  };
+
+  /* vlastní trenér: hráč pošle jméno a popis, autor hry podle něj vyplní profiles.coach (vidí ho jen tenhle účet) */
+  function coachOut() { try { if (typeof G.applyCoach === 'function') G.applyCoach(P && P.coach && typeof P.coach === 'object' ? P.coach : null); } catch (e) {} }
+  O.coach = function () { return P && P.coach && typeof P.coach === 'object' ? P.coach : null; };
+  O.sendCoach = function (name, look) {
+    var n = String(name || '').trim(), l = String(look || '').trim();
+    if (n.length < 2) return Promise.resolve({ ok: false, err: 'coach_name_short' });
+    if (n.length > 30) return Promise.resolve({ ok: false, err: 'coach_name_long' });
+    if (l.length < 5) return Promise.resolve({ ok: false, err: 'coach_look_short' });
+    if (l.length > 600) return Promise.resolve({ ok: false, err: 'coach_look_long' });
+    return rpc('submit_coach', { p_name: n, p_look: l }, true).then(function (r) {
+      if (r.ok) return { ok: true };
+      return { ok: false, err: r.status === 401 ? 'not_authenticated' : errCode(r) };
+    });
+  };
+  /* poslední žádost o trenéra ({name, look, status}) nebo null */
+  O.myCoachRequest = function () {
+    return token().then(function (t) {
+      if (!t) return { ok: false, err: 'not_authenticated' };
+      return getTable('coach_requests?select=name,look,status&order=created_at.desc&limit=1', t).then(function (r) {
+        return r.ok && Array.isArray(r.data) ? { ok: true, req: r.data[0] || null } : { ok: false, err: errCode(r) };
+      });
     });
   };
 
@@ -381,7 +412,7 @@
       return e;
     }
     var cur = 'login', ctx = { email: '', msg: '', busy: false, boardMode: 'kilometr', confirmOut: false, after: '', fb: '', fbSent: false, back: '' };
-    function open(v) { cur = v; ctx.msg = ''; ctx.confirmOut = false; if (v !== 'login' && v !== 'code' && v !== 'nick' && v !== 'feedback') ctx.after = ''; ov.style.display = 'flex'; render(); }
+    function open(v) { cur = v; ctx.msg = ''; ctx.confirmOut = false; if (v !== 'login' && v !== 'code' && v !== 'nick' && v !== 'feedback' && v !== 'coach') ctx.after = ''; ov.style.display = 'flex'; render(); }
     function close() { ov.style.display = 'none'; ctx.after = ''; }
     function afterLogin(def) { var a = ctx.after; ctx.after = ''; open(a || def); }
     function setMsg(m) { ctx.msg = m; render(); }
@@ -394,6 +425,8 @@
       else if (cur === 'account') viewAccount();
       else if (cur === 'feedback') viewFeedback();
       else if (cur === 'fbLogin') viewFbLogin();
+      else if (cur === 'coach') viewCoach();
+      else if (cur === 'coachLogin') viewCoachLogin();
       else if (cur === 'privacy') viewPrivacy();
       else viewBoard();
     }
@@ -404,12 +437,12 @@
       box.appendChild(h('h2', { text: '🔒 Jak nakládáme s údaji' }));
       sec('Kdo:', 'Hru Motol Simulator provozuje její autor. Kontakt: ' + CONTACT + '.');
       sec('Bez účtu:', 'nic neodesíláme. Postup, penízky a vybavení se ukládají jen v tvém prohlížeči.');
-      sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy a návrhy ze schránky.');
+      sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno a popis vzhledu).');
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
-      sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail nevidí nikdo jiný.');
+      sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
       sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');
-      sec('Jak dlouho:', 'dokud máš účet. Návrhy ze schránky se mažou po roce.');
+      sec('Jak dlouho:', 'dokud máš účet. Návrhy ze schránky a vyřízené žádosti o trenéra se mažou po roce.');
       sec('Tvoje práva:', 'můžeš zjistit, co o tobě máme, nechat to opravit, dostat kopii nebo smazat účet. Napiš z e-mailu, kterým se přihlašuješ, na ' + CONTACT + '. Stížnost můžeš podat i Úřadu pro ochranu osobních údajů (uoou.gov.cz).');
       box.appendChild(h('div', { class: 'os', text: 'Je ti méně než 15? Ukaž tohle rodičům. Platí od 27. 11. 2026.' }));
       box.appendChild(h('button', { class: 'ob alt', text: 'Zpět', on: { click: function () { cur = ctx.back || 'login'; ctx.back = ''; ctx.msg = ''; render(); } } }));
@@ -538,6 +571,58 @@
       setTimeout(function () { try { ta.focus(); } catch (e) {} }, 50);
     }
     O.feedback = function () { ctx.fbSent = false; open(S ? 'feedback' : 'fbLogin'); };
+
+    /* vlastní trenér: žádost se jménem a popisem vzhledu */
+    function viewCoachLogin() {
+      box.appendChild(h('h2', { text: '🎨 Vlastní trenér' }));
+      box.appendChild(ask('Chceš místo mě jiného trenéra? Řekni mi, jak se má jmenovat a jak má vypadat. Nejdřív se ale přihlas.'));
+      box.appendChild(h('p', { text: 'Vlastního trenéra si můžou objednat jen přihlášení hráči. Přihlášení je přes e-mail s kódem, bez hesla.' }));
+      box.appendChild(h('button', { class: 'ob', text: 'Přihlásit se', on: { click: function () { ctx.after = 'coach'; cur = 'login'; ctx.msg = ''; render(); } } }));
+      box.appendChild(closeBtn('Teď ne'));
+    }
+    function viewCoach() {
+      if (!S) { cur = 'coachLogin'; render(); return; }
+      box.appendChild(h('h2', { text: '🎨 Vlastní trenér' }));
+      var c = O.coach();
+      if (ctx.cSent) {
+        box.appendChild(ask('Mám to! Až ho vyrobíme, uvidíš ho na ploše i na mantinelu. Jen ty, na svém účtu.'));
+        box.appendChild(h('div', { class: 'ook', text: '✅ Žádost je odeslaná, čeká na výrobu.' }));
+        box.appendChild(closeBtn());
+        return;
+      }
+      var st = h('div', { class: 'os', text: c ? 'Teď máš trenéra: ' + (c.name || 'vlastní') + '.' : '' });
+      box.appendChild(ask('Jak se má tvůj trenér jmenovat a jak má vypadat? Popiš co nejvíc: postava, vlasy, vousy, oblečení a barvy, čepice, brýle…'));
+      box.appendChild(st);
+      var nm = h('input', { class: 'oi', maxlength: '30', placeholder: 'Jméno trenéra' });
+      nm.value = ctx.cName || '';
+      var ta = h('textarea', { class: 'oi', maxlength: '600', placeholder: 'Třeba: šedivý, plešatý, knír, červené propocené triko, kšandy, modré džíny…' });
+      ta.value = ctx.cLook || '';
+      var cnt = h('div', { class: 'ocn', text: ta.value.length + ' / 600' });
+      nm.addEventListener('input', function () { ctx.cName = nm.value; });
+      ta.addEventListener('input', function () { ctx.cLook = ta.value; cnt.textContent = ta.value.length + ' / 600'; });
+      function go() {
+        if (ctx.busy) return; ctx.cName = nm.value; ctx.cLook = ta.value; ctx.busy = true; ctx.msg = 'Posílám…'; render();
+        O.sendCoach(ctx.cName, ctx.cLook).then(function (r) {
+          ctx.busy = false;
+          if (r.ok) { ctx.cName = ctx.cLook = ''; ctx.cSent = true; ctx.msg = ''; render(); }
+          else if (r.err === 'not_authenticated') { cur = 'coachLogin'; ctx.msg = ''; render(); }
+          else setMsg(msgFor(r.err));
+        });
+      }
+      box.appendChild(nm);
+      box.appendChild(ta);
+      box.appendChild(cnt);
+      box.appendChild(h('div', { class: 'om', text: ctx.msg }));
+      box.appendChild(h('button', { class: 'ob', text: 'Odeslat', on: { click: go } }));
+      box.appendChild(closeBtn());
+      box.appendChild(h('div', { class: 'os', text: 'Trenéra vyrábíme ručně, chvíli to potrvá. Uvidíš ho jen ty. Nová žádost nahradí tu, co ještě čeká.' }));
+      if (!ctx.cLook && !ctx.cName) O.myCoachRequest().then(function (r) {
+        if (cur !== 'coach' || ctx.cSent || !r.ok || !r.req || r.req.status !== 'new') return;
+        st.textContent = '⏳ Čeká na výrobu: ' + r.req.name + '. Novou žádostí ji nahradíš.';
+      });
+      setTimeout(function () { try { nm.focus(); } catch (e) {} }, 50);
+    }
+    O.customCoach = function () { ctx.cSent = false; open(S ? 'coach' : 'coachLogin'); };
     O.overlayOpen = function () { return ov.style.display === 'flex'; };
 
     function fmtRow(mode, r) {

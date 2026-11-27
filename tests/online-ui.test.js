@@ -72,7 +72,7 @@ test('zásady: odkaz z přihlášení otevře text s kontaktem a Zpět vrátí p
 
 test('všechna okna se vykreslí bez chyby', () => {
   const { O, box, ov } = setup();
-  for (const v of ['login', 'code', 'nick', 'account']) { O._ui.open(v); assert.ok(texts(box).length > 10, v); }
+  for (const v of ['login', 'code', 'nick', 'account', 'coachLogin']) { O._ui.open(v); assert.ok(texts(box).length > 10, v); }
   assert.strictEqual(ov.style.display, 'flex');
 });
 
@@ -137,4 +137,15 @@ test('žebříček: přihlášený mimo první desítku vidí pod ní svůj řá
   assert.match(rows[10].textContent, /…/);
   assert.strictEqual(rows[11].attrs.class || rows[11].className, 'me');
   assert.match(rows[11].textContent, /37\.Já75,500 s/);
+});
+
+test('vlastní trenér: nepřihlášený dostane výzvu, po kliknutí na Přihlásit se vrátí okno trenéra', () => {
+  const { O, box } = setup();
+  O.customCoach();
+  assert.match(texts(box), /Vlastní trenér/);
+  assert.match(texts(box), /přihlas/i);
+  const b = box.find((e) => e.tag === 'button' && e.textContent === 'Přihlásit se')[0];
+  b.click();
+  assert.strictEqual(O._ui.get().cur, 'login');
+  assert.strictEqual(O._ui.get().ctx.after, 'coach');
 });
