@@ -9,7 +9,7 @@
 
   var M = { peers: {}, status: 'off', room: 0 };
   G.Multi = M;
-  var ws = null, want = false, ref = 0, joinRef = null, topic = '', uid = null, room = 1, tracked = false;
+  var ws = null, want = false, ref = 0, joinRef = null, topic = '', uid = null, me = null, room = 1, tracked = false;
   var hbT = null, tokT = null, retryT = null, retries = 0, present = {}, names = {}, asked = {}, gen = 0, hbRef = null, lastTok = '';
 
   function O() { return G.Online; }
@@ -31,13 +31,13 @@
     ws = null; topic = ''; reset(); setStatus('off');
   };
   /* počet hráčů v místnosti včetně mě */
-  M.count = function () { return Object.keys(present).length + (tracked && !present[uid] ? 1 : 0); };
+  M.count = function () { return Object.keys(present).length + (tracked && !present[me] ? 1 : 0); };
   M.name = function (id) { return names[id] || null; };
 
   var lastSent = 0;
   M.send = function (st) {
     if (M.status !== 'on' || !tracked) return false;
-    st.u = uid; lastSent = nowMs();
+    st.u = me; lastSent = nowMs();
     return msg('broadcast', { type: 'broadcast', event: 'p', payload: st });
   };
 
@@ -51,18 +51,19 @@
       lastTok = t;
       uid = on.uid && on.uid();
       if (!t || !uid) { setStatus('denied'); want = false; return; }
+      if (!me || me.split(':')[0] !== uid) me = uid + ':' + Math.random().toString(36).slice(2, 8);   // každé zařízení zvlášť (stejný účet na mobilu i počítači)
       var c = on.config();
       var url = c.url.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(c.key) + '&vsn=1.0.0';
       var W = M._WS || G.WebSocket;
       try { ws = new W(url); } catch (e) { fail(); return; }
-      var me = ws;
-      ws.onopen = function () { if (me !== ws) return; join(t); hbRef = null;
+      var sock = ws;
+      ws.onopen = function () { if (sock !== ws) return; join(t); hbRef = null;
         hbT = setInterval(function () {   // odpověď na minulý heartbeat nepřišla: spojení je mrtvé
           if (hbRef) { try { ws.close(); } catch (e) {} return; }
           ref++; hbRef = String(ref); sendRaw({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: hbRef }); }, HB);
         tokT = setInterval(refreshToken, TOKEN_EVERY); };
-      ws.onmessage = function (e) { if (me !== ws) return; var m; try { m = JSON.parse(e.data); } catch (_) { return; } onMsg(m); };
-      ws.onclose = function () { if (me !== ws) return; ws = null; clearTimers(); reset(); if (want) fail(); };
+      ws.onmessage = function (e) { if (sock !== ws) return; var m; try { m = JSON.parse(e.data); } catch (_) { return; } onMsg(m); };
+      ws.onclose = function () { if (sock !== ws) return; ws = null; clearTimers(); reset(); if (want) fail(); };
       ws.onerror = function () {};
     }, function () { if (g === gen) fail(); });
   }
@@ -79,7 +80,7 @@
   function join(t) {
     topic = 'realtime:plocha:' + room; ref++; joinRef = String(ref); present = {}; tracked = false;
     sendRaw({ topic: topic, event: 'phx_join', ref: joinRef, join_ref: joinRef,
-      payload: { config: { broadcast: { self: false, ack: false }, presence: { key: uid, enabled: true }, private: true }, access_token: t } });
+      payload: { config: { broadcast: { self: false, ack: false }, presence: { key: me, enabled: true }, postgres_changes: [], private: true }, access_token: t } });
   }
   function nextRoom() {
     msg('phx_leave', {}); topic = '';
@@ -101,7 +102,7 @@
     if (m.event === 'system' && p.status === 'error') { try { ws.close(); } catch (e) {} return; }   // např. vypršel token: připojit znovu (bez práva odmítne už join)
     if (m.event === 'phx_error' || m.event === 'phx_close') { if (want) { try { ws.close(); } catch (e) {} } return; }
     if (m.event === 'presence_state') {
-      for (var k in p) if (k !== uid) present[k] = (p[k].metas || [1]).length || 1;
+      for (var k in p) if (k !== me) present[k] = (p[k].metas || [1]).length || 1;
       if (!tracked) {
         if (Object.keys(present).length >= ROOM_MAX) { nextRoom(); return; }
         tracked = true; retries = 0; M.room = room; setStatus('on');
@@ -111,8 +112,8 @@
     }
     if (m.event === 'presence_diff') {
       var j = p.joins || {}, l = p.leaves || {}, k2;
-      for (k2 in j) if (k2 !== uid) present[k2] = (present[k2] || 0) + ((j[k2].metas || [1]).length || 1);
-      for (k2 in l) if (k2 !== uid && !j[k2]) {   // stejný účet ve dvou oknech: smaž až po odchodu posledního
+      for (k2 in j) if (k2 !== me) present[k2] = (present[k2] || 0) + ((j[k2].metas || [1]).length || 1);
+      for (k2 in l) if (k2 !== me && !j[k2]) {   // stejný účet ve dvou oknech: smaž až po odchodu posledního
         var left = (l[k2].metas || []).length, had = present[k2] === true ? 1 : present[k2] || 1;
         if (had - left > 0) present[k2] = had - left; else { delete present[k2]; delete M.peers[k2]; }
       }
@@ -120,7 +121,7 @@
     }
     if (m.event === 'broadcast' && p.event === 'p') {
       var s = p.payload;
-      if (!s || typeof s.u !== 'string' || s.u === uid || !present[s.u]) return;
+      if (!s || typeof s.u !== 'string' || s.u === me || !present[s.u]) return;
       var x = +s.x, y = +s.y, z = +s.z, h = +s.h;
       if (!isFinite(x) || !isFinite(y) || !isFinite(z) || !isFinite(h)) return;
       var P = M.peers[s.u] || (M.peers[s.u] = { id: s.u });
@@ -132,8 +133,10 @@
     var ids = [];
     for (var k in present) if (!asked[k]) { asked[k] = 1; ids.push(k); }
     if (!ids.length || !O() || !O().names) return;
-    O().names(ids.slice(0, 20)).then(function (rows) {
-      rows.forEach(function (r) { names[r.id] = { nick: r.nickname || 'Hráč', gold: r.badge === 'gold' }; });
+    var acc = function (k) { return String(k).split(':')[0]; }, uniq = [];   // klíč = účet:zařízení
+    ids.forEach(function (k) { if (uniq.indexOf(acc(k)) < 0 && /^[0-9a-f-]{36}$/.test(acc(k))) uniq.push(acc(k)); });
+    O().names(uniq.slice(0, 20)).then(function (rows) {
+      rows.forEach(function (r) { ids.forEach(function (k) { if (acc(k) === r.id) names[k] = { nick: r.nickname || 'Hráč', gold: r.badge === 'gold' }; }); });
       ids.forEach(function (id) { if (!names[id]) names[id] = { nick: 'Hráč', gold: false }; });
     }, function () { ids.forEach(function (id) { delete asked[id]; }); });
   }
