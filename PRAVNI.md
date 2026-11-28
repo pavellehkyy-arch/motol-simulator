@@ -122,4 +122,11 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - Hostitel online závodu může vypnout NPC jezdce: příznak `nb` (0/1) v presence meta Supabase Realtime (race-net.js `setNoBots`/`noBots`) a `localStorage motol_netnobots`. Jde o herní nastavení bez osobních údajů, nic se neukládá na server; localStorage je nezbytné pro funkci (bez lišty). Text zásad měnit netřeba. Bez nového rizika 🟢.
 - Úklid: z Otevřených bodů odstraněny „Mazání `race_sessions`“ a „Výmaz všeho k účtu“ – vyřešeno už po kontrole d3f1f75 (viz výše).
 
-Poslední kontrola: 590e4bd56e262720c370fb059808790b2cebed7f 2026-11-28 (+ necommitnuté změny v3.4)
+## Kontrola updatu 590e4bd..9d93fa3 (v3.5, 28. 11. 2026)
+- Trenér s tílkem (`sleeveless` v `profiles.coach`): jen nová volba vzhledu, žádný nový údaj ani tabulka. 🟢
+- Rámy v obchodě (`frame_alu` 700, `frame_carbon` 1800, `frame_tt` 3500, migrace `20261201_shop_frames.sql`): názvy obecné (hliník, karbon, aero), bez značek a log; placeno jen herními penízky, bez reálných peněz a bez náhodných odměn (žádný loot-box). `localStorage motol_frame` = herní nastavení, bez lišty. Rám se posílá v online vzhledu (`lk.fr`, číslo 0–3) – kryto větou zásad „jeho vzhled (helma, kola, barvy)“. 🟢
+- Gesta na online ploše (plácnutí 🙌, zamávání 👋): pole `g` (1/2) v broadcastu `p` přes Supabase Realtime, `multi.js` přijímá jen 0/1/2 (nic jiného se nepropíše), nic se neukládá. Je to obdoba polohy/pohybu, které zásady už uvádějí („tvou polohu, pohyb …“), text měnit netřeba. Gesto je jen animace bez textu, riziko obtěžování zanedbatelné (pro obtěžování platí otevřený bod „Chat – ztlumení a nahlášení“, ztlumení by mělo časem skrýt i gesta). 🟢
+- Oprava AI: bez právního dopadu.
+- Žádné nové riziko, otevřené body beze změny.
+
+Poslední kontrola: 9d93fa3f433c015fd9634f92e983d9003ad06ab6 2026-11-28
