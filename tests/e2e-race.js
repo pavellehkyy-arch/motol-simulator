@@ -102,8 +102,11 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
       remotes: Object.keys(NETR.map).filter((k) => k !== RaceNet.me && k.indexOf('b:') !== 0).map((k) => ({ k, rem: NETR.map[k].remote, nm: NETR.map[k].name })) }))));
     ok('mode scratch u všech', st.every((s) => s.mode === 'scratch'), JSON.stringify(st.map((s) => s.mode)));
     ok('NETR.map: každý vidí 2 cizí hráče jako remote se jménem', st.every((s) => s.remotes.length === 2 && s.remotes.every((r) => r.rem && NICK.includes(r.nm))), JSON.stringify(st.map((s) => s.remotes.map((r) => r.nm))));
-    const sameRiders = await Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.keys.map((k) => NETR.map[k] === player ? 'me' : NETR.map[k].name).join())));
+    const sameRiders = await Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.keys.map((k) => NETR.map[k] === __pl ? 'me' : NETR.map[k].name).join())));
     ok('mapování cizích hráčů na jezdce různá, žádný hráč není dvakrát', st.every((s, i) => new Set(s.remotes.map((r) => r.nm)).size === 2));
+    await sleep(4000);
+    const h2 = await Promise.all([0, 1, 2].map((i) => ev(i, () => ({ h: RaceNet.isHost(), hk: String(RaceNet.host).slice(0, 2), ep: RaceNet.epoch }))));
+    ok('hostitel stabilní během odpočtu (jeden, shodný u všech)', h2.filter((x) => x.h).length === 1 && new Set(h2.map((x) => x.hk)).size === 1, JSON.stringify(h2));
     // výstřel
     await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.goAt > 0))).then((a) => a.every(Boolean)), 30000, 'goAt');
     ok('výstřel: NETR.goAt > 0 u všech', true);
@@ -113,14 +116,14 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     await ev(1, () => { __eff(0.9); });
     await sleep(5000);
     const sA = await ev(0, () => { const R = NETR.map[Object.keys(NETR.map).find((k) => k.startsWith('bbbbbbbb'))]; return { s: R.s, v: R.v, ps: __G().raceTime }; });
-    const sB = await ev(1, () => ({ s: player.s, v: player.v }));
+    const sB = await ev(1, () => ({ s: __pl.s, v: __pl.v }));
     ok('poloha hráče B u A se mění a odpovídá (rozdíl < 6 m)', Math.abs(sA.s - sB.s) < 6 && sB.v > 1, 'A vidí s=' + sA.s.toFixed(1) + ' B má s=' + sB.s.toFixed(1) + ' v=' + sB.v.toFixed(1));
     const pre = await ev(2, () => { const R = NETR.map[Object.keys(NETR.map).find((k) => k.startsWith('bbbbbbbb'))]; return R.s; });
     await sleep(2000);
     const post = await ev(2, () => { const R = NETR.map[Object.keys(NETR.map).find((k) => k.startsWith('bbbbbbbb'))]; return R.s; });
     ok('C vidí B, jak ujíždí (s roste)', post > pre, pre.toFixed(1) + ' -> ' + post.toFixed(1));
-    ok('boti u nehostitele jsou remote, u hostitele ne', await ev(1, () => netPool().filter((R) => R.netKey && R.netKey.startsWith('b:')).every((R) => R.remote)) && await ev(0, () => netPool().filter((R) => R.netKey && R.netKey.startsWith('b:')).every((R) => !R.remote)));
-    const sn = await ev(1, () => netPool().filter((R) => R.netKey && R.netKey.startsWith('b:') && R.netT).length);
+    ok('boti u nehostitele jsou remote, u hostitele ne', await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:')).every((R) => R.remote)) && await ev(0, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:')).every((R) => !R.remote)));
+    const sn = await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && R.netT).length);
     ok('snapshoty botů dorazily k nehostiteli', sn > 0, 'boti se snapshotem: ' + sn);
     // převzetí hostitele
     await P[0].ctx.close();
@@ -128,8 +131,8 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     ok('převzetí: nový hostitel RaceNet.isHost() i NETR.host', nh.filter((x) => x.h && x.n).length === 1 && nh.every((x) => x.h === x.n), JSON.stringify(nh));
     const hi = nh[0].h ? 1 : 2, oi = hi === 1 ? 2 : 1;
     await sleep(500);
-    ok('nový hostitel: boti už nejsou remote', await ev(hi, () => netPool().filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => !R.remote)));
-    const mv = await ev(hi, () => { const b = netPool().find((R) => R.netKey && R.netKey.startsWith('b:') && !R.crashed); const s0 = b.s; return new Promise((r) => setTimeout(() => r([s0, b.s]), 2000)); });
+    ok('nový hostitel: boti už nejsou remote', await ev(hi, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => !R.remote)));
+    const mv = await ev(hi, () => { const b = __R.filter((R) => !R.player && !R.partner).find((R) => R.netKey && R.netKey.startsWith('b:') && !R.crashed); const s0 = b.s; return new Promise((r) => setTimeout(() => r([s0, b.s]), 2000)); });
     ok('boti u nového hostitele jedou dál (s roste)', mv[1] > mv[0], mv.map((x) => x.toFixed(1)).join(' -> '));
     const gone = await ev(oi, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return k ? { c: NETR.map[k].crashed, vis: NETR.map[k].model.g.visible } : null; });
     await sleep(6000);
@@ -137,9 +140,9 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     ok('odpadlý hráč A je u zbylých vyřazen (crashed/skrytý) do ~6 s', gone2 && gone2.c && !gone2.vis, JSON.stringify([gone, gone2]));
     // dojezd: oba zbylí do cíle, stejné pořadí
     for (const i of [1, 2]) await ev(i, () => { __eff(1); });
-    const fin = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ f: player.finished, o: NETR.on })))); return a.every((x) => x.f) ? a : false; }, 240000, 'dojezd').catch((e) => null);
+    const fin = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ f: __pl.finished, o: NETR.on })))); return a.every((x) => x.f) ? a : false; }, 240000, 'dojezd').catch((e) => null);
     if (!fin) {
-      const dbg = await Promise.all([1, 2].map((i) => ev(i, () => ({ s: player.s, v: player.v, t: __G().raceTime, phase: __G().phase }))));
+      const dbg = await Promise.all([1, 2].map((i) => ev(i, () => ({ s: __pl.s, v: __pl.v, t: __G().raceTime, phase: __G().phase }))));
       ok('dojezd: oba hráči dojeli', false, JSON.stringify(dbg));
     } else {
       ok('dojezd: oba hráči dojeli', true);
