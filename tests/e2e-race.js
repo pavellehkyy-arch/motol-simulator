@@ -112,7 +112,7 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
       remotes: Object.keys(NETR.map).filter((k) => k !== RaceNet.me && k.indexOf('b:') !== 0).map((k) => ({ k, rem: NETR.map[k].remote, nm: NETR.map[k].name })) }))));
     ok('mode scratch u všech', st.every((s) => s.mode === 'scratch'), JSON.stringify(st.map((s) => s.mode)));
     ok('NETR.map: každý vidí 2 cizí hráče jako remote se jménem', st.every((s) => s.remotes.length === 2 && s.remotes.every((r) => r.rem && NICK.includes(r.nm))), JSON.stringify(st.map((s) => s.remotes.map((r) => r.nm))));
-    await until(() => ev(1, () => NETR.tags && Object.keys(NETR.tags).length === 2), 5000, 'jmenovky').catch(() => {});
+    await until(() => ev(1, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return NETR.tags && NETR.tags[k] && NETR.tags[k].visible; }), 8000, 'jmenovky').catch(() => {});   // přes server první data až za chvíli
     const lk = await ev(1, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')), R = NETR.map[k], M = R.model, T = NETR.tags && NETR.tags[k];
       return { helm: M.helmKind, gear: M.gear, albi: !!M.ph, swapped: !!R.model0, vis: M.g.visible, oldVis: R.model0 && R.model0.g.visible, tag: T && T.visible, nick: T && T.nick }; });
     ok('vzhled A u B: helma, disky, Albi, vlastní model místo bota', lk.helm === 'tt' && lk.gear && lk.gear.join() === 'disc,disc' && lk.albi && lk.swapped && lk.vis && !lk.oldVis, JSON.stringify(lk));
