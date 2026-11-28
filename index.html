@@ -280,7 +280,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v3.4</div>
+    <div class="sub">v3.5</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -1781,7 +1781,7 @@ function makeScanHuman(o){o=o||{};const D=PHOTO_MODEL,S=D.s,G=D.g;
       if(o.sweat&&((y>178&&y<250&&d<0.42)||(y>190&&y<275&&d>1.25&&d<1.95)))return topC.clone().multiplyScalar(0.68);return topC;}   // sweat-soaked chest and armpits
     if(part==='low')return y<topEnd?topC:pantsC;
     if(part==='leg'){if(o.shoeSole&&y>614)return C(o.shoeSole);if(y>597)return shoeC;if(o.shorts&&y>455)return skinC;if(o.legBand&&y>o.legBand[0]&&y<o.legBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return pantsC;}
-    if(part==='arm'){if(y>346)return handC;if(o.shortSleeve&&y>215)return skinC;if(o.cuffs&&y>335)return C(o.cuffs);if(o.watch&&sx>0&&y>324&&y<334)return C(o.watch);if(o.armBand&&y>o.armBand[0]&&y<o.armBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return slvC;}
+    if(part==='arm'){if(y>346)return handC;if(o.sleeveless||(o.shortSleeve&&y>215))return skinC;if(o.cuffs&&y>335)return C(o.cuffs);if(o.watch&&sx>0&&y>324&&y<334)return C(o.watch);if(o.armBand&&y>o.armBand[0]&&y<o.armBand[1])return C(o.bandCol);if(o.stripe&&out<0.2)return C(o.stripe);return slvC;}
     return topC;}
   const pos=[],uv=[],col=[],sk=[],sw=[],groups=[[],[],[]];   // 0 clothes/limbs, 1 textured jacket, 2 head (tints red when angry)
   const step=LOWEND?3:2,NR=LOWEND?18:26;
@@ -2972,7 +2972,7 @@ function makeCoach(){
   // built like the other people (measured body, clothes coloured by area): yellow-black coach jacket, belly, moustache, cap-less short hair
   const C=COACH_CFG;if(SCAN_BODIES){const top=C&&coachCol(C.top,0xffffff),r=makeHuman(C?{skin:coachCol(C.skin,0xd9a77f),top,sleeveMat:mat(coachCol(C.sleeve,top)),pants:coachCol(C.pants,0x1c1c22),shoes:coachCol(C.shoes,0x111111),
       hair:coachCol(C.hair,0x302722),hairStyle:['short','bald','long','tousled','cap'].includes(C.hairStyle)?C.hairStyle:'short',capCol:coachCol(C.capCol,0x1d3557),mustache:!!C.mustache,glasses:!!C.glasses,belly:!!C.belly,
-      suspenders:C.suspenders?coachCol(C.suspenders,0x1a1a1a):0,sweat:!!C.sweat,shorts:!!C.shorts,shortSleeve:!!C.shortSleeve,chestTex:C.shirtText?textTex(String(C.shirtText).slice(0,14).toUpperCase(),'rgba(0,0,0,0)',C.shirtCol||'#ffffff'):null}
+      suspenders:C.suspenders?coachCol(C.suspenders,0x1a1a1a):0,sweat:!!C.sweat,shorts:!!C.shorts,shortSleeve:!!C.shortSleeve,sleeveless:!!C.sleeveless,chestTex:C.shirtText?textTex(String(C.shirtText).slice(0,14).toUpperCase(),'rgba(0,0,0,0)',C.shirtCol||'#ffffff'):null}
       :{skin:0xd9a77f,top:0xffffff,topMat:new THREE.MeshLambertMaterial({map:coachJacketTex()}),sleeveMat:mat(0xf2d21b),cuffs:0x161616,
       pants:0x1c1c22,shoes:0x111111,hair:0x302722,hairStyle:'short',mustache:true,belly:true,collar:0x161616,zip:0x161616});
     const g=r.g,head=r.head;head.userData['brow-1']=r.brows[0];head.userData['brow1']=r.brows[1];head.userData.mouth=r.mouth;
