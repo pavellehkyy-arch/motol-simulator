@@ -159,7 +159,9 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
       ok('dojezd: oba hráči dojeli (nebo spadli – DNF)', true, JSON.stringify(fin));
       await sleep(2500);
       const ord = await Promise.all([1, 2].map((i) => ev(i, () => __net.order())));
-      ok('pořadí netOrder() stejné u obou', JSON.stringify(ord[0]) === JSON.stringify(ord[1]), JSON.stringify(ord.map((o) => o.map((x) => x ? x[0] : '-').join(''))));
+      // kdo spadl, poslal pořadí dřív (nedojetí = null): porovnej jen místa, která znají oba
+      const both = ord[0].map((x, j) => [x, ord[1][j]]).filter(([a, b]) => a && b);
+      ok('pořadí netOrder() se u obou shoduje (kde oba znají cíl)', both.every(([a, b]) => a === b) && ord.every((o) => o.filter(Boolean).length === new Set(o.filter(Boolean)).size), JSON.stringify(ord.map((o) => o.map((x) => x ? x[0] : '-').join(''))));
     }
     for (let i = 0; i < 3; i++) ok('bez chyb v konzoli, okno ' + NICK[i], errs[i].length === 0, errs[i].slice(0, 3).join(' | '));
   } catch (e) {

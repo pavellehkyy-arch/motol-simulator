@@ -4739,7 +4739,8 @@ function netPool(){return riders.filter(r=>!r.player&&!r.partner);}
 function netKeyOf(R){return R.player?(window.RaceNet&&RaceNet.me):R.netKey||('b:'+R.name0);}
 function netClean(){for(const R of riders){if(R.name0!=null){R.name=R.name0;}R.remote=false;R.netKey=null;R.netOff=false;R.netT=null;R.netFinAt=null;R.netStale=false;}}
 function netEsc(t){return String(t).replace(/[<>&"']/g,'');}
-function netOrder(){const uid=window.Online&&Online.uid?Online.uid():null;return standings().slice(0,12).map(R=>R.player?uid:R.netKey&&R.netKey.indexOf('b:')!==0?R.netKey.split(':')[0]:null);}
+// pořadí v cíli pro server: jen jezdci, kteří už opravdu projeli cílem (kdo ještě jede nebo spadl, je null, ať nikomu nekazí místo)
+function netOrder(){const uid=window.Online&&Online.uid?Online.uid():null;return standings().slice(0,12).map(R=>!R.finished||R.crashed?null:R.player?uid:R.netKey&&R.netKey.indexOf('b:')!==0?R.netKey.split(':')[0]:null);}
 // rozdělení jezdců podle seznamu hráčů od hostitele (stejné na všech zařízeních)
 function netAssign(members){const pool=netPool(),me=RaceNet.me;NETR.map={};NETR.snapQ=-1;for(const R of riders){R.netFinAt=null;R.netStale=false;}NETR.keys=members.slice(0,pool.length-1);
   pool.forEach(R=>{if(R.name0==null)R.name0=R.name;R.name=R.name0;R.netKey='b:'+R.name0;R.remote=!NETR.host;R.netOff=false;R.netT=null;});
