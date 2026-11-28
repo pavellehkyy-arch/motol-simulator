@@ -151,7 +151,7 @@
       var x = +s.x, y = +s.y, z = +s.z, h = +s.h;
       if (!isFinite(x) || !isFinite(y) || !isFinite(z) || !isFinite(h)) return;
       var P = M.peers[s.u] || (M.peers[s.u] = { id: s.u });
-      M.stats.rx++; P.x = x; P.y = y; P.z = z; P.h = h; P.v = +s.v || 0; P.st = s.st | 0; P.c = s.c | 0; P.a = s.a | 0; P.t = nowMs();
+      M.stats.rx++; P.x = x; P.y = y; P.z = z; P.h = h; P.v = +s.v || 0; P.st = s.st | 0; P.c = s.c | 0; P.a = s.a | 0; P.g = (s.g | 0) === 1 || (s.g | 0) === 2 ? s.g | 0 : 0; P.t = nowMs();
       /* záchranka po pádu ze žebříku: r = [x, z, natočení, fáze 0–4, čas ve fázi] */
       var r = s.r; P.r = Array.isArray(r) && r.length === 5 && r.every(function (n) { return typeof n === 'number' && isFinite(n); }) && (r[3] | 0) >= 0 && (r[3] | 0) <= 4 ? [r[0], r[1], r[2], r[3] | 0, r[4]] : null;
     }
