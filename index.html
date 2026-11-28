@@ -4801,7 +4801,7 @@ function netLobbyUI(){const N=window.RaceNet;if(!N)return;const st=N.status,m=N.
   $('netSt').textContent=txt;
   $('netList').innerHTML=m.map(k=>{const nm=N.name&&N.name(k),ls=k===N.me?'':N.linkState?N.linkState(k):'';const ic=k===N.me?'🙂':ls==='open'?(N.relayed&&N.relayed(k)?'🟡':'🟢'):ls==='failed'?'🔴':'⏳';
     const dg=k!==N.me&&N.diag?N.diag(k):null,dt=dg&&ls!=='open'?'<div style="font-size:11px;opacity:.6;margin:-4px 0 2px 26px">ICE '+dg.ice+' · '+dg.sig+' · poslal '+dg.lc+(dg.lt?' ('+dg.lt+')':'')+' · přijal '+dg.rc+(dg.rt?' ('+dg.rt+')':'')+(dg.n?' · pokus '+(dg.n+1):'')+'</div>':'';
-    return '<div>'+ic+' '+(k===N.me?'Ty':nm&&nm.nick?nm.nick.replace(/[<>&"]/g,''):'Hráč')+(k===N.host?' <b style="color:#ffd166">· hostitel</b>':'')+'</div>'+dt;}).join('')||'<div style="opacity:.7">nikdo</div>';
+    return '<div>'+ic+' '+(k===N.me?'Ty':nm&&nm.nick?nm.nick.replace(/[<>&"]/g,''):'Hráč')+(N.viaServer&&N.viaServer(k)?' <small style="opacity:.7">· přes server</small>':'')+(k===N.host?' <b style="color:#ffd166">· hostitel</b>':'')+'</div>'+dt;}).join('')||'<div style="opacity:.7">nikdo</div>';
   const others=m.filter(k=>k!==N.me),ls2=k=>N.linkState?N.linkState(k):null,ready=others.some(k=>ls2(k)==='open')&&!others.some(k=>ls2(k)==='connecting');   // ti, se kterými spojení selhalo, nepojedou
   const b=$('netGoBtn');b.style.display=host&&st==='lobby'?'':'none';b.disabled=!ready;
   const bad=others.filter(k=>N.linkState&&N.linkState(k)==='failed').length;

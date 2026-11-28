@@ -57,6 +57,8 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR/.test(m.text())) errs[i].push('console: ' + m.text()); });
   const sess = { access: jwt(UIDS[i]), refresh: 'r' + i, exp: 4102444800, email: NICK[i] + '@test.cz' };
   await page.addInitScript((s) => { localStorage.setItem('motol_session', JSON.stringify(s)); }, sess);
+  // WS=1: přímé WebRTC se nikdy nespojí (zahodí ICE kandidáty) → závod musí jet přes zálohu Supabase Realtime
+  if (process.env.WS) await page.addInitScript(() => { const P = window.RTCPeerConnection; window.RTCPeerConnection = function (c) { const pc = new P(c); Object.defineProperty(pc, 'onicecandidate', { set() {}, get() { return null; } }); return pc; }; });
   if (!process.env.RENDER) await page.addInitScript(() => { const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (f) => setTimeout(() => raf(f), 60); });   // ~15 fps, ať smyčky nehladoví
   await page.route(/three\.min\.js/, (r) => r.fulfill({ body: fs.readFileSync(THREE, 'utf8') + (process.env.RENDER ? '' : '\n;(function(){var W=THREE.WebGLRenderer;THREE.WebGLRenderer=function(o){W.call(this,o);this.render=function(){};};THREE.WebGLRenderer.prototype=W.prototype;})();'), contentType: 'application/javascript' }));
   await page.route(/supabase\.co\//, (r) => {
@@ -91,8 +93,8 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
       await sleep(300);
     }
     ok('lobby: všichni 3 ve stavu lobby', true);
-    await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => RaceNet.members().length === 3 && RaceNet.members().filter((k) => k !== RaceNet.me).every((k) => RaceNet.linkState(k) === 'open')))).then((a) => a.every(Boolean)), 30000, 'WebRTC linky open');
-    ok('WebRTC: všechny linky open (loopback)', true);
+    await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => RaceNet.members().length === 3 && RaceNet.members().filter((k) => k !== RaceNet.me).every((k) => RaceNet.linkState(k) === 'open')))).then((a) => a.every(Boolean)), 60000, 'WebRTC linky open');
+    ok(process.env.WS ? 'záloha: všechny linky open přes server' : 'WebRTC: všechny linky open (loopback)', !process.env.WS || (await ev(0, () => RaceNet.members().filter((k) => k !== RaceNet.me).every((k) => RaceNet.viaServer(k)))));
     const hosts = await Promise.all([0, 1, 2].map((i) => ev(i, () => RaceNet.isHost())));
     if (!hosts[0] || hosts.filter(Boolean).length !== 1) res.push('  hostK/order: ' + JSON.stringify(await Promise.all([0, 1, 2].map((i) => ev(i, () => ({ me: RaceNet.me.slice(0, 2), h: String(RaceNet.host).slice(0, 2), o: RaceNet.members().map((k) => k.slice(0, 2)), ep: RaceNet.epoch }))))));
     ok('právě jeden hostitel (první připojený)', hosts.filter(Boolean).length === 1 && hosts[0], JSON.stringify(hosts));

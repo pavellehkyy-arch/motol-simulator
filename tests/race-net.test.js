@@ -425,7 +425,7 @@ test('převzetí po 2 s ticha od hostitele', async () => {
   kill(A, B);
 });
 
-test('ICE se nespojí do 15 s: jeden restart, pak failed', async () => {
+test('ICE se nespojí do 10 s: jeden restart, pak záloha přes Supabase Realtime', async () => {
   let t = 1;
   const S = makeServer(), net = makeNet();
   const A = player(S, net, { uid: U('1'), now: () => t, noConnect: true });
@@ -440,10 +440,21 @@ test('ICE se nespojí do 15 s: jeden restart, pak failed', async () => {
   await until(() => S.sigs().some((s) => s.ty === 'offer' && s.n === 1), 2000, 'nová nabídka');
   assert.strictEqual(A.linkState(B.me), 'connecting');
   t += 15100; A._tick(); B._tick();
-  assert.strictEqual(A.linkState(B.me), 'failed');
-  assert.strictEqual(B.linkState(A.me), 'failed');
-  assert.ok(links.includes('failed'));
+  assert.strictEqual(A.linkState(B.me), 'open');
+  assert.ok(A.viaServer(B.me) && A.relayed(B.me));
+  assert.strictEqual(links[links.length - 1], 'open');
   assert.strictEqual(S.sigs().filter((s) => s.ty === 'offer').length, 2);
+  // data jdou přes server: stav (binárně v base64) i spolehlivé události; druhá strana se přidá sama
+  const evs = []; B.onEvent = (f, k, d) => evs.push([f, k, d]);
+  t += 300; A.send({ s: 12.5, w: 1, v: 10, e: 0.9, f: 0.5, l: 0, fl: 0 }); A.event('ahoj', { x: 1 });
+  await until(() => B.peers[A.me] && B.peers[A.me].buf.length > 0 && evs.length > 0, 2000, 'data přes server');
+  assert.ok(B.viaServer(A.me));
+  assert.strictEqual(B.linkState(A.me), 'open');
+  assert.ok(Math.abs(B.peers[A.me].buf[0].s - 12.5) < 1e-3);
+  assert.deepStrictEqual(plain(evs[0].slice(1)), ['ahoj', { x: 1 }]);
+  // přes server nejvýš 5× za s
+  const tx0 = A.stats.tx; A.send({ s: 13, w: 1, v: 10, e: 0.9, f: 0.5, l: 0, fl: 0 });
+  await tick(5); assert.strictEqual(A.stats.tx, tx0);
   kill(A, B);
 });
 

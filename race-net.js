@@ -19,7 +19,7 @@
   'use strict';
   var G = typeof window !== 'undefined' ? window : globalThis;
   var MAX = 8, ROOMS = 20, HB = 25000, TOKEN_EVERY = 60000, TICK = 200,
-    DELAY = 150, EXTRA = 500, BUF = 20, ICE_TO = 15000, DOWN_TO = 4000, HOST_TO = 2000,
+    DELAY = 150, EXTRA = 500, BUF = 20, ICE_TO = 10000, DOWN_TO = 4000, HOST_TO = 2000,
     PING_EVERY = 2000, KA_EVERY = 300, SIG_WAIT = 3000, MSG_MAX = 16000, LAP = 153.846, PKT = 32;
   var FALLBACK_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
   var EV_NAME = /^[A-Za-z0-9_-]{1,32}$/;
@@ -192,6 +192,7 @@
       return;
     }
     if (m.event === 'broadcast' && p.event === 'sig') { if (tracked) onSig(p.payload, false); }
+    if (m.event === 'broadcast' && p.event === 'rl') { if (tracked) onRelay(p.payload); }
   }
   function roomChanged() { syncPeers(); flushSig(); recompute(); askNames(); }
 
@@ -321,9 +322,12 @@
   }
   function opened(P) {
     if (P.state === 'open' || !P.u || !P.r || P.u.readyState !== 'open' || P.r.readyState !== 'open') return;
+    linkUp(P);
+    checkRelay(P);
+  }
+  function linkUp(P) {
     P.state = 'open'; P.tries = 0; P.lastRx = now(); P.lastTx = 0; P.downAt = 0;
     cb('onLink', P.key, 'open');
-    checkRelay(P);
     if (R.host === R.me) {
       sendR(P, { k: 'host', e: R.epoch });
       if (R.race) sendR(P, { k: 'start', e: R.epoch, at: R.race.at, race: R.race.id, info: R.race.info });
@@ -357,10 +361,59 @@
       P.tries++; P.state = 'connecting'; P.since = now(); P.downAt = 0;
       if (wasOpen) cb('onLink', P.key, 'connecting');
       if (P.offerer) { P.n++; offer(P); }   // druhá strana čeká na novou nabídku
-    } else {
+    } else if (ws && topic && tracked) viaServer(P);   // napřímo to nejde: zprávy půjdou přes Supabase Realtime (bez TURN)
+    else {
       P.state = 'failed'; cb('onLink', P.key, 'failed');
       if (!dead[P.key]) { dead[P.key] = 1; recompute(); }
     }
+  }
+  /* ---------- záloha bez TURN: data přes kanál Realtime (broadcast 'rl'), pomaleji (stav nejvýš 5× za s) ---------- */
+  var WS_U_GAP = 190, WS_KA = 1000, wsOut = [], wsFlushQ = false, wsLastU = 0;
+  function viaServer(P) {
+    if (R.peers[P.key] !== P || P.ws) return;
+    closePc(P); P.ws = true; P.relay = true; P.seq = -1;
+    linkUp(P);
+  }
+  var B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  function b64(ab) {   // bez btoa (krátké pakety, ať to běží všude)
+    var u = new Uint8Array(ab), o = '', i, n;
+    for (i = 0; i < u.length; i += 3) {
+      n = (u[i] << 16) | ((u[i + 1] || 0) << 8) | (u[i + 2] || 0);
+      o += B64[n >> 18 & 63] + B64[n >> 12 & 63] + (i + 1 < u.length ? B64[n >> 6 & 63] : '=') + (i + 2 < u.length ? B64[n & 63] : '=');
+    }
+    return o;
+  }
+  function unb64(t) {
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(t) || t.length % 4) return null;
+    var pad = t.charAt(t.length - 1) === '=' ? (t.charAt(t.length - 2) === '=' ? 2 : 1) : 0, len = t.length / 4 * 3 - pad, u = new Uint8Array(len), j = 0;
+    for (var i = 0; i < t.length; i += 4) {
+      var n = (B64.indexOf(t[i]) << 18) | (B64.indexOf(t[i + 1]) << 12) | ((B64.indexOf(t[i + 2]) & 63) << 6) | (B64.indexOf(t[i + 3]) & 63);
+      if (j < len) u[j++] = n >> 16 & 255; if (j < len) u[j++] = n >> 8 & 255; if (j < len) u[j++] = n & 255;
+    }
+    return u.buffer;
+  }
+  function wsSend(P, c, d) {
+    if (!ws || !topic || !tracked) return false;
+    var bin = typeof d !== 'string', t = bin ? b64(toAB(d) || new ArrayBuffer(0)) : d;
+    if (t.length > MSG_MAX) return false;
+    for (var i = 0; i < wsOut.length; i++) { var o = wsOut[i]; if (o.c === c && o.d === t && o.b === bin) { if (o.to.indexOf(P.key) < 0) o.to.push(P.key); return true; } }
+    wsOut.push({ c: c, d: t, b: bin, to: [P.key] });
+    if (!wsFlushQ) { wsFlushQ = true; Promise.resolve().then(wsFlush); }
+    return true;
+  }
+  function wsFlush() {
+    wsFlushQ = false; var q = wsOut; wsOut = [];
+    q.forEach(function (o) { msg('broadcast', { type: 'broadcast', event: 'rl', payload: { f: R.me, to: o.to, c: o.c, d: o.d, b: o.b ? 1 : 0 } }); R.stats.tx++; });
+  }
+  function onRelay(m) {
+    if (!m || typeof m !== 'object' || typeof m.f !== 'string' || m.f === R.me || !Array.isArray(m.to) || m.to.length > MAX || m.to.indexOf(R.me) < 0) return;
+    if ((m.c !== 'u' && m.c !== 'r') || typeof m.d !== 'string' || m.d.length > MSG_MAX) { bad(); return; }
+    var P = R.peers[m.f];
+    if (!P || !present[m.f]) { bad(); return; }
+    if (!P.ws) viaServer(P);   // druhá strana už jede přes server: přidej se
+    var d = m.d;
+    if (m.b) { d = unb64(m.d); if (!d) { bad(); return; } }
+    onData(P, m.c, d);
   }
   function ctype(c) { var m = / typ (\w+)/.exec(String(c || '')); return m ? m[1] : '?'; }
   /* diagnostika spojení pro čekárnu: stav ICE a kolik kandidátů jakého typu (host/srflx/relay) jsme poslali a dostali */
@@ -372,6 +425,7 @@
   };
   R.linkState = function (k) { var P = R.peers[k]; return P ? P.state : null; };
   R.relayed = function (k) { var P = R.peers[k]; return !!(P && P.relay); };
+  R.viaServer = function (k) { var P = R.peers[k]; return !!(P && P.ws); };
 
   /* ---------- signalizace přes Realtime broadcast 'sig' ---------- */
   function sig(to, ty, d, n) {
@@ -450,13 +504,15 @@
   /* ---------- datové kanály ---------- */
   function eachOpen(fn) { for (var k in R.peers) { var P = R.peers[k]; if (P.state === 'open') fn(P); } }
   function sendU(P, data) {
+    if (P.ws) { P.lastTx = now(); return wsSend(P, 'u', data); }
     if (!P.u || P.u.readyState !== 'open') return false;
     try { P.u.send(data); P.lastTx = now(); R.stats.tx++; return true; } catch (e) { return false; }
   }
   function sendR(P, obj) {
-    if (!P.r || P.r.readyState !== 'open') return false;
+    if (!P.ws && (!P.r || P.r.readyState !== 'open')) return false;
     var s; try { s = typeof obj === 'string' ? obj : JSON.stringify(obj); } catch (e) { return false; }
     if (!s || s.length > MSG_MAX) return false;
+    if (P.ws) { P.lastTx = now(); return wsSend(P, 'r', s); }
     try { P.r.send(s); P.lastTx = now(); R.stats.tx++; return true; } catch (e) { return false; }
   }
   function onData(P, ch, d) {
@@ -564,7 +620,9 @@
     var b = enc(st, (seqOut + 1) & 0xffff, R.hostNow());
     if (!b) return 0;
     seqOut = (seqOut + 1) & 0xffff;
-    var n = 0; eachOpen(function (P) { if (sendU(P, b)) n++; });
+    var t = now(), wsOk = t - wsLastU >= WS_U_GAP, wsUsed = false, n = 0;   // přes server nejvýš 5× za s
+    eachOpen(function (P) { if (P.ws) { if (!wsOk) return; wsUsed = true; } if (sendU(P, b)) n++; });
+    if (wsUsed) wsLastU = t;
     return n;
   };
 
@@ -640,9 +698,9 @@
       P = R.peers[k];
       if (P.state === 'connecting') { if (t - P.since > ICE_TO) failure(P); continue; }
       if (P.state !== 'open') continue;
-      if (P.downAt && t - P.downAt > DOWN_TO) { failure(P); continue; }
+      if (!P.ws && P.downAt && t - P.downAt > DOWN_TO) { failure(P); continue; }
       if (!lag && !dead[k] && t - P.lastRx > HOST_TO) { dead[k] = 1; ch = true; }   // 2 s ticho: nemůže být hostitel
-      if (t - P.lastTx >= KA_EVERY) sendU(P, KA);
+      if (t - P.lastTx >= (P.ws ? WS_KA : KA_EVERY)) sendU(P, KA);
     }
     if (ch) recompute();
     var H = R.host && R.host !== R.me ? R.peers[R.host] : null;
@@ -673,5 +731,5 @@
   /* ---------- pro testy ---------- */
   R._enc = enc; R._dec = dec;
   R._in = function (key, ch, data) { var P = R.peers[key]; if (!P) { bad(); return; } onData(P, ch, data); };
-  R._reset = function () { R.leave(); names = {}; asked = {}; seqOut = 0; R.me = null; R.stats = { tx: 0, rx: 0, bad: 0, drop: 0, old: 0 }; R.mode = ''; lastTick = 0; };
+  R._reset = function () { R.leave(); names = {}; asked = {}; seqOut = 0; R.me = null; R.stats = { tx: 0, rx: 0, bad: 0, drop: 0, old: 0 }; R.mode = ''; lastTick = 0; wsOut = []; wsLastU = 0; };
 })();
