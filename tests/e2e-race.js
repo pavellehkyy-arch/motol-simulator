@@ -87,6 +87,8 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     for (let i = 0; i < 3; i++) { const b = await chromium.launch(LA); browsers.push(b); P.push(await mkPlayer(b, i, errs)); }
     const ev = (i, f, a) => P[i].page.evaluate(f, a);
     // host = nejstarší presence -> připojuj postupně
+    // A jede v časovkářské helmě na discích jako Albi: ostatní ho tak musí vidět
+    await ev(0, () => { const f = RaceNet.setLook; RaceNet.setLook = (o) => f(Object.assign({}, o, { hk: 'tt', wh: ['disc', 'disc'], al: 1, bk: 2 })); });
     for (let i = 0; i < 3; i++) {
       await ev(i, () => document.getElementById('btnNetRace').click());
       await until(() => ev(i, () => RaceNet.status === 'lobby'), 20000, 'lobby ' + i);
@@ -110,6 +112,11 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
       remotes: Object.keys(NETR.map).filter((k) => k !== RaceNet.me && k.indexOf('b:') !== 0).map((k) => ({ k, rem: NETR.map[k].remote, nm: NETR.map[k].name })) }))));
     ok('mode scratch u všech', st.every((s) => s.mode === 'scratch'), JSON.stringify(st.map((s) => s.mode)));
     ok('NETR.map: každý vidí 2 cizí hráče jako remote se jménem', st.every((s) => s.remotes.length === 2 && s.remotes.every((r) => r.rem && NICK.includes(r.nm))), JSON.stringify(st.map((s) => s.remotes.map((r) => r.nm))));
+    await until(() => ev(1, () => NETR.tags && Object.keys(NETR.tags).length === 2), 5000, 'jmenovky').catch(() => {});
+    const lk = await ev(1, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')), R = NETR.map[k], M = R.model, T = NETR.tags && NETR.tags[k];
+      return { helm: M.helmKind, gear: M.gear, albi: !!M.ph, swapped: !!R.model0, vis: M.g.visible, oldVis: R.model0 && R.model0.g.visible, tag: T && T.visible, nick: T && T.nick }; });
+    ok('vzhled A u B: helma, disky, Albi, vlastní model místo bota', lk.helm === 'tt' && lk.gear && lk.gear.join() === 'disc,disc' && lk.albi && lk.swapped && lk.vis && !lk.oldVis, JSON.stringify(lk));
+    ok('jmenovka nad A u B', lk.tag && lk.nick === 'Alfa', JSON.stringify(lk));
     const sameRiders = await Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.keys.map((k) => NETR.map[k] === __pl ? 'me' : NETR.map[k].name).join())));
     ok('mapování cizích hráčů na jezdce různá, žádný hráč není dvakrát', st.every((s, i) => new Set(s.remotes.map((r) => r.nm)).size === 2));
     await sleep(4000);
@@ -151,6 +158,11 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     await sleep(6000);
     const gone2 = await ev(oi, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return k ? { c: NETR.map[k].crashed, vis: NETR.map[k].model.g.visible } : null; });
     ok('odpadlý hráč A zmizí u zbylých z dráhy (skrytý, mimo pořadí) do ~6 s', gone2 && !gone2.vis, JSON.stringify([gone, gone2]));
+    // pád: C spadne, u B zůstane ležet na dráze (nezmizí)
+    await ev(2, () => __WALK().crash());
+    await sleep(3000);
+    const cr = await ev(1, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('cccccccc')), R = NETR.map[k]; return R ? { c: R.crashed, vis: R.model.g.visible, crash: !!R.crash, slip: R.crash && R.crash.slip, tag: NETR.tags[k] && NETR.tags[k].visible } : null; });
+    ok('spadlý hráč C u B leží na dráze (pád, viditelný, se jmenovkou)', cr && cr.c && cr.vis && cr.crash && cr.slip && cr.tag, JSON.stringify(cr));
     // dojezd: oba zbylí do cíle, stejné pořadí
     for (const i of [1, 2]) await ev(i, () => { __eff(1); });
     const fin = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ f: __pl.finished, c: __pl.crashed && __G().phase === 'ceremony', o: NETR.on })))); return a.every((x) => x.f || x.c) ? a : false; }, 240000, 'dojezd').catch((e) => null);

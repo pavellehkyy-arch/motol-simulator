@@ -19,7 +19,7 @@
   'use strict';
   var G = typeof window !== 'undefined' ? window : globalThis;
   var MAX = 8, ROOMS = 20, HB = 25000, TOKEN_EVERY = 60000, TICK = 200,
-    DELAY = 150, EXTRA = 500, BUF = 20, ICE_TO = 10000, DOWN_TO = 4000, HOST_TO = 2000,
+    DELAY = 150, EXTRA = 500, BUF = 20, ICE_TO = 6000, DOWN_TO = 4000, HOST_TO = 2000,
     PING_EVERY = 2000, KA_EVERY = 300, SIG_WAIT = 3000, MSG_MAX = 16000, LAP = 153.846, PKT = 32;
   var FALLBACK_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
   var EV_NAME = /^[A-Za-z0-9_-]{1,32}$/;
@@ -35,6 +35,7 @@
   var tracked = false, stick = false, myT = 0, mySt = 'wait', present = {}, dead = {}, hostAnn = {}, maxEp = 0;
   var clockOff = 0, offs = [], pings = {}, lastPing = 0, seqOut = 0, pendSig = [], iceP = null;
   var hbT = null, tokT = null, tickT = null, retryT = null, retries = 0, hbRef = null, gen = 0, names = {}, asked = {};
+  var myLk = null;
   var KA = new Uint8Array([2]).buffer;   // keepalive na kanálu 'u' (1 bajt)
 
   function O() { return G.Online; }
@@ -135,7 +136,7 @@
     room++; var g = gen;
     O().accessToken(300).then(function (t) { if (want && ws && g === gen) join(t); }, function () { if (g === gen && ws) try { ws.close(); } catch (e) {} });
   }
-  function track() { if (topic) msg('presence', { type: 'presence', event: 'track', payload: { t: myT, st: mySt } }); }
+  function track() { if (topic) msg('presence', { type: 'presence', event: 'track', payload: { t: myT, st: mySt, lk: myLk } }); }
 
   /* presence meta { t: čas připojení, st: 'wait'|'race' } */
   function meta(entry) {
@@ -144,10 +145,17 @@
     var best = null;
     for (var i = 0; i < ms.length; i++) {
       var m = ms[i] || {}, t = fin(m.t) ? m.t : Infinity;
-      if (!best || t < best.t) best = { t: t, st: m.st === 'race' ? 'race' : 'wait' };
+      if (!best || t < best.t) best = { t: t, st: m.st === 'race' ? 'race' : 'wait', lk: okLook(m.lk) };
     }
     return best;
   }
+  /* vzhled jezdce (helma, kola, pleť…): jen malý plochý objekt, obsah kontroluje hra */
+  function okLook(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    try { return JSON.stringify(o).length <= 300 ? o : null; } catch (e) { return null; }
+  }
+  R.setLook = function (o) { myLk = okLook(o); if (tracked) track(); };
+  R.look = function (k) { if (k === R.me) return myLk; var p = present[k]; return p && p.lk || null; };
   function order(a, b) { return a.t !== b.t ? (a.t < b.t ? -1 : 1) : (a.k < b.k ? -1 : a.k > b.k ? 1 : 0); }
   function sortedOf(map, withMe) {
     var a = [];
@@ -352,12 +360,13 @@
       }, noop);
     } catch (e) {}
   }
-  /* ICE se nespojilo / spojení spadlo: jednou zkusit znovu (nové spojení), pak je hráč nedostupný */
+  /* ICE se nespojilo do 6 s: hned záloha přes server (druhý pokus napřímo by jen prodloužil čekání).
+     Spadlo už otevřené spojení: jednou zkusit znovu napřímo, pak záloha; bez serveru je hráč nedostupný */
   function failure(P) {
     if (R.peers[P.key] !== P || P.state === 'failed') return;
     var wasOpen = P.state === 'open';
     closePc(P);
-    if (P.tries < 1) {
+    if (P.tries < 1 && (wasOpen || !(ws && topic && tracked))) {
       P.tries++; P.state = 'connecting'; P.since = now(); P.downAt = 0;
       if (wasOpen) cb('onLink', P.key, 'connecting');
       if (P.offerer) { P.n++; offer(P); }   // druhá strana čeká na novou nabídku

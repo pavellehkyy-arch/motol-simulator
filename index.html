@@ -280,7 +280,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v3.1</div>
+    <div class="sub">v3.2</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -4737,18 +4737,41 @@ function walkStop(){mpLeave();bikePickClose();if(WALK.ride)rideStop();if(WALK.ac
 // Každý hráč řídí svého jezdce (riders[0]) a 10× za s posílá jeho stav přímo ostatním. Cizí lidé jedou na místech botů (POOL od konce),
 // zbytek polí jsou boti: počítá je hostitel a 5× za s posílá snímek. Pořadí v cíli = čas protnutí cíle v hodinách hostitele (stejné u všech).
 const NETR={on:false,host:false,map:{},keys:[],goAt:0,fin:{},sendT:0,snapT:0,race:null,uiT:null,endT:null,gone:{}};window.NETR=NETR;
-const NET_DELAY=5000,NET_SEND=0.1,NET_SNAP=0.2;
+const NET_DELAY=3500,NET_SEND=0.1,NET_SNAP=0.2;
 function netPool(){return riders.filter(r=>!r.player&&!r.partner);}
 function netKeyOf(R){return R.player?(window.RaceNet&&RaceNet.me):R.netKey||('b:'+R.name0);}
-function netClean(){for(const R of riders){if(R.name0!=null){R.name=R.name0;}R.remote=false;R.netKey=null;R.netOff=false;R.netT=null;R.netFinAt=null;R.netStale=false;}}
+function netClean(){netTagsOff();for(const R of riders){netUndress(R);if(R.name0!=null){R.name=R.name0;}R.remote=false;R.netKey=null;R.netOff=false;R.netT=null;R.netFinAt=null;R.netStale=false;}}
 function netEsc(t){return String(t).replace(/[<>&"']/g,'');}
+// ---- vzhled cizích lidí: posílá se v presence (RaceNet.setLook), každý vidí helmu, kola, aero, kolo z válců, pleť a Albiho jako jeho majitel
+function netMyLook(){const own=shopOwned(),wk=slot=>SHOP_ITEMS.find(i=>i.id===wornWheel(slot,own)).wk;let bk=-1;try{const v=localStorage.getItem('motol_bike');if(v!=null&&BIKE_COLS[+v])bk=+v;}catch(e){}
+  return {sk:PL_SKIN!=null?PL_SKIN:player.skin,ha:player.hair,hk:player.helm||'road',wh:[wk('r'),wk('f')],cv:aeroWorn('aero_covers',own)?1:0,gl:aeroWorn('aero_gloves',own)?1:0,bk,al:ALBI_ME?1:0};}
+function netLookOk(o){if(!o||typeof o!=='object')return null;const col=c=>Number.isInteger(c)&&c>=0&&c<=0xffffff,WK=SHOP_ITEMS.filter(i=>i.slot).map(i=>i.wk),HK=SHOP_ITEMS.filter(i=>i.kind).map(i=>i.kind);
+  const wh=Array.isArray(o.wh)&&o.wh.length===2?o.wh.map(w=>WK.includes(w)?w:'wire'):['wire','wire'];
+  return {sk:col(o.sk)?o.sk:0xd9a37c,ha:col(o.ha)?o.ha:0x3b2a1c,hk:HK.includes(o.hk)?o.hk:'road',wh,cv:!!o.cv,gl:!!o.gl,bk:Number.isInteger(o.bk)&&BIKE_COLS[o.bk]?o.bk:-1,al:!!o.al};}
+// model se postaví jednou na hráče (NETR.mdl, znovu jen když se vzhled změní); místo bota ho vrátí netUndress
+function netDress(R,k){const L=netLookOk(RaceNet.look&&RaceNet.look(k));if(!L)return;const sig=JSON.stringify(L);NETR.mdl=NETR.mdl||{};let C=NETR.mdl[k];
+  if(!C||C.sig!==sig){if(C){C.M.g.visible=false;albiBike(C.M,false);scene.remove(C.M.g);}
+    const M=makeRider(Object.assign({},ROSTER[0],{aero:false,shoe:0xffffff,skin:L.al?ALBI_SKIN:L.sk,hair:L.ha,num:R.num}));shadowify(M.g);M.g.visible=false;
+    gearOn(M,L.hk,L.wh,L.cv,L.gl);paintBike(M.bike,L.bk>=0?BIKE_COLS[L.bk]:[ROSTER[0].frame,ROSTER[0].accent]);if(L.al)albiBike(M,true);C=NETR.mdl[k]={sig,M};}
+  if(R.model===C.M)return;if(!R.model0)R.model0=R.model;C.M.g.visible=R.model.g.visible;R.model.g.visible=false;R.model=C.M;}
+function netUndress(R){if(!R.model0)return;const v=R.model.g.visible;R.model.g.visible=false;R.model=R.model0;R.model.g.visible=v;R.model0=null;}
+// ---- jmenovky nad cizími lidmi (stejná cedulka jako na ploše, mpTagTex), vidět i přes ostatní jezdce
+function netTagsOff(){for(const k in NETR.tags||{})NETR.tags[k].visible=false;}
+function netTags(){const N=window.RaceNet;NETR.tags=NETR.tags||{};const show=phase!=='ceremony';
+  for(const k in NETR.tags)if(!NETR.map[k]||NETR.map[k].player)NETR.tags[k].visible=false;
+  for(const k in NETR.map){const R=NETR.map[k];if(R.player||R.netKey!==k||k.indexOf('b:')===0)continue;let T=NETR.tags[k];
+    if(!T){T=NETR.tags[k]=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,depthTest:false,depthWrite:false}));T.renderOrder=20;T.scale.set(1.04,0.26,1);T.nick=null;scene.add(T);}
+    const nm=N.name&&N.name(k),nick=nm&&nm.nick?netEsc(nm.nick):'Hráč',gold=!!(nm&&nm.gold);if(T.nick!==nick||T.gold!==gold){T.nick=nick;T.gold=gold;mpTagTex(T,nick,gold);R.name=nick;}
+    T.visible=show&&R.model.g.visible;if(!T.visible)continue;const p=R.model.g.position;T.position.set(p.x,p.y+(R.crashed?0.9:2.05),p.z);}}
+// ---- pád cizího jezdce (člověk i bot od hostitele): spadne u nás stejně jako bot (crashRider + crashUpdate), zůstane ležet a nezmizí
+function netCrash(R,slip){if(R.crashed)return;const f=R.finished;R.netStale=false;R.model.g.visible=true;R.remote=false;R.finished=false;try{crashRider(R,slip?'slip':'net');}finally{R.remote=true;R.finished=f;}}
 // pořadí v cíli pro server: jen jezdci, kteří už opravdu projeli cílem (kdo ještě jede nebo spadl, je null, ať nikomu nekazí místo)
 function netOrder(){const uid=window.Online&&Online.uid?Online.uid():null;return standings().slice(0,12).map(R=>!R.finished||R.crashed?null:R.player?uid:R.netKey&&R.netKey.indexOf('b:')!==0?R.netKey.split(':')[0]:null);}
 // rozdělení jezdců podle seznamu hráčů od hostitele (stejné na všech zařízeních)
-function netAssign(members){const pool=netPool(),me=RaceNet.me;NETR.map={};NETR.snapQ=-1;for(const R of riders){R.netFinAt=null;R.netStale=false;}NETR.keys=members.slice(0,pool.length-1);
+function netAssign(members){const pool=netPool(),me=RaceNet.me;NETR.map={};NETR.snapQ=-1;netTagsOff();for(const R of riders){netUndress(R);R.netFinAt=null;R.netStale=false;}NETR.keys=members.slice(0,pool.length-1);
   pool.forEach(R=>{if(R.name0==null)R.name0=R.name;R.name=R.name0;R.netKey='b:'+R.name0;R.remote=!NETR.host;R.netOff=false;R.netT=null;});
   NETR.keys.forEach((k,j)=>{const R=pool[pool.length-1-j];if(k===me){R.netOff=true;R.remote=true;R.model.g.visible=false;return;}
-    R.netKey=k;R.remote=true;const nm=RaceNet.name&&RaceNet.name(k);R.name=nm&&nm.nick?netEsc(nm.nick):'Hráč';NETR.map[k]=R;});
+    R.netKey=k;R.remote=true;const nm=RaceNet.name&&RaceNet.name(k);R.name=nm&&nm.nick?netEsc(nm.nick):'Hráč';NETR.map[k]=R;netDress(R,k);});
   NETR.bots=[];for(const R of pool)if(!R.netOff&&R.netKey.indexOf('b:')===0){NETR.map[R.netKey]=R;NETR.bots.push(R);}NETR.map[me]=player;}
 // startovní rozestavení podle hostitele (jinak by si ho každý vylosoval jinak)
 function netGrid(grid){const L=grid.map(k=>NETR.map[k]).filter(R=>R&&R.model.g.visible&&!R.netOff);
@@ -4776,25 +4799,26 @@ function netEvent(from,k,d){if(!NETR.on||!d)return;
   else if(k==='fin'&&isFinite(d.at)){const id=from===RaceNet.host&&typeof d.id==='string'&&d.id.indexOf('b:')===0?d.id:from,R=NETR.map[id];if(R&&!R.player)netFinish(R,+d.at);}}
 function netSnap(o,from){if(!NETR.on||NETR.host||from!==RaceNet.host||!Array.isArray(o.b))return;if(isFinite(o.q)){if(o.q<=NETR.snapQ&&NETR.snapQ-o.q<1000)return;NETR.snapQ=+o.q;}const t=Date.now();
   for(const q of o.b){if(!Array.isArray(q)||q.length<6)continue;const R=NETR.map['b:'+q[0]];if(!R||!R.remote||R.player)continue;
-    if(![q[1],q[2],q[3],q[4]].every(isFinite))continue;R.netT={s:+q[1],w:+q[2],v:+q[3],t};R.energy=+q[4]*100;if(q[5]&&!R.crashed){R.crashed=true;R.model.g.visible=false;}}}
+    if(![q[1],q[2],q[3],q[4]].every(isFinite))continue;R.netT={s:+q[1],w:+q[2],v:+q[3],t};R.energy=+q[4]*100;if(q[5]&&!R.crashed){if(Math.abs(+q[1]-R.s)<8){R.s=+q[1];R.w=+q[2];}R.v=+q[3];netCrash(R,q[5]===2);}}}
 function netHost(isMe){if(!NETR.on)return;NETR.host=isMe;if(!isMe){for(const R of NETR.bots||[]){R.remote=true;R.netT=null;}NETR.snapQ=-1;return;}   // převzetí: boti pojedou dál podle mé simulace z místa, kde jsou
   for(const R of NETR.bots||[]){R.remote=false;R.netT=null;R.power=R.power||200;}
   showMsg('🌐<small>Hostitel odpadl – závod řídíš ty</small>',2.5);}
 function netTick(dt){const N=window.RaceNet;if(!NETR.on||!N)return;const now=Date.now();
-  NETR.sendT-=dt;if(NETR.sendT<=0){NETR.sendT=NET_SEND;const P=player;N.send({s:P.s,w:P.w,v:P.v,e:clamp(P.energy/100,0,1),f:clamp(effort,0,1),l:0,fl:(P.crashed?1:0)|(P.finished?2:0)});}
+  NETR.sendT-=dt;if(NETR.sendT<=0){NETR.sendT=NET_SEND;const P=player;N.send({s:P.s,w:P.w,v:P.v,e:clamp(P.energy/100,0,1),f:clamp(effort,0,1),l:0,fl:(P.crashed?1:0)|(P.finished?2:0)|(P.crash&&P.crash.slip?4:0)});}
   if(player.finished&&player.netFinAt==null&&!player.crashed){const at=N.hostNow()-(raceTime-player.time)*1000;player.netFinAt=at;if(NETR.goAt)player.time=(at-NETR.goAt)/1000;N.event('fin',{at});}
   if(NETR.host){NETR.snapT-=dt;const bots=NETR.bots||[];
-    if(NETR.snapT<=0){NETR.snapT=NET_SNAP;NETR.snapN=(NETR.snapN||0)+1;N.snap({q:NETR.snapN,b:bots.filter(R=>R.model.g.visible).map(R=>[R.name0,+R.s.toFixed(2),+R.w.toFixed(2),+R.v.toFixed(2),+(R.energy/100).toFixed(2),R.crashed?1:0])});}
+    if(NETR.snapT<=0){NETR.snapT=NET_SNAP;NETR.snapN=(NETR.snapN||0)+1;N.snap({q:NETR.snapN,b:bots.filter(R=>R.model.g.visible).map(R=>[R.name0,+R.s.toFixed(2),+R.w.toFixed(2),+R.v.toFixed(2),+(R.energy/100).toFixed(2),R.crashed?(R.crash&&R.crash.slip?2:1):0])});}
     for(const R of bots)if(R.finished&&R.netFinAt==null){R.netFinAt=N.hostNow()-(raceTime-R.time)*1000;if(NETR.goAt)R.time=(R.netFinAt-NETR.goAt)/1000;N.event('fin',{id:R.netKey,at:R.netFinAt});}}
   for(const k in NETR.map){const R=NETR.map[k];if(R.player||!R.remote||R.netOff||R.crashed)continue;let s,w,v;
     if(R.netKey.indexOf('b:')===0){const q=R.netT;if(!q)continue;const ex=Math.min(0.5,(now-q.t)/1000);s=q.s+q.v*ex;w=q.w;v=q.v;}
     else{const P=N.peers[k],b=P&&P.buf,age=b&&b.length?now-b[b.length-1].t:1e9,q=age<1500?N.sample(k,now):null;
       // nic nepřišlo přes 1,5 s (spadlé spojení, aplikace v pozadí): jezdec zmizí z dráhy, ať do něj nikdo nenajede; po návratu se zase ukáže
       if(!q){if(!R.netStale){R.netStale=true;R.model.g.visible=false;}continue;}
-      if(R.netStale){R.netStale=false;R.model.g.visible=true;}s=q.s+q.l*N.LAP;w=q.w;v=q.v;R.power=q.f*500;if(q.fl&1){R.crashed=true;R.model.g.visible=false;continue;}}
+      if(R.netStale){R.netStale=false;R.model.g.visible=true;}s=q.s+q.l*N.LAP;w=q.w;v=q.v;R.power=q.f*500;if(q.fl&1){if(Math.abs(s-R.s)<8){R.s=s;R.w=w;}R.v=v;netCrash(R,!!(q.fl&4));continue;}}
     const k1=1-Math.exp(-dt*12);if(Math.abs(s-R.s)>8){R.s=s;R.w=w;}else{R.s+=(s-R.s)*k1;R.w+=(w-R.w)*k1;}
-    R.v=v;R.h=surfY(R.s,R.w);R.crank+=R.v/7.6*2*PI*dt;R.prevS=R.s;}}
-function netEnd(){clearTimeout(NETR.endT);NETR.endT=null;if(window.RaceNet)RaceNet.leave();NETR.on=false;NETR.host=false;
+    R.v=v;R.h=surfY(R.s,R.w);R.crank+=R.v/7.6*2*PI*dt;R.prevS=R.s;}
+  netTags();}
+function netEnd(){clearTimeout(NETR.endT);NETR.endT=null;netTagsOff();if(window.RaceNet)RaceNet.leave();NETR.on=false;NETR.host=false;
   if(phase!=='race'&&phase!=='done'&&phase!=='ceremony'&&phase!=='countdown')netClean();}
 // po vyhlášení: ještě chvíli posílej (ostatní dojíždějí), pak odpoj
 function netCeremony(){if(!NETR.on)return;clearTimeout(NETR.endT);NETR.endT=setTimeout(netEnd,20000);}
@@ -4811,7 +4835,7 @@ function netLobbyUI(){const N=window.RaceNet;if(!N)return;const st=N.status,m=N.
   $('netHint').textContent=st!=='lobby'?'':bad?'🔴 S '+bad+(bad===1?' hráčem':' hráči')+' se nedá spojit napřímo (bez přenosového serveru TURN). Zkuste stejnou Wi-Fi, nebo ať odejde a přijde znovu.'+(host&&ready?' Můžeš odstartovat bez něj.':''):host?(others.length?(ready?'Všichni jsou spojení, můžeš odstartovat.':'Čekám na spojení se všemi…'):'Čekám na další hráče (max. 8).'):'Start dá hostitel.';}
 function netLobby(){const N=window.RaceNet;if(!N)return;if(NETR.on)netEnd();N.leave();netClean();
   N.onStart=netStart;N.onEvent=netEvent;N.onSnap=netSnap;N.onHost=netHost;
-  $('netLobby').style.display='flex';N.join('scratch');clearInterval(NETR.uiT);NETR.uiT=setInterval(netLobbyUI,400);netLobbyUI();}
+  $('netLobby').style.display='flex';if(N.setLook)N.setLook(netMyLook());N.join('scratch');clearInterval(NETR.uiT);NETR.uiT=setInterval(netLobbyUI,400);netLobbyUI();}
 function netLobbyClose(){clearInterval(NETR.uiT);$('netLobby').style.display='none';if(!NETR.on&&window.RaceNet)RaceNet.leave();}
 $('btnNetRace').onclick=()=>{const sp=$('btnNetRace').querySelector('span');if(!(window.Online&&Online.multi&&window.RaceNet&&window.RTCPeerConnection)){sp.textContent='online závod teď nejde';setTimeout(()=>{sp.textContent='proti lidem · max. 8';},3000);return;}
   Online.multi(netLobby);};
