@@ -129,4 +129,14 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - Oprava AI: bez právního dopadu.
 - Žádné nové riziko, otevřené body beze změny.
 
-Poslední kontrola: 9d93fa3f433c015fd9634f92e983d9003ad06ab6 2026-11-28
+## Kontrola updatu 9d93fa3..438d4e8 + necommitnuto (v3.6, 28. 11. 2026)
+- 438d4e8 (stíny rámu, předjíždění, gesta): jen opravy, bez právního dopadu.
+- **Hra za Albiho jen pro Gold účty** (`albiSwap`, `window.applyGold`, online.js `coachOut` + `getProfile` čte `badge`):
+  - Údaje: `badge` je údaj, který už server o účtu má (žebříček ho vrací). Klient ho jen čte z vlastního profilu, nikam ho neposílá a neukládá. Nový údaj ani nová služba nepřibyly, zásady o něm mluvit nemusí. 🟢
+  - Spotřebitelské právo: Gold se nedá koupit, uděluje ho jen autor ručně, hra je zdarma a autor není podnikatel → zákon o ochraně spotřebitele (nekalé praktiky) ani pravidla o digitálním obsahu se teď neuplatní. Slovo „prémiové“ ale u herních účtů obvykle znamená „placené“. Hráči se pak můžou ptát, jak Gold koupit, a vypadá to, že hra prodává podobiznu skutečného člověka. 🟢 **Návrh:** index.html ř. 4723 změnit text na `'⭐ Hrát za Albiho můžou jen <b>Gold</b> účty (uděluje autor hry).'` (nebo jen vypustit „(prémiové)“).
+  - Pokud by se Gold někdy prodával (za peníze, předplatné nebo odměnou za platbu), nastanou nové povinnosti: spotřebitelské právo (informace před uzavřením smlouvy, právo odstoupit, obchodní podmínky), daně a živnost, nový platební zpracovatel v zásadách. Hlavně je potřeba **písemný souhlas Albiho s komerčním využitím podoby** (§ 85–90 OZ), protože jeho dosavadní souhlas se týká bezplatné hry. Před takovým krokem doporučuji konzultaci s advokátem. 🟠 (zatím jen podmíněné)
+  - Omezení je jen v klientu. Cizí klient může poslat `a:1` (plocha, multi.js ř. 154) nebo `al:1` (vzhled v závodě, index.html ř. 4778) a ostatním se ukáže jako Albi, i když Gold nemá. Pokud Albi souhlasil jen s tím, že za něj budou hrát Gold hráči, souhlas technicky vynucený není. 🟢 **Návrh:** na straně příjemce zobrazit Albiho jen tehdy, když `get_public_names` u odesílatele vrací odznak `gold` (jinak `a`/`al` ignorovat).
+  - Drobnost v zásadách: „Co vidí ostatní: jen tvou přezdívku a výsledky v žebříčku“ (online.js ř. 530) nezmiňuje veřejný odznak Gold (žebříček, plocha). 🟢 **Návrh:** změnit na `'jen tvou přezdívku (u Gold účtu i odznak GOLD) a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.'`
+- Celkově: nic, co by bránilo sloučení. Otevřené body beze změny.
+
+Poslední kontrola: 438d4e8e1011242c0b0a3a33a6ecc025ccf246dd + necommitnuté změny v3.6 2026-11-28

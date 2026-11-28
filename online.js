@@ -35,7 +35,7 @@
   var O = {};
   G.Online = O;
   var S = null;        // přihlášení: {access, refresh, exp, email}
-  var P = null;        // profil ze serveru: {nickname, nickname_status, money, imported, coach}
+  var P = null;        // profil ze serveru: {nickname, nickname_status, money, imported, coach, badge}
   var ui = function () {};
 
   /* ---------- úložiště ---------- */
@@ -193,7 +193,7 @@
   /* ---------- synchronizace účtu s hrou ---------- */
   var syncing = null;
   function getProfile(t) {
-    return getTable('profiles?select=nickname,nickname_status,money,imported,coach', t).then(function (r) {
+    return getTable('profiles?select=nickname,nickname_status,money,imported,coach,badge', t).then(function (r) {
       return r.ok && Array.isArray(r.data) ? (r.data[0] || null) : undefined;   // undefined = chyba
     });
   }
@@ -346,7 +346,8 @@
   };
 
   /* vlastní trenér: hráč pošle jméno a popis, autor hry podle něj vyplní profiles.coach (vidí ho jen tenhle účet) */
-  function coachOut() { try { if (typeof G.applyCoach === 'function') G.applyCoach(P && P.coach && typeof P.coach === 'object' ? P.coach : null); } catch (e) {} }
+  function coachOut() { try { if (typeof G.applyCoach === 'function') G.applyCoach(P && P.coach && typeof P.coach === 'object' ? P.coach : null); } catch (e) {}
+    try { if (typeof G.applyGold === 'function') G.applyGold(!!(P && P.badge === 'gold')); } catch (e) {} }   /* Albi jen pro Gold účty */
   O.coach = function () { return P && P.coach && typeof P.coach === 'object' ? P.coach : null; };
   O.sendCoach = function (name, look, behavior) {
     var n = String(name || '').trim(), l = String(look || '').trim(), b = String(behavior || '').trim();
@@ -526,7 +527,7 @@
       sec('Bez účtu:', 'nic neodesíláme. Postup, penízky a vybavení se ukládají jen v tvém prohlížeči.');
       sec('S účtem ukládáme:', 'e-mail, přezdívku, výsledky závodů, penízky, nákupy, návrhy ze schránky a žádosti o vlastního trenéra (jméno, popis vzhledu a chování). E-mail používáme jen k přihlášení: posíláme na něj jednorázový kód (přihlášení zajišťuje Supabase, e-mail doručuje francouzská služba Brevo se servery v EU) a nic jiného. Účet je dobrovolný; bez e-mailu ho založit nejde, ale celá hra kromě žebříčku a online hry jde hrát i bez něj.');
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Kontrola času startu a cíle online závodů a schvalování přezdívek slouží k poctivému a slušnému žebříčku (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery. Nic se nevyhodnocuje automaticky tak, aby to mělo vliv na tebe, kromě skrytí zjevně nemožného nebo neověřeného výsledku z žebříčku.');
-      sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
+      sec('Co vidí ostatní:', 'jen tvou přezdívku (u Gold účtu i odznak GOLD) a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
       sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb, přezdívku (jen schválenou), náhodné číslo účtu (bez e-mailu) a zprávy, které napíšeš do chatu, dokud tam jsi. Zprávy vidí jen hráči, kteří jsou zrovna s tebou na ploše. Nikam se to neukládá.');
       sec('Online závod:', 'když se přidáš do online závodu, propojí se tvé zařízení přímo se zařízeními ostatních jezdců v závodě (WebRTC). Posílá se jim poloha a rychlost tvého jezdce, jeho vzhled (helma, kola, barvy), přezdívka (jen schválená) a náhodné číslo účtu, ze kterého nejde zjistit tvůj e-mail. Při přímém spojení ostatní hráči technicky vidí tvou IP adresu. K navázání spojení se tvé zařízení ptá STUN serveru Googlu nebo Cloudflare, který tak uvidí tvou IP adresu. Když přímé spojení nejde, data jdou přes přenosový (TURN) server poskytovatele Cloudflare nebo Metered, případně přes server hry (Supabase); ty data jen přeposílají a neukládají. Na serveru hry se k závodu ukládá čas startu a cíle, režim a pořadí, které jsi nahlásil, kvůli kontrole poctivosti výsledků; mažou se po 30 dnech.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu. Supabase, GitHub, Cloudflare, Google a Metered mohou údaje (hlavně IP adresu) zpracovat i v USA; předávání je kryté rámcem EU–USA pro ochranu údajů (Data Privacy Framework) nebo standardními smluvními doložkami.');
@@ -820,7 +821,7 @@
     try {
       loadSess();
       initUI();
-      if (S) O.sync();
+      if (S) O.sync(); else coachOut();   /* nepřihlášený: bez Gold, bez vlastního trenéra */
     } catch (e) {}
   };
   /* jiná karta obnovila přihlášení (nový obnovovací klíč): převezmi ho, ať se karty navzájem neodhlásí */
