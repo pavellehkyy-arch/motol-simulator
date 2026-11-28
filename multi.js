@@ -50,14 +50,16 @@
     return msg('broadcast', { type: 'broadcast', event: 'p', payload: st });
   };
 
-  /* chat: krátká zpráva všem v místnosti (max. 120 znaků, nejvýš 1 za 2 s); nic se neukládá */
-  var CHAT_MAX = 120, CHAT_GAP = 2000, lastChat = 0, chatIn = {};
+  /* chat: krátká zpráva všem v místnosti (max. 120 znaků, Gold účet 1000; nejvýš 1 za 2 s); nic se neukládá */
+  var CHAT_MAX = 120, CHAT_GOLD = 1000, CHAT_GAP = 2000, lastChat = 0, chatIn = {};
   M.chat = [];   // posledních 20 zpráv: { u, me, text, t }
   M.onChat = null;
-  function cleanText(t) { return String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX); }
+  function cleanText(t, max) { return String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max || CHAT_MAX); }
+  function meGold() { var p = O() && O().profile && O().profile(); return !!(p && p.badge === 'gold'); }
+  M.chatMax = function () { return meGold() ? CHAT_GOLD : CHAT_MAX; };
   function pushChat(c) { M.chat.push(c); if (M.chat.length > 20) M.chat.shift(); if (typeof M.onChat === 'function') { try { M.onChat(c); } catch (e) {} } }
   M.say = function (text) {
-    var t = cleanText(text);
+    var t = cleanText(text, M.chatMax());
     if (!t || M.status !== 'on' || !tracked) return false;
     if (nowMs() - lastChat < CHAT_GAP) return false;
     lastChat = nowMs();
@@ -158,7 +160,7 @@
     if (m.event === 'broadcast' && p.event === 'c') {
       var c = p.payload;
       if (!c || typeof c.u !== 'string' || c.u === me || !present[c.u]) { M.stats.bad++; return; }
-      var tx = cleanText(c.m), acc = c.u.split(':')[0], tn = nowMs();
+      var tx = cleanText(c.m, names[c.u] && names[c.u].gold ? CHAT_GOLD : CHAT_MAX), acc = c.u.split(':')[0], tn = nowMs();
       if (!tx || tn - (chatIn[acc] || 0) < CHAT_GAP - 300) return;   // cizí klient, co posílá moc rychle
       chatIn[acc] = tn; M.stats.rx++;
       pushChat({ u: c.u, me: false, text: tx, t: tn });
