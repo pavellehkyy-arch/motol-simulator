@@ -89,6 +89,13 @@ Postup u nové featury: `game-designer` navrhne, `race-rules-expert` ověří pr
 
 Dva nezávislé úkoly spouštěj paralelně. Agenty neřetěz zbytečně, každý stojí tokeny.
 
+## Testy (rychlý recept)
+
+- `tests/rychle.sh` = všechny unit testy (`tests/*.test.js`, bez prohlížeče, ~7 s). Pouštěj po každé změně.
+- `tests/rychle.sh --net` = navíc oba online e2e (scratch 4 kola, sprint 1v1 2 kola) najednou, ~2 min. Jen při změně online závodu (`race-net.js`, `multi.js`, bloky ZÁVOD ONLINE a online sprint v `index.html`); jinde stačí unit testy a kontrola načtení stránky.
+- Zkrácení závodu dělá `index.html?kola=N#debug` (`DBG_LAPS`, jen scratch a sprint, jen v `#debug`). Nový online režim (např. omnium) dostane vlastní `tests/e2e-<režim>.js` podle `e2e-sprint.js` a řádek v `rychle.sh`.
+- Three.js r128 si skript stáhne sám do `/tmp/three-r128` (npm). Vlastní testy v Node, žádné npm závislosti v repu.
+
 ## Konvence
 
 - Odpovídej česky. Texty ve hře jsou česky.
