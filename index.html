@@ -293,7 +293,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="intro"><div class="ibar"><div id="introMode">SCRATCH</div><div id="introSub">13 kol · 2 km</div></div><button class="go" id="introSkip">⏩ Přeskočit (Mezerník)</button></div>
 <div id="count"></div><div id="flash"></div>
 <div id="walkUI"><div id="joy"><i></i></div><div id="mpBadge"></div><div id="mpLog"></div><button class="go alt" id="mpChatBtn" aria-label="Napsat zprávu">💬</button><form id="mpChatF" autocomplete="off"><input id="mpChatIn" maxlength="120" enterkeyhint="send" placeholder="Zpráva pro ostatní…" aria-label="Zpráva pro ostatní"><button class="go" type="submit">Poslat</button><button class="go alt" type="button" id="mpChatX" aria-label="Zavřít">✕</button></form><button class="go alt" id="walkMenu">✕ Menu</button><div id="walkMsg"></div><button class="go" id="walkAct" style="display:none"></button><div id="bikePick" style="display:none"><b>Vyber si kolo</b><div id="bikeSw"></div><button class="go alt" id="bikePickX">Zavřít</button></div><div id="rideUI" style="display:none"><span id="rideCnt"></span><input type="range" id="rideEff" min="0" max="100" value="45" aria-label="Šlapání"><button class="go alt" id="rideOff">Sesednout</button></div></div>
-<div id="netLobby" class="screen" style="display:none;z-index:40"><div class="card mcard" style="max-width:420px">
+<div id="netLobby" class="screen" style="display:none;z-index:40"><div class="card mcard" style="max-width:460px;background:rgba(8,20,40,.95);border:1px solid rgba(127,211,255,.35);border-radius:18px;padding:18px 18px 14px;box-shadow:0 12px 40px rgba(0,0,0,.5)">
   <h1 style="font-size:24px;margin:0 0 4px">🌐 Scratch online</h1><div class="sub" id="netSt" style="margin-bottom:10px">⏳ Připojuju…</div>
   <div id="netList" style="text-align:left;font-size:15px;line-height:1.7;margin:0 0 10px"></div>
   <div id="netHint" style="font-size:13px;opacity:.8;margin-bottom:10px"></div>
@@ -4761,7 +4761,7 @@ function netStart(o){const info=o.info||{};if(!Array.isArray(info.members)||!Arr
   if(phase==='walk'){if(wipeBusy){walkStop();go();}else wipe(()=>{walkStop();go();});}else go();}
 function netGo(at){if(!NETR.on)return;NETR.goAt=at;if(NEU&&NEU.on)startBunchRace();for(const k in NETR.map){const R=NETR.map[k];if(R.finished&&R.netFinAt!=null)R.time=(R.netFinAt-at)/1000;}}
 // hostitel spouští závod: seznam lidí a losované pořadí na startu
-function netHostStart(){if(!RaceNet.isHost())return;const mem=RaceNet.members().slice(0,netPool().length-1);
+function netHostStart(){if(!RaceNet.isHost())return;const mem=RaceNet.members().filter(k=>k===RaceNet.me||RaceNet.linkState(k)==='open').slice(0,netPool().length-1);
   const bots=netPool().slice(0,netPool().length-mem.length).map(R=>'b:'+(R.name0==null?R.name:R.name0));
   const grid=mem.concat(bots).sort(()=>Math.random()-.5);RaceNet.startRace(NET_DELAY,{mode:'scratch',members:mem,grid});}
 // cíl cizího jezdce: jen věrohodný čas (scratch nejde pod minutu) a jen když je opravdu u cíle
@@ -4800,10 +4800,12 @@ function netLobbyUI(){const N=window.RaceNet;if(!N)return;const st=N.status,m=N.
   const txt={connecting:'⏳ Připojuju…',lobby:'🟢 Čekárna – závod '+(N.room||''),race:'🏁 Závod začíná…',full:'🔴 Všechny závody jsou plné, zkus to za chvíli.',denied:'🔴 Online závod teď nejde (přihlášení nebo přezdívka).',error:'🟠 Spojení spadlo, zkouším znovu…',off:'⚪ Odpojeno'}[st]||st;
   $('netSt').textContent=txt;
   $('netList').innerHTML=m.map(k=>{const nm=N.name&&N.name(k),ls=k===N.me?'':N.linkState?N.linkState(k):'';const ic=k===N.me?'🙂':ls==='open'?(N.relayed&&N.relayed(k)?'🟡':'🟢'):ls==='failed'?'🔴':'⏳';
-    return '<div>'+ic+' '+(k===N.me?'Ty':nm&&nm.nick?nm.nick.replace(/[<>&"]/g,''):'Hráč')+(k===N.host?' <b style="color:#ffd166">· hostitel</b>':'')+'</div>';}).join('')||'<div style="opacity:.7">nikdo</div>';
-  const others=m.filter(k=>k!==N.me),ready=others.length>0&&others.every(k=>N.linkState&&N.linkState(k)==='open');
+    const dg=k!==N.me&&N.diag?N.diag(k):null,dt=dg&&ls!=='open'?'<div style="font-size:11px;opacity:.6;margin:-4px 0 2px 26px">ICE '+dg.ice+' · '+dg.sig+' · poslal '+dg.lc+(dg.lt?' ('+dg.lt+')':'')+' · přijal '+dg.rc+(dg.rt?' ('+dg.rt+')':'')+(dg.n?' · pokus '+(dg.n+1):'')+'</div>':'';
+    return '<div>'+ic+' '+(k===N.me?'Ty':nm&&nm.nick?nm.nick.replace(/[<>&"]/g,''):'Hráč')+(k===N.host?' <b style="color:#ffd166">· hostitel</b>':'')+'</div>'+dt;}).join('')||'<div style="opacity:.7">nikdo</div>';
+  const others=m.filter(k=>k!==N.me),ls2=k=>N.linkState?N.linkState(k):null,ready=others.some(k=>ls2(k)==='open')&&!others.some(k=>ls2(k)==='connecting');   // ti, se kterými spojení selhalo, nepojedou
   const b=$('netGoBtn');b.style.display=host&&st==='lobby'?'':'none';b.disabled=!ready;
-  $('netHint').textContent=st!=='lobby'?'':host?(others.length?(ready?'Všichni jsou spojení, můžeš odstartovat.':'Čekám na spojení se všemi…'):'Čekám na další hráče (max. 8).'):'Start dá hostitel.';}
+  const bad=others.filter(k=>N.linkState&&N.linkState(k)==='failed').length;
+  $('netHint').textContent=st!=='lobby'?'':bad?'🔴 S '+bad+(bad===1?' hráčem':' hráči')+' se nedá spojit napřímo (bez přenosového serveru TURN). Zkuste stejnou Wi-Fi, nebo ať odejde a přijde znovu.'+(host&&ready?' Můžeš odstartovat bez něj.':''):host?(others.length?(ready?'Všichni jsou spojení, můžeš odstartovat.':'Čekám na spojení se všemi…'):'Čekám na další hráče (max. 8).'):'Start dá hostitel.';}
 function netLobby(){const N=window.RaceNet;if(!N)return;if(NETR.on)netEnd();N.leave();netClean();
   N.onStart=netStart;N.onEvent=netEvent;N.onSnap=netSnap;N.onHost=netHost;
   $('netLobby').style.display='flex';N.join('scratch');clearInterval(NETR.uiT);NETR.uiT=setInterval(netLobbyUI,400);netLobbyUI();}

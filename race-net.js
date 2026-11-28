@@ -281,12 +281,12 @@
     var RTC = R._RTC || G.RTCPeerConnection;
     if (!RTC) throw new Error('WebRTC není');
     var pc = new RTC({ iceServers: srv }), n = P.n;
-    P.pc = pc; P.relay = false; P.iceQ = [];
+    P.pc = pc; P.relay = false; P.iceQ = []; P.dg = { lc: 0, rc: 0, lt: {}, rt: {} };
     P.u = chan(P, pc, pc.createDataChannel('u', { negotiated: true, id: 0, ordered: false, maxRetransmits: 0 }), 'u');
     P.r = chan(P, pc, pc.createDataChannel('r', { negotiated: true, id: 1, ordered: true }), 'r');
     pc.onicecandidate = function (e) {
       if (pc !== P.pc || !e || !e.candidate) return;
-      var c = e.candidate;
+      var c = e.candidate; P.dg.lc++; P.dg.lt[ctype(c.candidate)] = 1;
       sig(P.key, 'ice', { candidate: String(c.candidate), sdpMid: c.sdpMid == null ? null : String(c.sdpMid), sdpMLineIndex: c.sdpMLineIndex == null ? null : c.sdpMLineIndex }, n);
     };
     pc.onconnectionstatechange = function () {
@@ -362,6 +362,14 @@
       if (!dead[P.key]) { dead[P.key] = 1; recompute(); }
     }
   }
+  function ctype(c) { var m = / typ (\w+)/.exec(String(c || '')); return m ? m[1] : '?'; }
+  /* diagnostika spojení pro čekárnu: stav ICE a kolik kandidátů jakého typu (host/srflx/relay) jsme poslali a dostali */
+  R.diag = function (k) {
+    var P = R.peers[k], pc = P && P.pc, d = P && P.dg;
+    if (!P) return null;
+    return { st: P.state, ice: pc ? pc.iceConnectionState : '-', con: pc ? pc.connectionState : '-', sig: pc ? pc.signalingState : '-',
+      lc: d ? d.lc : 0, rc: d ? d.rc : 0, lt: d ? Object.keys(d.lt).join('+') : '', rt: d ? Object.keys(d.rt).join('+') : '', n: P.n | 0 };
+  };
   R.linkState = function (k) { var P = R.peers[k]; return P ? P.state : null; };
   R.relayed = function (k) { var P = R.peers[k]; return !!(P && P.relay); };
 
@@ -434,6 +442,7 @@
       return pc.setRemoteDescription(s.d).then(function () { if (pc === P.pc) flushIce(P); });
     }
     if (s.n !== P.n || !s.d) return;   // ice
+    if (P.dg) { P.dg.rc++; P.dg.rt[ctype(s.d.candidate)] = 1; }
     if (!P.pc || !P.pc.remoteDescription) { if (P.iceQ.length < 60) P.iceQ.push(s.d); return; }
     return P.pc.addIceCandidate(s.d).catch(noop);
   }
