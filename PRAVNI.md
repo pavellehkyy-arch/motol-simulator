@@ -91,9 +91,7 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 ## ⏰ Otevřené body – připomenout majiteli při každé aktualizaci a kontrole
 - **Chat (plocha online):** chybí tlačítko 🔇 Ztlumit a nahlášení hráče přímo ve hře a pravidla chatu při prvním otevření (DSA čl. 16). Majitel rozhodl: zatím neopravovat, ale připomínat. Kontakt na nahlášení už je v zásadách (sekce Nevhodný obsah).
 - **Věk 15 let:** zásady to teď říkají, ale hra se na věk neptá (zaškrtávátko před online hrou zatím není).
-- **Reklama na mantinelu** (Varna Studio, IG účty): rozhodnout, jestli zůstane; je v rozporu s pravidlem „žádná loga sponzorů“ v CLAUDE.md.
 - **Totožnost správce v zásadách:** „provozuje její autor“ bez jména; GDPR čl. 13 chce jméno správce. Doplnit, až to majitel odsouhlasí.
-- **E-mail s kódem:** ověřit, jestli ho posílá výchozí pošta Supabase, nebo vlastní SMTP (pak ho uvést v zásadách). Zásady teď píšou „přes přihlašovací službu Supabase“; při vlastním SMTP (např. Brevo) by to nebyla pravda.
 - **Mazání `race_sessions` po 30 dnech** se spouští jen v `race_start` (bod 11), zásady ale slibují pevných 30 dní. Přidat denní `pg_cron` úklid.
 - **Výmaz „všeho k účtu“** (zásady, sekce Jak dlouho) nejde ověřit, schéma starších tabulek a kaskády z `auth.users` v repozitáři nejsou (bod 12).
 
@@ -116,5 +114,10 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - Zásady: záloha přes server Supabase, Supabase mezi firmami z USA, dobrovolnost účtu, skrytí neověřených výsledků.
 - `race_sessions`: denní úklid přes `pg_cron` (úloha `race_sessions_cleanup`, 3:17, migrace `20261130_race_sessions_cron.sql`).
 - Výmaz účtu: ověřeno v databázi, že `profiles`, `purchases`, `results`, `feedback`, `coach_requests` a `race_sessions` mají `on delete cascade` na `auth.users`.
+
+
+## Vyřešeno (28. 11. 2026, odpovědi majitele)
+- Reklama na mantinelu je majitelova vlastní (žádný cizí sponzor): v pořádku, pravidlo o logech sponzorů se jí netýká.
+- E-mail s kódem posílá Brevo (Francie, EU): doplněno do zásad jako zpracovatel.
 
 Poslední kontrola: d3f1f75c890ea71123deba0d247c2f6bd768cfc0 2026-11-28
