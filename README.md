@@ -17,6 +17,7 @@
 - **Team sprint** podle UCI: dvě trojice startují z místa na protilehlých stranách dráhy, jezdci každé trojice stojí na startovní čáře vedle sebe (č. 1 nejníž, další nad ním v klopení) a po startu se seřadí za sebe; 5 kol (769 m ≈ 750 m). Úvodní jezdec vede 1 kolo, druhý 2 kola, třetí poslední 2 kola; kdo dovedl, uhne nahoru do klopení. Čas se měří na třetím jezdci. Hráč si vybere, kterým jezdcem bude (startér, druhý, finišman), spoluhráči jsou Parťák a Lukáš Hasal; v háku se kolo drží samo, ve vedení se jede posuvníkem. Výsledky s mezičasy po kolech proti soupeři
 - **Obchod**: bílý stolek na infieldu u protilehlé rovinky. Dostaneš se k němu jen na vyhlášení – tažením prstem po obrazovce se rozhlédneš, za zády uvidíš stolek s ikonou 🛒 a ťuknutím otevřeš nabídku. Platí se penízky ze závodů; zboží je zatím jen ohlášené (brzy)
 - **Plocha** (procházka po infieldu): plynulá chůze a běh, přesné kolize (dá se jít těsně k věcem a klouže se podél nich), do kójí se vchází dveřmi a na lavičku si sedneš tak, že do ní dojdeš. Po červeném vozíku se žebříkem (🪜) se dá vylézt až nahoru; když z něj skočíš, přiběhne záchranka, odnese tě k bedně a tam z nosítek seskočíš
+- **Online závod** (v3.0): scratch proti až 7 dalším přihlášeným hráčům, prázdná místa doplní boti. Hráči se propojí přes Supabase a pak si polohu posílají přímo mezi sebou (WebRTC peer-to-peer, 10× za vteřinu, plynulá interpolace). Když se dva hráči nespojí napřímo, data jdou přes TURN relay. Závod řídí hostitel (start, boti, výstřel), a když odpadne, převezme ho další hráč. Výsledky a penízky ze všech závodů ověřuje server: hlídá skutečný čas závodu, odměnu počítá sám a u online závodu porovná pořadí, které nahlásí jednotliví hráči
 - Ukazatel kol (tabule i HUD) přepíná až v zatáčce za cílem, takže na cílové rovince už vidíš, kolik kol zbývá
 - Ovládání: přejetí prstem doleva/doprava = výška na dráze, posuvník vpravo = síla (volno → tempo → sprint), automatické držení kola v háku
 - **Rozhodčí** v budce sledují jezdce, otáčejí se za tebou a zapisují si; když někoho podjedeš po modrém pásu, vztekají se (vstanou, ukazují na tebe, zrudnou) – bez vyskakovacích hlášek
@@ -24,4 +25,4 @@
 - Načítací obrazovka ve stylu Motolu (ovál dráhy, tabule s koly do startu)
 - Loktování najetím do soupeře z boku, výrazný sjezd z klopení (ukazatel výšky, „SJEZD +X km/h“), pády, únava, vyhlášení na bedně
 
-Celá hra je v jednom souboru `index.html` (Three.js z CDN).
+Celá hra je v jednom souboru `index.html` (Three.js z CDN). Online účty a žebříček jsou v `online.js`, plocha online v `multi.js` a online závod v `race-net.js`.

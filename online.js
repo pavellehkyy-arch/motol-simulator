@@ -147,6 +147,20 @@
     return rpc('get_public_names', { p_ids: ids }, true).then(function (r) { return r.ok && Array.isArray(r.data) ? r.data : []; });
   };
   O.config = function () { return { url: CFG.url, key: CFG.key }; };
+  /* pro race-net.js (online závod): STUN/TURN servery z Edge Function turn-credentials (krátkodobé údaje, drží se do vypršení) */
+  var ice = null;
+  O.iceServers = function () {
+    if (ice && ice.until > Date.now()) return Promise.resolve(ice.list);
+    return token().then(function (t) {
+      if (!t) throw new Error('auth');
+      return http('/functions/v1/turn-credentials', {}, { token: t });
+    }).then(function (r) {
+      var l = r.ok && r.data && Array.isArray(r.data.iceServers) ? r.data.iceServers : null;
+      if (!l || !l.length) throw new Error('ice');
+      ice = { list: l, until: Date.now() + Math.max(60, (+r.data.ttl || 3600) - 300) * 1000 };
+      return l;
+    });
+  };
 
   O.sendCode = function (email) {
     email = String(email || '').trim();
@@ -219,9 +233,27 @@
   /* ---------- odeslání výsledku po závodě ---------- */
   function outbox() { try { return JSON.parse(LS.get('motol_outbox') || '[]') || []; } catch (e) { return []; } }
   function saveOutbox(a) { LS.set('motol_outbox', JSON.stringify(a.slice(-20))); }
-  O.report = function (x) {
+  /* začátek závodu: server si zapíše čas startu (race_start); výsledek pak jde přes race_finish s kontrolou věrohodnosti.
+     raceKey = společné id online závodu od hostitele (jinak null). Bez připojení zůstane výsledek neověřený (submit_result). */
+  var race = null;
+  O.raceStart = function (mode, raceKey) {
+    if (!S) { race = null; return Promise.resolve(null); }
+    var m = MODE_MAP[mode] || mode, R = { m: m, id: null, at: Date.now() };
+    race = R;
+    R.p = rpc('race_start', { p_mode: m, p_race_key: raceKey || null }, true).then(function (r) {
+      R.id = r.ok && typeof r.data === 'string' ? r.data : null; R.done = true; return R.id;
+    });
+    return R.p;
+  };
+  O.raceSession = function () { return race; };
+  O.report = function (x, R0) {
     try {
       if (!S || !x) return;
+      var R = R0 !== undefined ? R0 : race;
+      if (R0 === undefined) race = null;
+      if (R && !R.done && R.p) {   // race_start ještě neodpověděl: počkej na něj (se sezením tohohle závodu, ne dalšího)
+        R.p.then(function () { O.report(x, R); }); return;
+      }
       var m = MODE_MAP[x.mode] || x.mode;
       var t = (typeof x.time === 'number' && isFinite(x.time) && x.time >= 30 && x.time <= 600)
         ? Math.round(x.time * 1000) / 1000 : null;
@@ -230,7 +262,15 @@
       if (m === 'kilometr') r = t !== null ? 1 : null;
       var w = Math.max(0, Math.min(400, Math.round(x.reward || 0)));
       var a = outbox();
-      a.push({ m: m, t: t, p: p, r: r, w: w, e: S.email, at: Date.now() });
+      var it = { m: m, t: t, p: p, r: r, w: w, e: S.email, at: Date.now() };
+      if (R && R.id && R.m === m) {
+        it.s = R.id; it.d = !!x.dnf;
+        var ex = x.extra || {}, xo = {};
+        ['beer', 'lap', 's0', 's1'].forEach(function (k) { var v = +ex[k]; if (isFinite(v) && v > 0) xo[k] = Math.round(v); });
+        it.x = xo;
+        if (Array.isArray(x.order)) it.o = x.order.slice(0, 12).map(function (u) { return typeof u === 'string' && /^[0-9a-f-]{36}$/.test(u) ? u : null; });
+      }
+      a.push(it);
       saveOutbox(a);
       flush();
     } catch (e) {}
@@ -248,7 +288,8 @@
     var it = a[0];
     if (it.e && S.email && it.e !== S.email) { a.shift(); saveOutbox(a); return flush(); }   // cizí účet
     flushing = true;
-    rpc('submit_result', { p_mode: it.m, p_time_s: it.t, p_points: it.p, p_position: it.r, p_reward: it.w }, true)
+    (it.s ? rpc('race_finish', { p_session: it.s, p_time_s: it.t, p_points: it.p, p_position: it.r, p_dnf: !!it.d, p_extra: it.x || {}, p_order: it.o || null }, true)
+      : rpc('submit_result', { p_mode: it.m, p_time_s: it.t, p_points: it.p, p_position: it.r, p_reward: it.w }, true))
       .then(function (res) {
         flushing = false;
         var wait = 0, q = outbox();
@@ -258,7 +299,8 @@
             if (P) P.money = res.data.money;
             setLocalVK(res.data.money);
           }
-          if (res.data && it.at && Date.now() - it.at < 10 * 60 * 1000) O.toast(O.recordNote(it.m, res.data));
+          if (res.data && res.data.rejected) { if (it.at && Date.now() - it.at < 10 * 60 * 1000) O.toast('⚠️ Výsledek server neuznal (nevěrohodný čas závodu).'); }
+          else if (res.data && it.at && Date.now() - it.at < 10 * 60 * 1000) O.toast(O.recordNote(it.m, res.data));
           ui();
         } else {
           var c = errCode(res);
@@ -486,6 +528,7 @@
       sec('Proč:', 'aby fungoval účet, žebříček a obchod (to je služba, o kterou sis řekl) a abychom ze souhrnných statistik hraní poznali, co vylepšit (oprávněný zájem). Údaje neprodáváme, nepoužíváme na reklamu a neposíláme newslettery.');
       sec('Co vidí ostatní:', 'jen tvou přezdívku a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.');
       sec('Plocha online:', 'když na ni vstoupíš, posíláme ostatním přihlášeným hráčům na ploše tvou polohu, pohyb, přezdívku (jen schválenou), anonymní číslo účtu a zprávy, které napíšeš do chatu, dokud tam jsi. Zprávy vidí jen hráči, kteří jsou zrovna s tebou na ploše. Nikam se to neukládá.');
+      sec('Online závod:', 'když se přidáš do online závodu, propojí se tvé zařízení přímo se zařízeními ostatních jezdců v závodě (WebRTC). Posílá se jim poloha a rychlost tvého jezdce, přezdívka (jen schválená) a anonymní číslo účtu. Při přímém spojení ostatní hráči technicky vidí tvou IP adresu. Když přímé spojení nejde, data jdou přes přenosový (TURN) server poskytovatele Cloudflare nebo Metered, který je jen přeposílá a neukládá. Na serveru hry se k závodu ukládá čas startu a cíle, režim a pořadí, které jsi nahlásil, kvůli kontrole poctivosti výsledků; mažou se po 30 dnech.');
       sec('Kde:', 'databáze Supabase na serverech ve Frankfurtu (EU). Stránku hry doručuje GitHub Pages a 3D knihovnu Cloudflare; ty jako každý web vidí tvou IP adresu.');
       sec('Technické záznamy:', 'když hra mluví se serverem (přihlášení, žebříček, Plocha online), Supabase si kvůli provozu a bezpečnosti zapíše IP adresu, čas a typ prohlížeče a zařízení. Vidí je jen autor hry, používá je jen k opravě chyb a ochraně před zneužitím a nejpozději po 7 dnech se samy smažou.');
       sec('Cookies:', 'hra nepoužívá cookies ani sledovací a reklamní nástroje. Do prohlížeče ukládá jen to, co je nutné ke hře a k přihlášení, proto se tě na souhlas neptáme.');
