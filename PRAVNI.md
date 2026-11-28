@@ -81,4 +81,11 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 5. Ztlumení v chatu, pravidla chatu a potvrzení věku pro online (body 6b, 6c, 7).
 6. Vyjasnit bannery (bod 8), drobnosti 9–15 podle času.
 
-Poslední kontrola: 70e9bdbedb30b76934ae4a72797ccd2994466540 2026-11-28
+
+## Vyřešeno (28. 11. 2026)
+- Bod 1: značky a orlice z německého dresu odstraněny (v3.2), zůstal nápis GERMANY a trikolóra.
+- Bod 2: majitel potvrdil, že souhlasy skutečných osob má (doporučení: uschovat je písemně, např. e-maily).
+- Bod 3: profesionálové přejmenováni na Evžen, Vilda, Gusta a Mates.
+- Bod 4 a 5: text zásad doplněn (vzhled jezdce, STUN, předávání mimo EU, platí od 28. 11. 2026).
+
+Poslední kontrola: 4b2b029dbd08fa41b59b9f315cce6a9e5eeb87dc 2026-11-28
