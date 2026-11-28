@@ -97,6 +97,7 @@ tr.me td{color:#ffd166;font-weight:800}
 /* ---- menu ---- */
 #menu{background:radial-gradient(ellipse at 50% 40%,rgba(10,25,50,.25),rgba(5,12,28,.82) 75%)}
 .mcard{max-width:560px}
+#walkRace.mponly .mgroup:not(#netGroup){display:none}
 #title{font-size:clamp(44px,11vw,84px);line-height:.92;letter-spacing:.01em;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 24px rgba(0,0,0,.5))}
 #title .t1{display:block;animation:dropIn .7s cubic-bezier(.2,1.4,.4,1) both}
 #title .t2{display:block;color:#c6ff1a;font-size:.62em;letter-spacing:.14em;margin-top:6px;background:linear-gradient(100deg,#c6ff1a 40%,#fff 50%,#c6ff1a 60%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:dropIn .7s .12s cubic-bezier(.2,1.4,.4,1) both,shine 3.5s 1.2s linear infinite}
@@ -301,7 +302,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
   <button class="go alt" id="netBack" style="margin-top:8px">Odejít</button>
 </div></div>
 <div id="walkRace" class="screen" style="display:none"><div class="card mcard">
-  <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" style="margin-bottom:12px">Který závod chceš jet?</div>
+  <h1 style="font-size:26px;margin:0 0 4px">🏁 Startovní čára</h1><div class="sub" id="walkRaceSub" style="margin-bottom:12px">Který závod chceš jet?</div>
   <div id="walkRaceList">
   <div class="mgroup"><div class="mhead">⚡ SPRINTERSKÉ DISCIPLÍNY</div>
   <div class="modes mgrid">
@@ -323,7 +324,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
     <button class="mode" data-m="elim" style="--c:#8a2be2"><b>VYLUČOVAČKA</b><span>poslední letí</span></button>
     <button class="mode" data-m="omnium" style="--c:#b8860b"><b>OMNIUM</b><span>4 disciplíny</span></button>
   </div></div>
-  <div class="mgroup"><div class="mhead">🌐 ONLINE ZÁVOD</div>
+  <div class="mgroup" id="netGroup"><div class="mhead">🌐 ONLINE ZÁVOD</div>
   <div class="modes mgrid">
     <button class="mode" id="btnNetRace" style="--c:#0f3b3a;border:2px solid #7fd3ff"><b>SCRATCH ONLINE</b><span>proti lidem · max. 8</span></button>
   </div></div>
@@ -4126,7 +4127,9 @@ function startGun(){const f=$('flash');f.classList.remove('on');void f.offsetWid
   if(!actx||muted)return;try{const len=0.35,b=actx.createBuffer(1,actx.sampleRate*len,actx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,4);
     const s=actx.createBufferSource(),g=actx.createGain(),fl=actx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=1800;g.gain.value=0.6;s.buffer=b;s.connect(fl);fl.connect(g);g.connect(actx.destination);s.start();}catch(e){}}
 let shake=0;
-$('btnStart').onclick=()=>{$('menu').style.display='none';$('walkRaceBack').textContent='Zpět do menu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');};$('againBtn').onclick=()=>startRace();
+// na online ploše jen online závod (sólo závody jsou na START a na ploše bez online)
+function walkRaceMode(mp){$('walkRace').classList.toggle('mponly',!!mp);$('walkRaceSub').textContent=mp?'Na online ploše se jezdí jen proti lidem.':'Který závod chceš jet?';}
+$('btnStart').onclick=()=>{$('menu').style.display='none';walkRaceMode(false);$('walkRaceBack').textContent='Zpět do menu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');};$('againBtn').onclick=()=>startRace();
 
 $('menuBtn').onclick=()=>wipe(()=>{WALK.mp=false;OMNI=null;TEMPO=false;$('omniNext').style.display='none';$('againBtn').style.display='';$('resClose').style.display='';clearCeremony();$('intro').style.display='none';clearCans();updateVKBadge();$('results').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';phase='menu';riders.forEach(R=>R.model.g.visible=true);mode='scratch';resetRiders();clearHolders();idleT=0;});
 
@@ -4681,7 +4684,7 @@ function walkSay(t,sec){const m=$('walkMsg');m.innerHTML=t;m.style.display=t?'bl
 function walkOpen(id){if(id==='tv'){$('omniNext').style.display='none';$('resClose').style.display='';$('againBtn').style.display='none';$('menuBtn').style.display='none';$('tvTabs').style.display='flex';tvTab(WALK_RACED||!window.Online?'res':'board');$('results').style.display='flex';}
   else if(id==='shop')openShop();
   else if(id==='coach')showCoach();
-  else if(id==='start'){$('walkRaceBack').textContent='Zpět na plochu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
+  else if(id==='start'){walkRaceMode(WALK.mp);$('walkRaceBack').textContent='Zpět na plochu';$('walkRace').style.display='flex';tone(660,0.12,0.06,'triangle');}
   else if(id==='albi'){if(!ALBI||!ALBI.r.g.visible)return;ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
     try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Čau Kemi!');u.lang='cs-CZ';u.rate=1.05;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}}
 function heroBuild(albi){if(albi)return WALK.rAlbi||(WALK.rAlbi=makePhotoHuman());if(WALK.rMe)return WALK.rMe;
@@ -4946,7 +4949,8 @@ $('walkAct').onclick=walkAction;$('mpChatBtn').onclick=()=>mpChatOpen($('mpChatF
 function walkCerTick(){const K=WALK.k;if(Math.hypot(WALK.jx,WALK.jy)>0.25||K.f||K.b||K.l||K.r)walkStart(true);}
 $('walkMenu').onclick=()=>wipe(()=>{WALK.mp=false;walkStop();$('menu').style.display='flex';phase='menu';idleT=0;});
 $('walkRaceBack').onclick=()=>{$('walkRace').style.display='none';if(phase==='menu')$('menu').style.display='flex';};
-$('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;if(b.dataset.m==='tspick'){const p=$('tsPick');p.style.display=p.style.display==='none'?'block':'none';tone(660,0.08,0.05,'triangle');return;}if(b.dataset.p)TS_POS=+b.dataset.p;if(phase==='walk')wipe(()=>{walkStop();beginRace(b.dataset.m);});else{$('walkRace').style.display='none';startRace(b.dataset.m);}});
+$('walkRaceList').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;if(phase==='walk'&&WALK.mp)return;   // online plocha: jen online závod
+if(b.dataset.m==='tspick'){const p=$('tsPick');p.style.display=p.style.display==='none'?'block':'none';tone(660,0.08,0.05,'triangle');return;}if(b.dataset.p)TS_POS=+b.dataset.p;if(phase==='walk')wipe(()=>{walkStop();beginRace(b.dataset.m);});else{$('walkRace').style.display='none';startRace(b.dataset.m);}});
 const _wc=new THREE.Vector3(),_wl=new THREE.Vector3();
 const _sm=k=>k<=0?0:k>=1?1:k*k*(3-2*k),_angTo=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
 // your gait: a proper walk (heel strike on a straight knee, the swing knee folds, the body rides highest over the standing leg, shoulders counter the hips)
