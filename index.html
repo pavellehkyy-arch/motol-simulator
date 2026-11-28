@@ -1029,21 +1029,15 @@ function kitTex(id,num){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');c
     g.fillStyle=BL;g.fillRect(256-90,56,180,4);}
   if(id==='dukla'){both(x=>{g.strokeStyle='#f2c230';g.lineWidth=5;g.beginPath();g.ellipse(x+50,70,46,22,0,0,7);g.stroke();txt('PRAHA',x+50,71,20,'#f2c230');});
     txt('PRAHA',256,40,26,'#5a5a5a');g.fillStyle='#f2c230';g.fillRect(0,0,W,6);g.fillStyle='#d62828';g.fillRect(0,6,W,4);}
-  if(id==='germany'){   // German national team jersey from the photo: white, grey stripe pattern, black-red-gold chest swoosh, eagle, "german cycling"
+  if(id==='germany'){   // white, grey stripe pattern, black-red-gold chest swoosh and a plain tricolour shield (no real logos or sponsors)
     g.save();g.strokeStyle='rgba(150,155,160,.22)';g.lineWidth=3;
     for(let i=0;i<14;i++){const cx=(i*97)%W,cy=(i*61)%H,a=(i%4)*0.8;g.save();g.translate(cx,cy);g.rotate(a);for(let k=-5;k<=5;k++){g.beginPath();g.moveTo(-60,k*9);g.lineTo(60,k*9);g.stroke();}g.restore();}
     g.restore();
     const DE=['#111111','#dd0000','#ffce00'];
     both(x=>{DE.forEach((col,k)=>{g.fillStyle=col;g.beginPath();const y=62+k*13;g.moveTo(x-150,y+26);g.lineTo(x+14,y);g.lineTo(x+14,y+10);g.lineTo(x-150,y+36);g.fill();});   // swoosh across the chest
       g.fillStyle='#e7e9ee';g.fillRect(x-1,0,2,H);                                       // zip
-      g.save();g.translate(x+62,46);g.fillStyle='#fff';g.strokeStyle='#111';g.lineWidth=2;g.beginPath();g.moveTo(-17,-18);g.lineTo(17,-18);g.lineTo(17,6);g.quadraticCurveTo(0,24,-17,6);g.closePath();g.fill();g.stroke();   // eagle crest
-      g.fillStyle='#111';g.beginPath();g.ellipse(0,-2,4,8,0,0,7);g.fill();g.beginPath();g.arc(0,-12,3.5,0,7);g.fill();
-      for(const sx of [-1,1]){g.beginPath();g.moveTo(sx*3,-8);g.lineTo(sx*14,-12);g.lineTo(sx*12,4);g.lineTo(sx*3,2);g.fill();}g.fillStyle='#dd0000';g.fillRect(-1,-14,2,2);g.restore();
-      g.save();g.lineWidth=4;g.strokeStyle='#dd0000';g.beginPath();g.arc(x-112,94,9,0.6,5.6);g.stroke();g.strokeStyle='#ffce00';g.beginPath();g.arc(x-98,94,9,0.6,5.6);g.stroke();g.restore();
-      txt('german',x-58,88,13,'#111','800 ');txt('cycling',x-58,102,13,'#111','800 ');
-      txt('BIORACER',x+62,80,9,'#111','900 ');});
-    txt('GERMANY',256,40,30,'#111');g.fillStyle='#111';g.fillRect(186,60,140,4);g.fillStyle='#dd0000';g.fillRect(186,64,140,4);g.fillStyle='#ffce00';g.fillRect(186,68,140,4);
-    txt('BIKE INDUSTRIES',128,40,12,'#111','italic 900 ');txt('BIKE INDUSTRIES',384,40,12,'#111','italic 900 ');}
+      g.save();g.translate(x+62,46);DE.forEach((col,k)=>{g.fillStyle=col;g.fillRect(-15,-18+k*8,30,8);});g.strokeStyle='#111';g.lineWidth=2;g.strokeRect(-15,-18,30,24);g.restore();});   // tricolour shield
+    txt('GERMANY',256,40,30,'#111');g.fillStyle='#111';g.fillRect(186,60,140,4);g.fillStyle='#dd0000';g.fillRect(186,64,140,4);g.fillStyle='#ffce00';g.fillRect(186,68,140,4);}
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,96,W,58);g.fillRect(118,0,20,H);g.fillRect(374,0,20,H);
     both(x=>txt('PRAHA 2',x,126,36,'#7a1f2b'));txt('PRAHA 2',256,40,30,'#f2c230');}
   // soft shading: darker towards the sides, waist shadow
@@ -1060,7 +1054,7 @@ function sleeveTex(id,fore){const c=mkCanvas(64,128),g=c.getContext('2d');const 
   if(id==='favorit'){g.fillStyle='#d62828';g.fillRect(0,0,64,128);g.fillStyle='#151515';g.fillRect(0,0,64,14);}
   if(id==='pardus'){g.fillStyle='#3b8fd8';g.fillRect(0,6,64,6);g.fillRect(0,16,64,6);g.fillRect(0,26,64,6);}
   if(id==='sparta'){g.fillStyle='#f2c230';g.fillRect(0,4,64,10);}
-  if(id==='germany'){[['#111',4],['#dd0000',12],['#ffce00',20]].forEach(([c,y])=>{g.fillStyle=c;g.fillRect(0,y,64,7);});g.fillStyle='#111';g.font='900 9px system-ui,Arial';g.textAlign='center';g.fillText('BIORACER',32,44);}
+  if(id==='germany'){[['#111',4],['#dd0000',12],['#ffce00',20]].forEach(([c,y])=>{g.fillStyle=c;g.fillRect(0,y,64,7);});}
   return new THREE.CanvasTexture(c);}
 const KITMAT={};function kitMats(id,num){const k=id+'#'+(num||0);if(!KITMAT[k])KITMAT[k]={torso:new THREE.MeshPhongMaterial({map:kitTex(id,num),specular:0x2c2c2c,shininess:26}),sleeve:new THREE.MeshPhongMaterial({map:sleeveTex(id),specular:0x2c2c2c,shininess:26}),fore:new THREE.MeshPhongMaterial({map:sleeveTex(id,true),specular:0x2c2c2c,shininess:26}),shorts:lycraMat(new THREE.Color(TEAMS[id].shorts||'#111').getHex())};return KITMAT[k];}
 const HELM={};function helmetMat(col,aero){const k=col+'_'+(aero?1:0);if(HELM[k])return HELM[k];const c=mkCanvas(256,128),g=c.getContext('2d');g.fillStyle='#'+new THREE.Color(col).getHexString();g.fillRect(0,0,256,128);
@@ -4842,7 +4836,7 @@ function netLobbyUI(){const N=window.RaceNet;if(!N)return;const st=N.status,m=N.
     w=wl.length?'⏳ Připojuju '+wl.length+' hráče, nejpozději za '+Math.max(1,mx)+' s. Když to nepůjde napřímo, spojím vás přes server – připojí se vždycky.':'';
     return host?(others.length?(ready?'Všichni jsou spojení, můžeš odstartovat.':w||'Čekám na spojení se všemi…'):'Čekám na další hráče (max. 8).'):(w?w+' ':'')+'Start dá hostitel.';})();}
 function netLobby(){const N=window.RaceNet;if(!N)return;if(NETR.on)netEnd();N.leave();netClean();netFree();
-  N.onStart=netStart;N.onEvent=netEvent;N.onSnap=netSnap;N.onHost=netHost;
+  N.onStart=netStart;N.onEvent=netEvent;N.onSnap=netSnap;N.onHost=netHost;N.onLink=N.onStatus=()=>{if($('netLobby').style.display!=='none')netLobbyUI();};   // tlačítko Start hned, jak se někdo připojí
   $('netLobby').style.display='flex';if(N.setLook)N.setLook(netMyLook());N.join('scratch');clearInterval(NETR.uiT);NETR.uiT=setInterval(netLobbyUI,400);netLobbyUI();}
 function netLobbyClose(){clearInterval(NETR.uiT);$('netLobby').style.display='none';if(!NETR.on&&window.RaceNet)RaceNet.leave();}
 $('btnNetRace').onclick=()=>{const sp=$('btnNetRace').querySelector('span');if(!(window.Online&&Online.multi&&window.RaceNet&&window.RTCPeerConnection)){sp.textContent='online závod teď nejde';setTimeout(()=>{sp.textContent='proti lidem · max. 8';},3000);return;}
