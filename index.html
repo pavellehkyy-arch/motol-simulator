@@ -279,7 +279,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v2.9</div>
+    <div class="sub">v2.10</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -1519,7 +1519,7 @@ function poseRider(M,crank,st,su,sp,sb,yaw,e,lookPitch){
     _qfx.crossVectors(_quv,_qfv);_qom.makeBasis(_qfx,_quv,_qfv);L.shoe.quaternion.setFromRotationMatrix(_qom);L.shoe.position.copy(_qpd);
     L.ped.quaternion.copy(L.shoe.quaternion);L.ped.position.copy(_qpd).addScaledVector(_quv,0.004);
     _qt1.set(sx*0.085,0.32,-0.04);rollP(_qt1);_qt2.set(sx*0.085,_qpd.y,_qpd.z);_qt2.x=_qpd.x-sx*0.04;_qXA.set(1,0,0);orient(L.cr,_qt1,_qt2,_qXA,1,1);}
-  if(M.ph)albiPose(M,crank);}
+  if(M.ph)albiPose(M,crank,st);}
 // per frame: effort decides seated / seated sprint / out of the saddle; resting & finished riders sit up; bots glance round
 function animRider(R,dt){const M=R.model;let A=R.an;if(!A)A=R.an={st:0,su:0,sp:0,br:Math.random()*6,yaw:0,gl:3+Math.random()*8,glY:0,glT:0};
   const ftp=R.ftp||330,P=(phase==='menu'||phase==='walk')?(R.menuP||ftp*0.75):R.realP!=null?R.realP:(R.power||0),e=clamp(P/ftp,0,2.2),v=R.v||0;
@@ -1723,9 +1723,10 @@ function albiBike(M,on){if(!M||!!M.ph===!!on)return;
 const ALBI_HELM=[0.2,-0.01,1.1];   // helmet on his head bone: up, forward, scale
 // called at the end of poseRider: hips onto the saddle, two-bone IK for the legs to the pedals and the arms to the grips
 function ikAng(a,b,c){return Math.acos(clamp((a*a+b*b-c*c)/(2*a*b),-1,1));}   // angle between sides a and b of a triangle
-function albiPose(M,crank){const r=M.ph,B=r.body,ln=ikAng;
+function albiPose(M,crank,st){st=st||0;const r=M.ph,B=r.body,ln=ikAng;
   const L1=r.L1,L2=r.L2,reach=(L1+L2)*0.985,dz=0.16;   // his legs are shorter than the rider's: sit a little lower when the bottom pedal needs it
-  const hy=Math.min(_qhp.y,0.17+Math.sqrt(reach*reach-dz*dz)),hip0=r.legs[0].hip.position;
+  const dzS=_qhp.z+0.065,hS=0.215+Math.sqrt(reach*reach-dzS*dzS)+(_qhp.y-PZ.stand.hip[1]);   // out of the saddle: hips up over the pedals (his legs are short, so they go straight at the bottom of the stroke)
+  const hy=Math.min(_qhp.y,0.17+Math.sqrt(reach*reach-dz*dz))*(1-st)+hS*st,hip0=r.legs[0].hip.position;
   B.position.set(_qhp.x,hy-hip0.y,_qhp.z-hip0.z);B.rotation.z=_qroll;
   const lean=Math.atan2(_qNn.z-_qhp.z,_qNn.y-_qhp.y);r.torso.rotation.set(lean,0,0);
   r.head.rotation.set(-lean*0.78+0.1,0,0);r.head.scale.setScalar(M.body.visible?1:0.001);   // first person: no head in the camera
@@ -3536,7 +3537,7 @@ $('slingBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropag
 addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat)trySling();});
 
 // ---------- rescue: two paramedics carry you off on a stretcher ----------
-let RESC=null,DIAG='';
+let RESC=null,DIAG='',RESC_ALBI=null;
 const DIAGS={rear:['Zlomená prdel','Naražená kostrč a ješitnost','Zlomená klíční kost'],hook:['Zlomená klíční kost','Vykloubené rameno','Zlomená prdel'],hit:['Pohmožděná záda','Zlomená prdel'],
   band:['Odřené půlky až na kost','Spálenina od palubovky na celé noze'],barrier:['Otisk mantinelu na čele','Otřes mozku'],pile:['Zlomená prdel','Pochroumané kolo i sebevědomí'],beer:['Pivní otřes mozku','Zlomená prdel a mokrý dres']};
 // paramedic jacket wrapped round the lofted chest: u = round the body (0 = front centre, 0.5 = back), v = height (0 = waist, 1 = neck)
@@ -3560,10 +3561,10 @@ function makeMedic(front){const r=makeHuman({skin:[0xdcae8a,0xc98e65,0xe0ad85][M
   return {g:r.g,body:r.body,torso:r.torso,head:r.head,legs:r.legs,arms:r.arms,front,y:0,step:null,lead:front?0:1};}
 function startRescue(o){o=o||{};   // o.walk: you jumped off the ladder on the infield – they pick you up at o.tgt and you ride the stretcher yourself
   const cause=player.crash&&player.crash.cause;DIAG=o.walk?pick(['Zlomená prdel','Vyvrtnutý kotník ze žebříku','Naražená kostrč a ješitnost','Otřes mozku a pýchy']):pick(DIAGS[cause]||['Zlomená prdel']);
-  const fig=o.walk?new THREE.Group():makeStanding(player,0);const C=rescueCrew(fig);const crew=C.crew,st=C.stretcher,m1=C.meds[0],m2=C.meds[1];scene.add(crew);
+  let ph=null,fig;if(o.walk)fig=new THREE.Group();else if(ALBI_ME){fig=new THREE.Group();ph=RESC_ALBI||(RESC_ALBI=makePhotoHuman());ph.g.position.set(0,0,0);ph.g.rotation.set(0,0,0);ph.g.visible=true;fig.add(ph.g);ph.t=0;poseHuman(ph,downPose({},0),1);}else fig=makeStanding(player,0);/* playing as Albi: his photo scan lies on the stretcher */const C=rescueCrew(fig);const crew=C.crew,st=C.stretcher,m1=C.meds[0],m2=C.meds[1];scene.add(crew);
   JUDGES.updateMatrixWorld();const start=new THREE.Vector3(PODX+5,0,4);JUDGES.localToWorld(start);start.y=FLOOR_Y;crew.position.copy(start);
   const end=new THREE.Vector3(PODX+6.8,0,0.3);JUDGES.localToWorld(end);end.y=FLOOR_Y;
-  RESC={st:'run',t:0,crew,stretcher:st,fig,meds:[m1,m2],end,walk:0,spd:0,onWalk:!!o.walk,tgt:o.tgt||null};
+  RESC={st:'run',t:0,crew,stretcher:st,fig,ph,phT:{},meds:[m1,m2],end,walk:0,spd:0,onWalk:!!o.walk,tgt:o.tgt||null};
   if(!o.walk)showMsg('🚑<small>Záchranka běží!</small>',2);}
 // two paramedics with the stretcher (fig = whoever will lie on it); also the copy other players see online (mpRescTick)
 function rescueCrew(fig){const crew=new THREE.Group();
@@ -3644,6 +3645,7 @@ function poseMedic(R,m,i,dt,moving,crouch){
   m.head.rotation.x=-lean*0.7-0.25*crouch;
   return m.y+bob-0.27*crouch;}
 function updateRescue(dt){if(!RESC)return;const R=RESC;R.t+=dt;const c=R.crew;
+  if(R.ph&&R.fig.visible){R.ph.t+=dt;poseHuman(R.ph,downPose(R.phT,R.ph.t),1-Math.exp(-dt*8));}
   const stepping=R.meds.some(m=>m.step);
   const moveTo=(tg,spd)=>{spd*=stepping?0.5:1;const d=new THREE.Vector3(tg.x-c.position.x,0,tg.z-c.position.z),L=d.length();R.spd=0;
     if(L>0.05){let da=Math.atan2(d.x,d.z)-c.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));c.rotation.y+=da*Math.min(1,dt*7);
@@ -4835,7 +4837,8 @@ wui.addEventListener('wheel',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.ctrl
 const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
 window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
-addEventListener('keydown',e=>{if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.target&&e.target.id==='mpChatIn'){if(e.code==='Escape'){e.preventDefault();mpChatOpen(false);}e.stopImmediatePropagation();return;}if(e.code==='KeyT'&&!e.repeat&&WALK.mp&&!WALK.ride&&!typing(e)){e.preventDefault();e.stopImmediatePropagation();mpChatOpen(true);return;}if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
+addEventListener('keydown',e=>{if(phase==='ceremony'&&e.code==='Space'&&RESC&&!RESC.onWalk&&!e.repeat&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){e.preventDefault();e.stopImmediatePropagation();walkStart(true);return;}   // lying on the stretcher at the ceremony: Space hops off onto the infield
+  if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.target&&e.target.id==='mpChatIn'){if(e.code==='Escape'){e.preventDefault();mpChatOpen(false);}e.stopImmediatePropagation();return;}if(e.code==='KeyT'&&!e.repeat&&WALK.mp&&!WALK.ride&&!typing(e)){e.preventDefault();e.stopImmediatePropagation();mpChatOpen(true);return;}if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>{WALK.mp=false;wipe(walkStart);};
 $('btnWalkMp').onclick=()=>{if(!(window.Online&&Online.multi&&window.Multi)){const b=$('btnWalkMp').querySelector('span');b.textContent='online teď nejde, zkus to později';setTimeout(()=>{b.textContent='potkej ostatní přihlášené hráče';},3000);return;}Online.multi(()=>{WALK.mp=true;wipe(walkStart);});};
