@@ -93,10 +93,28 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - **Věk 15 let:** zásady to teď říkají, ale hra se na věk neptá (zaškrtávátko před online hrou zatím není).
 - **Reklama na mantinelu** (Varna Studio, IG účty): rozhodnout, jestli zůstane; je v rozporu s pravidlem „žádná loga sponzorů“ v CLAUDE.md.
 - **Totožnost správce v zásadách:** „provozuje její autor“ bez jména; GDPR čl. 13 chce jméno správce. Doplnit, až to majitel odsouhlasí.
-- **E-mail s kódem:** ověřit, jestli ho posílá výchozí pošta Supabase, nebo vlastní SMTP (pak ho uvést v zásadách).
+- **E-mail s kódem:** ověřit, jestli ho posílá výchozí pošta Supabase, nebo vlastní SMTP (pak ho uvést v zásadách). Zásady teď píšou „přes přihlašovací službu Supabase“; při vlastním SMTP (např. Brevo) by to nebyla pravda.
+- **Mazání `race_sessions` po 30 dnech** se spouští jen v `race_start` (bod 11), zásady ale slibují pevných 30 dní. Přidat denní `pg_cron` úklid.
+- **Výmaz „všeho k účtu“** (zásady, sekce Jak dlouho) nejde ověřit, schéma starších tabulek a kaskády z `auth.users` v repozitáři nejsou (bod 12).
 
 ## Vyřešeno (28. 11. 2026, pokračování)
 - Duhové pruhy UCI na dresu Mistr světa nahrazeny vlastními (modrá-červená-modrá); na derně místo „UCI“ nápis „KEIRIN“.
 - Zásady doplněny: k čemu je e-mail, oprávněný zájem u kontroly závodů a přezdívek, doby mazání, nahlášení nevhodného obsahu, děti od 15 let, právo na omezení a námitku.
 
-Poslední kontrola: 4b2b029dbd08fa41b59b9f315cce6a9e5eeb87dc 2026-11-28
+## Kontrola updatu 4b2b029..d3f1f75 (v3.3, 28. 11. 2026)
+- Ověřeno: dres Mistr světa používá vlastní `WC_BANDS` (modrá-červená-modrá, i hrdina na ploše `heroBuild`), konstanta `RAINBOW` v kódu už není. Derna má `E-PACER · KEIRIN` a kombinéza vodiče `KEIRIN`, nápis UCI na modelech už není (UCI zůstalo jen v komentářích, to je v pořádku). Bod 9 vyřešen. Plakát „MISTR SVĚTA“ duhu nemá, „duhový štít“ helmy je jen popis barvy.
+- Ověřeno: přejmenování profesionálů i v párech madisonu (bod 3 hotov úplně).
+- Zásady (čl. 13) jsou skoro úplné. Zbývá:
+  - 🟠 **Online závod – záloha přes server Supabase chybí.** Bez TURN klíčů jdou data přes Supabase Realtime (broadcast `rl`, race-net.js 373–415), text online.js 531 zmiňuje jen TURN. Návrh: v ř. 531 nahradit „…server poskytovatele Cloudflare nebo Metered, který je jen přeposílá a neukládá.“ za „…server poskytovatele Cloudflare nebo Metered, případně přes server hry (Supabase); ty data jen přeposílají a neukládají.“
+  - 🟠 **Supabase chybí v předávání mimo EU.** Supabase Inc. je firma z USA (data jsou ve Frankfurtu, ale zpracovatel má přístup z USA). Návrh: v ř. 532 změnit „GitHub, Cloudflare, Google a Metered mohou IP adresu zpracovat i v USA“ na „Supabase, GitHub, Cloudflare, Google a Metered mohou údaje (hlavně IP adresu) zpracovat i v USA“.
+  - 🟢 **Povinnost poskytnout údaje (čl. 13 odst. 2 písm. e).** Návrh: v ř. 526 doplnit na konec „Účet je dobrovolný; bez e-mailu ho založit nejde, ale celá hra kromě žebříčku a online hry jde hrát i bez něj.“
+  - 🟢 **Automatické skrytí neověřených výsledků** (`submit_result` od v3.0 skryje výsledek a dá polovinu odměny). Čl. 22 se kvůli malému dopadu neuplatní, pro přesnost v ř. 528 změnit „kromě skrytí zjevně nemožného výsledku z žebříčku“ na „kromě skrytí zjevně nemožného nebo neověřeného výsledku z žebříčku“.
+  - Totožnost správce (jméno) dál chybí, viz Otevřené body.
+
+
+## Vyřešeno (28. 11. 2026, po kontrole d3f1f75)
+- Zásady: záloha přes server Supabase, Supabase mezi firmami z USA, dobrovolnost účtu, skrytí neověřených výsledků.
+- `race_sessions`: denní úklid přes `pg_cron` (úloha `race_sessions_cleanup`, 3:17, migrace `20261130_race_sessions_cron.sql`).
+- Výmaz účtu: ověřeno v databázi, že `profiles`, `purchases`, `results`, `feedback`, `coach_requests` a `race_sessions` mají `on delete cascade` na `auth.users`.
+
+Poslední kontrola: d3f1f75c890ea71123deba0d247c2f6bd768cfc0 2026-11-28
