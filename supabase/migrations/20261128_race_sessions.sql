@@ -142,7 +142,7 @@ create or replace function public.race_finish(p_session uuid, p_time_s numeric, 
 returns jsonb language plpgsql security definer set search_path to '' as $$
 declare
   v_uid uuid := auth.uid(); S public.race_sessions; v_el numeric; v_pos integer := p_position; v_res jsonb;
-  v_agree integer; v_dis integer; o record; v_why text;
+  v_agree integer; v_dis integer; o record; v_why text; v_order uuid[]; v_n integer; v_med integer; v_hide boolean := false;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
   select * into S from public.race_sessions where id = p_session and user_id = v_uid for update;
@@ -163,14 +163,26 @@ begin
   end if;
 
   -- online závod: pořadí podle hlášení ostatních účastníků
-  if S.race_key is not null and p_order is not null then
-    if array_length(p_order, 1) > 12 then raise exception 'invalid_order'; end if;
-    if array_position(p_order, v_uid) is not null then v_pos := array_position(p_order, v_uid); end if;
-    -- ostatní už nahlásili, kde jsem dojel já: beru horší z mého a jejich (většinového) místa
-    select max(array_position(x.race_order, v_uid)) into v_agree from public.race_sessions x
+  if S.race_key is not null and p_order is null then
+    update public.race_sessions set status = 'rejected', reason = 'no_order', finished_at = now() where id = S.id;
+    return jsonb_build_object('rejected', true, 'reason', 'no_order');
+  end if;
+  if S.race_key is not null then
+    if coalesce(array_length(p_order, 1), 0) > 12 then raise exception 'invalid_order'; end if;
+    -- do pořadí patří jen účty, které tenhle závod opravdu jely (mají sezení se stejným race_key, start do 5 min od prvního)
+    select array_agg(case when u = any(v_mem) then u else null end order by i) into v_order
+      from unnest(p_order) with ordinality t(u, i),
+           (select array_agg(x.user_id) v_mem from public.race_sessions x
+             where x.race_key = S.race_key and x.started_at < (select min(started_at) from public.race_sessions where race_key = S.race_key) + interval '5 minutes') m;
+    if array_position(v_order, v_uid) is not null then v_pos := array_position(v_order, v_uid); end if;
+    -- jak mě viděli ostatní: od dvou hlášení medián, od jednoho horší z obou (a výsledek se nezobrazí v žebříčku)
+    select count(*), percentile_disc(0.5) within group (order by array_position(x.race_order, v_uid))
+      into v_n, v_med from public.race_sessions x
       where x.race_key = S.race_key and x.user_id <> v_uid and x.status in ('done','disputed') and array_position(x.race_order, v_uid) is not null;
-    if v_agree is not null and v_pos is not null and v_agree > v_pos then v_pos := v_agree; end if;
-    -- a zpětně: tvrdil někdo dřív lepší místo, než jak ho vidím já i další? skryj jeho výsledek
+    if v_pos is not null and v_n >= 2 and v_med > v_pos then v_pos := v_med;
+    elsif v_pos is not null and v_n = 1 and v_med > v_pos then v_pos := v_med; v_hide := true;
+    end if;
+    -- a zpětně: tvrdil někdo dřív lepší místo, než jak ho vidí většina? skryj jeho výsledek
     for o in select x.* from public.race_sessions x
       where x.race_key = S.race_key and x.user_id <> v_uid and x.status = 'done' and x.position is not null loop
       select count(*) filter (where array_position(y.race_order, o.user_id) > o.position),
@@ -178,16 +190,17 @@ begin
         into v_dis, v_agree
         from (select x2.race_order from public.race_sessions x2
                where x2.race_key = S.race_key and x2.user_id <> o.user_id and x2.status in ('done','disputed') and x2.race_order is not null
-              union all select p_order) y;
-      if v_dis > v_agree + 1 then   -- jeho vlastní hlášení se počítá jako souhlas: rozhoduje jen většina
+              union all select v_order) y;
+      -- jeho vlastní hlášení se počítá jako souhlas: rozhoduje většina; při dvou rozporných hlášeních se skryjí oba výsledky
+      if v_dis > v_agree + 1 or (v_n = 1 and v_hide and v_dis > 0) then
         update public.race_sessions set status = 'disputed', reason = 'order' where id = o.id;
         update public.results set hidden = true where id = o.result_id;
       end if;
     end loop;
   end if;
 
-  v_res := public.record_result(v_uid, S.mode, p_time_s, p_points, v_pos, p_dnf, p_extra, false, 1);
-  update public.race_sessions set status = 'done', finished_at = now(), position = v_pos, race_order = p_order,
+  v_res := public.record_result(v_uid, S.mode, p_time_s, p_points, v_pos, p_dnf, p_extra, v_hide, 1);
+  update public.race_sessions set status = case when v_hide then 'disputed' else 'done' end, finished_at = now(), position = v_pos, race_order = v_order,
     result_id = (v_res->>'result_id')::bigint where id = S.id;
   return v_res || jsonb_build_object('position', v_pos);
 end $$;

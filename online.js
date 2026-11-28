@@ -246,12 +246,13 @@
     return R.p;
   };
   O.raceSession = function () { return race; };
-  O.report = function (x) {
+  O.report = function (x, R0) {
     try {
       if (!S || !x) return;
-      var R = race; race = null;
-      if (R && !R.done && R.p && Date.now() - R.at < 24 * 3600 * 1000) {   // race_start ještě neodpověděl: počkej na něj
-        R.p.then(function () { race = R; O.report(x); }); return;
+      var R = R0 !== undefined ? R0 : race;
+      if (R0 === undefined) race = null;
+      if (R && !R.done && R.p) {   // race_start ještě neodpověděl: počkej na něj (se sezením tohohle závodu, ne dalšího)
+        R.p.then(function () { O.report(x, R); }); return;
       }
       var m = MODE_MAP[x.mode] || x.mode;
       var t = (typeof x.time === 'number' && isFinite(x.time) && x.time >= 30 && x.time <= 600)
