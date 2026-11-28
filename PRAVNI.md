@@ -88,4 +88,15 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - Bod 3: profesionálové přejmenováni na Evžen, Vilda, Gusta a Mates.
 - Bod 4 a 5: text zásad doplněn (vzhled jezdce, STUN, předávání mimo EU, platí od 28. 11. 2026).
 
+## ⏰ Otevřené body – připomenout majiteli při každé aktualizaci a kontrole
+- **Chat (plocha online):** chybí tlačítko 🔇 Ztlumit a nahlášení hráče přímo ve hře a pravidla chatu při prvním otevření (DSA čl. 16). Majitel rozhodl: zatím neopravovat, ale připomínat. Kontakt na nahlášení už je v zásadách (sekce Nevhodný obsah).
+- **Věk 15 let:** zásady to teď říkají, ale hra se na věk neptá (zaškrtávátko před online hrou zatím není).
+- **Reklama na mantinelu** (Varna Studio, IG účty): rozhodnout, jestli zůstane; je v rozporu s pravidlem „žádná loga sponzorů“ v CLAUDE.md.
+- **Totožnost správce v zásadách:** „provozuje její autor“ bez jména; GDPR čl. 13 chce jméno správce. Doplnit, až to majitel odsouhlasí.
+- **E-mail s kódem:** ověřit, jestli ho posílá výchozí pošta Supabase, nebo vlastní SMTP (pak ho uvést v zásadách).
+
+## Vyřešeno (28. 11. 2026, pokračování)
+- Duhové pruhy UCI na dresu Mistr světa nahrazeny vlastními (modrá-červená-modrá); na derně místo „UCI“ nápis „KEIRIN“.
+- Zásady doplněny: k čemu je e-mail, oprávněný zájem u kontroly závodů a přezdívek, doby mazání, nahlášení nevhodného obsahu, děti od 15 let, právo na omezení a námitku.
+
 Poslední kontrola: 4b2b029dbd08fa41b59b9f315cce6a9e5eeb87dc 2026-11-28

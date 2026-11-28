@@ -20,3 +20,4 @@ Postup:
 - **Kontrola updatu** (výchozí): vezmi hash z posledního řádku `PRAVNI.md` a zkontroluj jen `git diff <hash>..HEAD` (a necommitnuté změny). Nové riziko připiš do `PRAVNI.md`, vyřešené označ, aktualizuj řádek s poslední kontrolou.
 - Smíš upravovat jen `PRAVNI.md`. Kód ani text zásad (`viewPrivacy`) neměň sám – navrhni přesnou změnu (soubor, řádek, nový text) a nech ji udělat hlavní konverzaci.
 - Odpověď: nejdřív jedna věta verdikt (v pořádku / drobnosti / je potřeba něco opravit před vydáním), pak seznam nálezů.
+- **Vždy** na konci odpovědi vypiš sekci „⏰ Otevřené body“ z `PRAVNI.md` (i když se jich update netýká), ať je majitel má pořád na očích. Vyřešené body přesuň do Vyřešeno.

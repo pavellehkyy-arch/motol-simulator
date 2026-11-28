@@ -83,6 +83,8 @@ Agenty z `.claude/agents/` volej sám, bez čekání na pokyn, podle tohoto pře
 | PWA, GitHub Pages, verze, release | `release-manager` |
 | Právní kontrola (GDPR, chat, e-maily, data, třetí strany, autorská práva): před každým sloučením nové verze do `main` jen změny od poslední kontroly (`PRAVNI.md`), na požádání celý audit | `pravnik` |
 
+Po každé aktualizaci (a při každé právní kontrole) řekni majiteli i otevřené právní body ze sekce „⏰ Otevřené body“ v `PRAVNI.md` (např. chat bez ztlumení a nahlášení).
+
 Postup u nové featury: `game-designer` navrhne, `race-rules-expert` ověří pravidla (pokud jde o závod), implementace v hlavní konverzaci, pak `code-reviewer` a `playtester`.
 
 Dva nezávislé úkoly spouštěj paralelně. Agenty neřetěz zbytečně, každý stojí tokeny.

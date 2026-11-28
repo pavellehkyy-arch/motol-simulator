@@ -1006,12 +1006,12 @@ const TEAMS={
   sparta:{name:'Praha 2',short:'PR2',base:'#7a1f2b',helmet:0x7a1f2b,frame:0x7a1f2b,accent:0xf2c230,shorts:'#1a1a1a'},
   germany:{name:'Německá reprezentace',short:'GER',base:'#f7f7f5',helmet:0xf4f4f4,frame:0x111111,accent:0xffce00,shorts:'#111'},
 };
-const RAINBOW=['#1f5fbf','#d62828','#111111','#f2c230','#2e9e4a'];
+const WC_BANDS=['#11457e','#d7141a','#11457e'];   // vlastní pruhy (modrá-červená-modrá), ne duhové pruhy UCI (ochranná známka)
 // torso cylinder: u=0 chest centre, u=0.5 middle of the back; canvas top = shoulders
 function kitTex(id,num){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');const T=TEAMS[id];g.fillStyle=T.base;g.fillRect(0,0,W,H);
   const txt=(t,x,y,size,col,font)=>{g.save();g.fillStyle=col;g.font=(font||'900 ')+size+'px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText(t,x,y);g.restore();};
   const both=(fn)=>{fn(0);fn(W);};                          // chest items wrap around u=0
-  if(id==='wc'){RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,92+i*17,W,17);});}
+  if(id==='wc'){const y=[96,110,132],hh=[14,22,14];WC_BANDS.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,y[i],W,hh[i]);});}
   if(id==='favorit'){g.fillStyle='#d62828';g.beginPath();g.moveTo(0,40);g.lineTo(150,40);g.lineTo(110,H);g.lineTo(0,H);g.fill();g.beginPath();g.moveTo(W,40);g.lineTo(W-150,40);g.lineTo(W-110,H);g.lineTo(W,H);g.fill();
     g.fillStyle='#d62828';g.fillRect(180,30,152,60);
     both(x=>{txt('BRNO',x,128,40,'#fff');});txt('BRNO',256,60,30,'#fff');}
@@ -1049,7 +1049,7 @@ function kitTex(id,num){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');c
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;}
 function sleeveTex(id,fore){const c=mkCanvas(64,128),g=c.getContext('2d');const T=TEAMS[id];g.fillStyle=T.base;g.fillRect(0,0,64,128);   // canvas top = elbow end (upper arm) / wrist end (forearm)
   if(fore){return new THREE.CanvasTexture(c);}
-  if(id==='wc')RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,4+i*5,64,5);});
+  if(id==='wc')WC_BANDS.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,4+i*5,64,5);});
   if(id==='dukla'){g.fillStyle='#f2c230';g.fillRect(0,4,64,12);g.fillStyle='#d62828';g.fillRect(0,16,64,10);}
   if(id==='favorit'){g.fillStyle='#d62828';g.fillRect(0,0,64,128);g.fillStyle='#151515';g.fillRect(0,0,64,14);}
   if(id==='pardus'){g.fillStyle='#3b8fd8';g.fillRect(0,6,64,6);g.fillRect(0,16,64,6);g.fillRect(0,26,64,6);}
@@ -4142,13 +4142,13 @@ function ik2(A,C,L1,L2,pole,out){_ik1.subVectors(C,A);const d=Math.max(_ik1.leng
 function dernyTex(flip){const c=mkCanvas(256,128),g=c.getContext('2d');if(flip){g.translate(256,0);g.scale(-1,1);}
   g.fillStyle='#ff6a00';g.fillRect(0,0,256,128);g.fillStyle='#111';g.fillRect(0,0,256,16);g.fillRect(0,112,256,16);
   g.fillStyle='#8a2be2';g.fillRect(0,16,256,6);g.fillRect(0,106,256,6);
-  g.fillStyle='#111';g.font='italic 900 56px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('DERNA',128,58);g.font='800 15px system-ui,Arial';g.fillText('E-PACER · UCI KEIRIN',128,92);
+  g.fillStyle='#111';g.font='italic 900 56px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('DERNA',128,58);g.font='800 15px system-ui,Arial';g.fillText('E-PACER · KEIRIN',128,92);
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;}
 function pacerSuitTex(){const W=512,H=256,c=mkCanvas(W,H),g=c.getContext('2d');g.fillStyle='#1b1f2b';g.fillRect(0,0,W,H);
   g.fillStyle='#ff6a00';g.fillRect(0,60,W,26);g.fillStyle='#8a2be2';g.fillRect(0,86,W,12);                       // keirin pacer colours: orange + purple
   g.fillStyle='#e7e9ee';g.fillRect(255,0,2,H);g.fillRect(-1,0,2,H);g.fillRect(W-1,0,2,H);                            // zip at the chest
   g.fillStyle='#fff';g.font='900 44px system-ui,Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('PACER',256,160);   // back
-  g.font='900 20px system-ui,Arial';g.fillText('UCI',256,205);
+  g.font='900 20px system-ui,Arial';g.fillText('KEIRIN',256,205);
   const sg=g.createLinearGradient(0,0,W,0);for(const [u,a] of [[0,0],[0.25,0.25],[0.5,0.05],[0.75,0.25],[1,0]])sg.addColorStop(u,'rgba(0,0,0,'+a+')');g.fillStyle=sg;g.fillRect(0,0,W,H);
   const t=new THREE.CanvasTexture(c);t.anisotropy=MAXANI;return t;}
 function makeDerny(){
@@ -4682,8 +4682,8 @@ function walkOpen(id){if(id==='tv'){$('omniNext').style.display='none';$('resClo
   else if(id==='albi'){if(!ALBI||!ALBI.r.g.visible)return;ALBI.wave=2.4;walkSay('<b>Albi:</b> „Čau Kemi!“',3);
     try{if(window.speechSynthesis&&!muted){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Čau Kemi!');u.lang='cs-CZ';u.rate=1.05;const vs=speechSynthesis.getVoices().filter(x=>/cs/i.test(x.lang));if(vs[0])u.voice=vs[0];speechSynthesis.speak(u);}}catch(e){}}}
 function heroBuild(albi){if(albi)return WALK.rAlbi||(WALK.rAlbi=makePhotoHuman());if(WALK.rMe)return WALK.rMe;
-  const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/RAINBOW.length);RAINBOW.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
-  return WALK.rMe=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});}   // you: the world champion – rainbow bands right round the white jersey (chest loft v = height)
+  const c=mkCanvas(16,96),g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,16,96);const bh=Math.floor(28/WC_BANDS.length);WC_BANDS.forEach((col,i)=>{g.fillStyle=col;g.fillRect(0,37+i*bh,16,bh);});const tx=new THREE.CanvasTexture(c);
+  return WALK.rMe=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});}   // you: the world champion – blue-red-blue bands right round the white jersey (chest loft v = height)
 function heroSet(){const old=WALK.r,r=heroBuild(ALBI_ME);if(old===r)return;r.t=r.t||0;
   if(old){r.g.position.copy(old.g.position);r.g.rotation.copy(old.g.rotation);r.g.visible=old.g.visible;scene.remove(old.g);old.g.visible=false;}scene.add(r.g);WALK.r=r;}
 function albiSwap(){if(WALK.ride||WALK.act||WALK.sit||WALK.climb!=null||WALK.onSt||WALK.down)return;ALBI_ME=!ALBI_ME;try{localStorage.setItem('motol_albi',ALBI_ME?'1':'0');}catch(e){}
