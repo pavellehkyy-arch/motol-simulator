@@ -432,6 +432,9 @@
     return { st: P.state, ice: pc ? pc.iceConnectionState : '-', con: pc ? pc.connectionState : '-', sig: pc ? pc.signalingState : '-',
       lc: d ? d.lc : 0, rc: d ? d.rc : 0, lt: d ? Object.keys(d.lt).join('+') : '', rt: d ? Object.keys(d.rt).join('+') : '', n: P.n | 0 };
   };
+  /* lobby: kolik ms nejvýš zbývá, než se hráč připojí (po ICE_TO jde spojení přes server); otevřené / neznámé = 0 */
+  R.linkLeft = function (k) { var P = R.peers[k]; return P && P.state === 'connecting' ? Math.max(0, ICE_TO - (now() - P.since)) : 0; };
+  R.ICE_TO = ICE_TO;
   R.linkState = function (k) { var P = R.peers[k]; return P ? P.state : null; };
   R.relayed = function (k) { var P = R.peers[k]; return !!(P && P.relay); };
   R.viaServer = function (k) { var P = R.peers[k]; return !!(P && P.ws); };

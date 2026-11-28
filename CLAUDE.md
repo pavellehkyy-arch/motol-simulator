@@ -81,6 +81,7 @@ Agenty z `.claude/agents/` volej sám, bez čekání na pokyn, podle tohoto pře
 | Rozdělení `index.html` na moduly, úklid kódu | `refactorer` |
 | Texty hry, README, české popisky | `czech-copywriter` |
 | PWA, GitHub Pages, verze, release | `release-manager` |
+| Právní kontrola (GDPR, chat, e-maily, data, třetí strany, autorská práva): před každým sloučením nové verze do `main` jen změny od poslední kontroly (`PRAVNI.md`), na požádání celý audit | `pravnik` |
 
 Postup u nové featury: `game-designer` navrhne, `race-rules-expert` ověří pravidla (pokud jde o závod), implementace v hlavní konverzaci, pak `code-reviewer` a `playtester`.
 
