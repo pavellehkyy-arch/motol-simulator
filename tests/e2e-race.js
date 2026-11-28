@@ -4,7 +4,7 @@
 const http = require('http'), fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
-const THREE = process.env.THREE_PATH || '/tmp/claude-0/-home-user-motol-simulator/c53007ac-07e1-50e4-baf1-e7c7a40f5ad0/scratchpad/three/package/build/three.min.js';
+const THREE = process.env.THREE_PATH || '/tmp/three-r128/package/build/three.min.js';   // stáhne tests/rychle.sh
 const UIDS = ['a', 'b', 'c'].map((d) => d.repeat(8) + '-' + d.repeat(4) + '-' + d.repeat(4) + '-' + d.repeat(4) + '-' + d.repeat(12));
 const NICK = ['Alfa', 'Beta', 'Gama'];
 const res = []; let fails = 0;
@@ -72,7 +72,7 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
   });
   await page.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (r) => { if (/supabase\.co|three\.min/.test(r.request().url())) return r.fallback(); return r.abort(); });
   await page.routeWebSocket(/realtime\/v1\/websocket/, (ws) => rtHandle(page, ws));
-  await page.goto('http://127.0.0.1:' + srv.address().port + '/index.html#debug', { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.goto('http://127.0.0.1:' + srv.address().port + '/index.html' + (process.env.KOLA ? '?kola=' + process.env.KOLA : '') + '#debug', { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => window.__G && window.RaceNet && window.Online && window.NETR, null, { timeout: 60000 });
   await page.evaluate(() => { window.__lag = 0; let t = performance.now(); setInterval(() => { const n = performance.now(); window.__lag = Math.max(window.__lag, n - t - 100); t = n; }, 100); });
   return { ctx, page };
