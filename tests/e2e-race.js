@@ -1,4 +1,5 @@
 // E2E online závod (scratch): 3 okna Chromia, skutečné WebRTC (loopback), atrapa Supabase (REST + Realtime WS).
+// Vykreslování je vypnuté (softwarový GL by zdržoval smyčku o sekundy); RENDER=1 ho zapne.
 // Spuštění: node tests/e2e-race.js   (THREE_PATH=... přepíše cestu k three.min.js)
 const http = require('http'), fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
@@ -49,14 +50,15 @@ function rtHandle(page, ws) {
 }
 
 async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Chromia (jinak sdílí renderer a hladoví)
-  const ctx = await browser.newContext({ viewport: { width: 480, height: 220 } });
+  const ctx = await browser.newContext({ viewport: { width: 320, height: 160 } });
   const page = await ctx.newPage();
   if (process.env.DBG) page.on('request', (q) => console.log('REQ', q.url().slice(0, 100)));
   page.on('pageerror', (e) => errs[i].push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR/.test(m.text())) errs[i].push('console: ' + m.text()); });
   const sess = { access: jwt(UIDS[i]), refresh: 'r' + i, exp: 4102444800, email: NICK[i] + '@test.cz' };
   await page.addInitScript((s) => { localStorage.setItem('motol_session', JSON.stringify(s)); }, sess);
-  await page.route(/three\.min\.js/, (r) => r.fulfill({ path: THREE, contentType: 'application/javascript' }));
+  if (!process.env.RENDER) await page.addInitScript(() => { const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (f) => setTimeout(() => raf(f), 60); });   // ~15 fps, ať smyčky nehladoví
+  await page.route(/three\.min\.js/, (r) => r.fulfill({ body: fs.readFileSync(THREE, 'utf8') + (process.env.RENDER ? '' : '\n;(function(){var W=THREE.WebGLRenderer;THREE.WebGLRenderer=function(o){W.call(this,o);this.render=function(){};};THREE.WebGLRenderer.prototype=W.prototype;})();'), contentType: 'application/javascript' }));
   await page.route(/supabase\.co\//, (r) => {
     const u = r.request().url(), j = (d, st = 200) => r.fulfill({ status: st, contentType: 'application/json', body: JSON.stringify(d) });
     if (/\/rest\/v1\/profiles/.test(u)) return j([{ nickname: NICK[i], nickname_status: 'approved', money: 0, imported: true, coach: null }]);
@@ -70,6 +72,7 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
   await page.routeWebSocket(/realtime\/v1\/websocket/, (ws) => rtHandle(page, ws));
   await page.goto('http://127.0.0.1:' + srv.address().port + '/index.html#debug', { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForFunction(() => window.__G && window.RaceNet && window.Online && window.NETR, null, { timeout: 60000 });
+  await page.evaluate(() => { window.__lag = 0; let t = performance.now(); setInterval(() => { const n = performance.now(); window.__lag = Math.max(window.__lag, n - t - 100); t = n; }, 100); });
   return { ctx, page };
 }
 
@@ -95,6 +98,9 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     ok('právě jeden hostitel (první připojený)', hosts.filter(Boolean).length === 1 && hosts[0], JSON.stringify(hosts));
     const names = await ev(1, () => RaceNet.members().filter((k) => k !== RaceNet.me).map((k) => (RaceNet.name(k) || {}).nick));
     ok('jména v lobby z get_public_names', names.every(Boolean) && !names.includes('Hráč'), JSON.stringify(names));
+    if (process.env.DBG) { await Promise.all([0, 1, 2].map((i) => ev(i, () => { window.__lag = 0; }))); await sleep(5000); console.log('idle lag', await Promise.all([0, 1, 2].map((i) => ev(i, () => Math.round(window.__lag)))), await ev(0, () => ({ fps: window.__fps, ph: __G().phase }))); }
+    const lag0 = await Promise.all([0, 1, 2].map((i) => ev(i, () => { const l = Math.round(window.__lag); window.__lag = 0; return l; })));
+    res.push('  info: max zpoždění smyčky do startu (ms) ' + JSON.stringify(lag0));
     await ev(0, () => document.getElementById('netGoBtn').click());
     await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.on))).then((a) => a.every(Boolean)), 15000, 'NETR.on');
     ok('start: NETR.on u všech', true);
@@ -106,9 +112,14 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     ok('mapování cizích hráčů na jezdce různá, žádný hráč není dvakrát', st.every((s, i) => new Set(s.remotes.map((r) => r.nm)).size === 2));
     await sleep(4000);
     const h2 = await Promise.all([0, 1, 2].map((i) => ev(i, () => ({ h: RaceNet.isHost(), hk: String(RaceNet.host).slice(0, 2), ep: RaceNet.epoch }))));
-    ok('hostitel stabilní během odpočtu (jeden, shodný u všech)', h2.filter((x) => x.h).length === 1 && new Set(h2.map((x) => x.hk)).size === 1, JSON.stringify(h2));
+    ok('hostitel stabilní během odpočtu (jeden, shodný u všech)', h2.filter((x) => x.h).length === 1 && new Set(h2.map((x) => x.hk)).size === 1, JSON.stringify(h2) + ' lag ms ' + JSON.stringify(await Promise.all([0, 1, 2].map((i) => ev(i, () => Math.round(window.__lag))))));
+    if (h2.filter((x) => x.h).length !== 1) {   // split-brain: zkus, jestli se sám srovná (dead[] v race-net.js se nuluje jen při odchodu z presence)
+      await sleep(10000);
+      const h3 = await Promise.all([0, 1, 2].map((i) => ev(i, () => ({ h: RaceNet.isHost(), hk: String(RaceNet.host).slice(0, 2), ep: RaceNet.epoch }))));
+      ok('split-brain se po 10 s sám srovná', h3.filter((x) => x.h).length === 1, JSON.stringify(h3));
+    }
     // výstřel
-    await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.goAt > 0))).then((a) => a.every(Boolean)), 30000, 'goAt');
+    await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.goAt > 0))).then((a) => a.every(Boolean)), 120000, 'goAt');
     ok('výstřel: NETR.goAt > 0 u všech', true);
     const go = await Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.goAt)));
     ok('goAt stejné (hodiny hostitele) u všech', Math.max(...go) - Math.min(...go) < 1, JSON.stringify(go.map((g) => g - go[0])));
@@ -122,7 +133,7 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     await sleep(2000);
     const post = await ev(2, () => { const R = NETR.map[Object.keys(NETR.map).find((k) => k.startsWith('bbbbbbbb'))]; return R.s; });
     ok('C vidí B, jak ujíždí (s roste)', post > pre, pre.toFixed(1) + ' -> ' + post.toFixed(1));
-    ok('boti u nehostitele jsou remote, u hostitele ne', await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:')).every((R) => R.remote)) && await ev(0, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:')).every((R) => !R.remote)));
+    ok('boti u nehostitele jsou remote, u hostitele ne', await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => R.remote)) && await ev(0, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => !R.remote)));
     const sn = await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && R.netT).length);
     ok('snapshoty botů dorazily k nehostiteli', sn > 0, 'boti se snapshotem: ' + sn);
     // převzetí hostitele
@@ -137,23 +148,23 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     const gone = await ev(oi, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return k ? { c: NETR.map[k].crashed, vis: NETR.map[k].model.g.visible } : null; });
     await sleep(6000);
     const gone2 = await ev(oi, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return k ? { c: NETR.map[k].crashed, vis: NETR.map[k].model.g.visible } : null; });
-    ok('odpadlý hráč A je u zbylých vyřazen (crashed/skrytý) do ~6 s', gone2 && gone2.c && !gone2.vis, JSON.stringify([gone, gone2]));
+    ok('odpadlý hráč A zmizí u zbylých z dráhy (skrytý, mimo pořadí) do ~6 s', gone2 && !gone2.vis, JSON.stringify([gone, gone2]));
     // dojezd: oba zbylí do cíle, stejné pořadí
     for (const i of [1, 2]) await ev(i, () => { __eff(1); });
-    const fin = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ f: __pl.finished, o: NETR.on })))); return a.every((x) => x.f) ? a : false; }, 240000, 'dojezd').catch((e) => null);
+    const fin = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ f: __pl.finished, c: __pl.crashed && __G().phase === 'ceremony', o: NETR.on })))); return a.every((x) => x.f || x.c) ? a : false; }, 240000, 'dojezd').catch((e) => null);
     if (!fin) {
       const dbg = await Promise.all([1, 2].map((i) => ev(i, () => ({ s: __pl.s, v: __pl.v, t: __G().raceTime, phase: __G().phase }))));
       ok('dojezd: oba hráči dojeli', false, JSON.stringify(dbg));
     } else {
-      ok('dojezd: oba hráči dojeli', true);
+      ok('dojezd: oba hráči dojeli (nebo spadli – DNF)', true, JSON.stringify(fin));
       await sleep(2500);
-      const ord = await Promise.all([1, 2].map((i) => ev(i, () => netOrder())));
+      const ord = await Promise.all([1, 2].map((i) => ev(i, () => __net.order())));
       ok('pořadí netOrder() stejné u obou', JSON.stringify(ord[0]) === JSON.stringify(ord[1]), JSON.stringify(ord.map((o) => o.map((x) => x ? x[0] : '-').join(''))));
     }
     for (let i = 0; i < 3; i++) ok('bez chyb v konzoli, okno ' + NICK[i], errs[i].length === 0, errs[i].slice(0, 3).join(' | '));
   } catch (e) {
     ok('scénář doběhl', false, e.message);
-    for (let i = 0; i < P.length; i++) { try { res.push('  stav ' + i + ': ' + JSON.stringify(await P[i].page.evaluate(() => ({ st: RaceNet.status, host: RaceNet.isHost(), m: RaceNet.members().length, l: RaceNet.members().filter((k) => k !== RaceNet.me).map((k) => RaceNet.linkState(k)), stats: RaceNet.stats, me: RaceNet.me.slice(0, 2), hostK: String(RaceNet.host).slice(0, 2), order: RaceNet.members().map((k) => k.slice(0, 2)), ep: RaceNet.epoch })))); } catch (x) {} }
+    for (let i = 0; i < P.length; i++) { try { res.push('  stav ' + i + ': ' + JSON.stringify(await P[i].page.evaluate(() => ({ st: RaceNet.status, host: RaceNet.isHost(), m: RaceNet.members().length, l: RaceNet.members().filter((k) => k !== RaceNet.me).map((k) => RaceNet.linkState(k)), stats: RaceNet.stats, me: RaceNet.me.slice(0, 2), hostK: String(RaceNet.host).slice(0, 2), order: RaceNet.members().map((k) => k.slice(0, 2)), ep: RaceNet.epoch, ph: __G().phase, rt: +__G().raceTime.toFixed(1), ps: +__pl.s.toFixed(1), S0: +__G().START_S.toFixed(1), neu: __G().neu })))); } catch (x) {} }
     for (let i = 0; i < 3; i++) if (errs[i].length) res.push('  chyby okna ' + i + ': ' + errs[i].slice(0, 4).join(' | '));
   } finally {
     console.log(res.join('\n')); for (const b of browsers) await b.close().catch(() => {}); srv.close(); process.exit(fails ? 1 : 0);

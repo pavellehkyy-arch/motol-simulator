@@ -452,6 +452,7 @@
   }
   function onData(P, ch, d) {
     var t = now();
+    if (dead[P.key]) { delete dead[P.key]; recompute(); }   // zase se ozval (třeba jen zaseknuté vlákno): může být znovu hostitel
     if (ch === 'u' && typeof d !== 'string') {
       var b = toAB(d);
       if (!b) { bad(); return; }
@@ -481,6 +482,9 @@
         R.stats.rx++;
         if (!(hostAnn[P.key] >= m.e)) hostAnn[P.key] = m.e;
         if (m.e > maxEp) maxEp = m.e;
+        if (R.host === R.me && m.e >= R.epoch) {   // někdo se prohlásil hostitelem, ale podle pořadí jsem to já: přebij jeho epochu
+          R.epoch = maxEp + 1; maxEp = R.epoch; eachOpen(function (Q) { sendR(Q, { k: 'host', e: R.epoch }); }); cb('onHost', true, R.epoch); return;
+        }
         if (P.key !== R.host || R.host === R.me) { R.stats.drop++; return; }   // ohlásil se někdo, kdo pro mě hostitel není (ještě)
         if (m.e > R.epoch) { R.epoch = m.e; cb('onHost', false, m.e); }
         return;
@@ -619,14 +623,16 @@
   };
 
   /* ---------- pravidelná kontrola (časovač 200 ms; testy volají _tick s vlastním časem) ---------- */
+  var lastTick = 0;
   R._tick = function () {
-    var t = now(), ch = false, k, P;
+    var t = now(), ch = false, k, P, lag = lastTick && t - lastTick > 1000;   // vlastní vlákno se zaseklo: ticho ostatních nic neznamená
+    lastTick = t;
     for (k in R.peers) {
       P = R.peers[k];
       if (P.state === 'connecting') { if (t - P.since > ICE_TO) failure(P); continue; }
       if (P.state !== 'open') continue;
       if (P.downAt && t - P.downAt > DOWN_TO) { failure(P); continue; }
-      if (!dead[k] && t - P.lastRx > HOST_TO) { dead[k] = 1; ch = true; }   // 2 s ticho: nemůže být hostitel
+      if (!lag && !dead[k] && t - P.lastRx > HOST_TO) { dead[k] = 1; ch = true; }   // 2 s ticho: nemůže být hostitel
       if (t - P.lastTx >= KA_EVERY) sendU(P, KA);
     }
     if (ch) recompute();
@@ -658,5 +664,5 @@
   /* ---------- pro testy ---------- */
   R._enc = enc; R._dec = dec;
   R._in = function (key, ch, data) { var P = R.peers[key]; if (!P) { bad(); return; } onData(P, ch, data); };
-  R._reset = function () { R.leave(); names = {}; asked = {}; seqOut = 0; R.me = null; R.stats = { tx: 0, rx: 0, bad: 0, drop: 0, old: 0 }; R.mode = ''; };
+  R._reset = function () { R.leave(); names = {}; asked = {}; seqOut = 0; R.me = null; R.stats = { tx: 0, rx: 0, bad: 0, drop: 0, old: 0 }; R.mode = ''; lastTick = 0; };
 })();

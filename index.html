@@ -4811,6 +4811,7 @@ $('btnNetRace').onclick=()=>{const sp=$('btnNetRace').querySelector('span');if(!
   Online.multi(netLobby);};
 $('netGoBtn').onclick=()=>{netHostStart();tone(880,0.1,0.06,'triangle');};
 $('netBack').onclick=netLobbyClose;
+if(location.hash==='#debug')window.__net={tick:netTick,order:netOrder,start:netHostStart};
 // ---------- PLOCHA ONLINE: the other logged-in players on the floor (multi.js, Supabase Realtime; online.js lets in only logged-in players with a nickname) ----------
 // we send our position 3x a second while moving (every 3 s standing still), the others are drawn as plain figures (or Albi, a:1) with their nickname over the head;
 // they are solid (mpPush in walkMove), on the rollers they ride a bike, chat messages show as a bubble over the head and in the list top left
