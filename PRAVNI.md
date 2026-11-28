@@ -92,8 +92,6 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - **Chat (plocha online):** chybí tlačítko 🔇 Ztlumit a nahlášení hráče přímo ve hře a pravidla chatu při prvním otevření (DSA čl. 16). Majitel rozhodl: zatím neopravovat, ale připomínat. Kontakt na nahlášení už je v zásadách (sekce Nevhodný obsah).
 - **Věk 15 let:** zásady to teď říkají, ale hra se na věk neptá (zaškrtávátko před online hrou zatím není).
 - **Totožnost správce v zásadách:** „provozuje její autor“ bez jména; GDPR čl. 13 chce jméno správce. Doplnit, až to majitel odsouhlasí.
-- **Mazání `race_sessions` po 30 dnech** se spouští jen v `race_start` (bod 11), zásady ale slibují pevných 30 dní. Přidat denní `pg_cron` úklid.
-- **Výmaz „všeho k účtu“** (zásady, sekce Jak dlouho) nejde ověřit, schéma starších tabulek a kaskády z `auth.users` v repozitáři nejsou (bod 12).
 
 ## Vyřešeno (28. 11. 2026, pokračování)
 - Duhové pruhy UCI na dresu Mistr světa nahrazeny vlastními (modrá-červená-modrá); na derně místo „UCI“ nápis „KEIRIN“.
@@ -120,4 +118,8 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
 - Reklama na mantinelu je majitelova vlastní (žádný cizí sponzor): v pořádku, pravidlo o logech sponzorů se jí netýká.
 - E-mail s kódem posílá Brevo (Francie, EU): doplněno do zásad jako zpracovatel.
 
-Poslední kontrola: d3f1f75c890ea71123deba0d247c2f6bd768cfc0 2026-11-28
+## Kontrola updatu 590e4bd..necommitnuto (v3.4, 28. 11. 2026)
+- Hostitel online závodu může vypnout NPC jezdce: příznak `nb` (0/1) v presence meta Supabase Realtime (race-net.js `setNoBots`/`noBots`) a `localStorage motol_netnobots`. Jde o herní nastavení bez osobních údajů, nic se neukládá na server; localStorage je nezbytné pro funkci (bez lišty). Text zásad měnit netřeba. Bez nového rizika 🟢.
+- Úklid: z Otevřených bodů odstraněny „Mazání `race_sessions`“ a „Výmaz všeho k účtu“ – vyřešeno už po kontrole d3f1f75 (viz výše).
+
+Poslední kontrola: 590e4bd56e262720c370fb059808790b2cebed7f 2026-11-28 (+ necommitnuté změny v3.4)

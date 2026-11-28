@@ -10,7 +10,7 @@
      RaceNet.event(k, data)                       – spolehlivá zpráva všem
      RaceNet.startRace(delayMs, info), RaceNet.snap(obj), RaceNet.finish()   – jen hostitel (finish kdokoli)
      RaceNet.hostNow(), RaceNet.toLocal(hostMs), RaceNet.isHost(), RaceNet.members(), RaceNet.name(key),
-     RaceNet.linkState(key), RaceNet.relayed(key)
+     RaceNet.linkState(key), RaceNet.relayed(key), RaceNet.setNoBots(bool) / noBots(key) – volba hostitele „bez NPC“ v presence (nb)
    Čte RaceNet.status (off/connecting/lobby/race/full/denied/error), .host, .epoch, .me, .room, .peers,
    .lastSnap, .race, .stats { tx, rx, bad, drop, old }.
    Callbacky: onHost(isMe, epoch), onStart({ atLocal, race, info, host }), onSnap(obj, fromKey),
@@ -35,7 +35,7 @@
   var tracked = false, stick = false, myT = 0, mySt = 'wait', present = {}, dead = {}, hostAnn = {}, maxEp = 0;
   var clockOff = 0, offs = [], pings = {}, lastPing = 0, seqOut = 0, pendSig = [], iceP = null;
   var hbT = null, tokT = null, tickT = null, retryT = null, retries = 0, hbRef = null, gen = 0, names = {}, asked = {};
-  var myLk = null;
+  var myLk = null, myNb = 0;   // myNb 1 = hostitel vypnul NPC jezdce (jen informace pro čekárnu, platí volba ve startu)
   var KA = new Uint8Array([2]).buffer;   // keepalive na kanálu 'u' (1 bajt)
 
   function O() { return G.Online; }
@@ -136,7 +136,7 @@
     room++; var g = gen;
     O().accessToken(300).then(function (t) { if (want && ws && g === gen) join(t); }, function () { if (g === gen && ws) try { ws.close(); } catch (e) {} });
   }
-  function track() { if (topic) msg('presence', { type: 'presence', event: 'track', payload: { t: myT, st: mySt, lk: myLk } }); }
+  function track() { if (topic) msg('presence', { type: 'presence', event: 'track', payload: { t: myT, st: mySt, lk: myLk, nb: myNb } }); }
 
   /* presence meta { t: čas připojení, st: 'wait'|'race' } */
   function meta(entry) {
@@ -145,7 +145,7 @@
     var best = null;
     for (var i = 0; i < ms.length; i++) {
       var m = ms[i] || {}, t = fin(m.t) ? m.t : Infinity;
-      if (!best || t < best.t) best = { t: t, st: m.st === 'race' ? 'race' : 'wait', lk: okLook(m.lk) };
+      if (!best || t < best.t) best = { t: t, st: m.st === 'race' ? 'race' : 'wait', lk: okLook(m.lk), nb: m.nb === 1 ? 1 : 0, nbOk: m.nb === 0 || m.nb === 1 };
     }
     return best;
   }
@@ -155,6 +155,9 @@
     try { return JSON.stringify(o).length <= 300 ? o : null; } catch (e) { return null; }
   }
   R.setLook = function (o) { myLk = okLook(o); if (tracked) track(); };
+  R.setNoBots = function (v) { var n = v ? 1 : 0; if (n === myNb) return; myNb = n; if (tracked) track(); };
+  R.noBots = function (k) { if (k === R.me) return !!myNb; var p = present[k]; return !!(p && p.nb); };
+  R.noBotsOk = function (k) { if (k === R.me) return true; var p = present[k]; return !!(p && p.nbOk); };   // starší verze hry nb neposílá
   R.look = function (k) { if (k === R.me) return myLk; var p = present[k]; return p && p.lk || null; };
   function order(a, b) { return a.t !== b.t ? (a.t < b.t ? -1 : 1) : (a.k < b.k ? -1 : a.k > b.k ? 1 : 0); }
   function sortedOf(map, withMe) {

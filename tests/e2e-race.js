@@ -105,11 +105,21 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     if (process.env.DBG) { await Promise.all([0, 1, 2].map((i) => ev(i, () => { window.__lag = 0; }))); await sleep(5000); console.log('idle lag', await Promise.all([0, 1, 2].map((i) => ev(i, () => Math.round(window.__lag)))), await ev(0, () => ({ fps: window.__fps, ph: __G().phase }))); }
     const lag0 = await Promise.all([0, 1, 2].map((i) => ev(i, () => { const l = Math.round(window.__lag); window.__lag = 0; return l; })));
     res.push('  info: max zpoždění smyčky do startu (ms) ' + JSON.stringify(lag0));
+    if (process.env.NOBOTS) {   // hostitel vypne NPC jezdce: ostatní to vidí v čekárně, v závodě jedou jen 3 lidé
+      await ev(0, () => document.getElementById('netBotsBtn').click());
+      const nbI = await until(() => ev(1, () => { const e = document.getElementById('netBotsInfo'); return e.style.display !== 'none' && /vypnul/.test(e.textContent) && e.textContent; }), 8000, 'info bez NPC');
+      ok('bez NPC: host přepnul, ostatní vidí info', !!nbI, nbI);
+    }
     await ev(0, () => document.getElementById('netGoBtn').click());
     await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => NETR.on))).then((a) => a.every(Boolean)), 15000, 'NETR.on');
     ok('start: NETR.on u všech', true);
     const st = await Promise.all([0, 1, 2].map((i) => ev(i, () => ({ mode: __G().mode, host: NETR.host, keys: NETR.keys.length, me: RaceNet.me,
       remotes: Object.keys(NETR.map).filter((k) => k !== RaceNet.me && k.indexOf('b:') !== 0).map((k) => ({ k, rem: NETR.map[k].remote, nm: NETR.map[k].name })) }))));
+    if (process.env.NOBOTS) {
+      await until(() => Promise.all([0, 1, 2].map((i) => ev(i, () => __R.filter((r) => r.model.g.visible).length === 3))).then((a) => a.every(Boolean)), 8000, 'viditelní 3').catch(() => {});   // data od cizích chvíli trvají (do té doby jsou skrytí)
+      const vis = await Promise.all([0, 1, 2].map((i) => ev(i, () => ({ n: __R.filter((r) => r.model.g.visible).length, bots: NETR.bots.length, nb: NETR.noBots }))));
+      ok('bez NPC: na dráze jen 3 lidé, žádný bot', vis.every((v) => v.nb && v.bots === 0 && v.n === 3), JSON.stringify(vis));
+    }
     ok('mode scratch u všech', st.every((s) => s.mode === 'scratch'), JSON.stringify(st.map((s) => s.mode)));
     ok('NETR.map: každý vidí 2 cizí hráče jako remote se jménem', st.every((s) => s.remotes.length === 2 && s.remotes.every((r) => r.rem && NICK.includes(r.nm))), JSON.stringify(st.map((s) => s.remotes.map((r) => r.nm))));
     await until(() => ev(1, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return NETR.tags && NETR.tags[k] && NETR.tags[k].visible; }), 8000, 'jmenovky').catch(() => {});   // přes server první data až za chvíli
@@ -144,7 +154,7 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     ok('C vidí B, jak ujíždí (s roste)', post > pre, pre.toFixed(1) + ' -> ' + post.toFixed(1));
     ok('boti u nehostitele jsou remote, u hostitele ne', await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => R.remote)) && await ev(0, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => !R.remote)));
     const sn = await ev(1, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && R.netT).length);
-    ok('snapshoty botů dorazily k nehostiteli', sn > 0, 'boti se snapshotem: ' + sn);
+    if (!process.env.NOBOTS) ok('snapshoty botů dorazily k nehostiteli', sn > 0, 'boti se snapshotem: ' + sn);
     // převzetí hostitele
     await P[0].ctx.close();
     const nh = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ h: RaceNet.isHost(), n: NETR.host })))); return a.some((x) => x.h) ? a : false; }, 30000, 'převzetí');
@@ -153,7 +163,7 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     await sleep(500);
     ok('nový hostitel: boti už nejsou remote', await ev(hi, () => __R.filter((R) => !R.player && !R.partner).filter((R) => R.netKey && R.netKey.startsWith('b:') && !R.netOff).every((R) => !R.remote)));
     const mv = await ev(hi, () => { const b = __R.filter((R) => !R.player && !R.partner).find((R) => R.netKey && R.netKey.startsWith('b:') && !R.crashed); const s0 = b.s; return new Promise((r) => setTimeout(() => r([s0, b.s]), 2000)); });
-    ok('boti u nového hostitele jedou dál (s roste)', mv[1] > mv[0], mv.map((x) => x.toFixed(1)).join(' -> '));
+    if (!process.env.NOBOTS) ok('boti u nového hostitele jedou dál (s roste)', mv[1] > mv[0], mv.map((x) => x.toFixed(1)).join(' -> '));
     const gone = await ev(oi, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return k ? { c: NETR.map[k].crashed, vis: NETR.map[k].model.g.visible } : null; });
     await sleep(6000);
     const gone2 = await ev(oi, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('aaaaaaaa')); return k ? { c: NETR.map[k].crashed, vis: NETR.map[k].model.g.visible } : null; });
@@ -163,6 +173,9 @@ async function mkPlayer(browser, i, errs) {   // každé okno vlastní proces Ch
     await sleep(3000);
     const cr = await ev(1, () => { const k = Object.keys(NETR.map).find((k) => k.startsWith('cccccccc')), R = NETR.map[k]; return R ? { c: R.crashed, vis: R.model.g.visible, crash: !!R.crash, slip: R.crash && R.crash.slip, tag: NETR.tags[k] && NETR.tags[k].visible } : null; });
     ok('spadlý hráč C u B leží na dráze (pád, viditelný, se jmenovkou)', cr && cr.c && cr.vis && cr.crash && cr.slip && cr.tag, JSON.stringify(cr));
+    // online se po pádu nekončí: C se zvedne, nasedne a po průjezdu posledního jezdce jede dál (u sebe i u B)
+    const up = await until(async () => (await ev(2, () => !__pl.crashed && __G().phase === 'race')) && (await ev(1, () => { const R = NETR.map[Object.keys(NETR.map).find((k) => k.startsWith('cccccccc'))]; return R && !R.crashed && R.model.g.visible; })), 90000, 'nasednutí').catch(() => false);
+    ok('C po pádu nasedne a jede dál (u sebe i u B), bez záchranky a vyhlášení', !!up, JSON.stringify(await ev(2, () => ({ c: __pl.crashed, ph: __G().phase, rm: __pl.crash && __pl.crash.rm }))));
     // dojezd: oba zbylí do cíle, stejné pořadí
     for (const i of [1, 2]) await ev(i, () => { __eff(1); });
     const fin = await until(async () => { const a = await Promise.all([1, 2].map((i) => ev(i, () => ({ f: __pl.finished, c: __pl.crashed && __G().phase === 'ceremony', o: NETR.on })))); return a.every((x) => x.f || x.c) ? a : false; }, 240000, 'dojezd').catch((e) => null);
