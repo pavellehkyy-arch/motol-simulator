@@ -31,6 +31,7 @@
   };
   G.RaceNet = R;
 
+  var roomMax = 8;
   var ws = null, want = false, ref = 0, joinRef = null, topic = '', uid = null, room = 1, lastTok = '';
   var tracked = false, stick = false, myT = 0, mySt = 'wait', present = {}, dead = {}, hostAnn = {}, maxEp = 0;
   var clockOff = 0, offs = [], pings = {}, lastPing = 0, seqOut = 0, pendSig = [], iceP = null;
@@ -64,11 +65,12 @@
   function msg(ev, payload) { ref++; return sendRaw({ topic: topic, event: ev, payload: payload, ref: String(ref), join_ref: joinRef }); }
   function clearWs() { clearInterval(hbT); clearInterval(tokT); clearTimeout(retryT); hbT = tokT = retryT = null; }
 
-  R.join = function (mode) {
+  R.join = function (mode, max) {
     mode = String(mode == null ? '' : mode);
     if (!/^[a-z0-9_]{1,24}$/.test(mode)) return false;
     if (want && R.mode === mode) return true;
     if (want) R.leave();
+    roomMax = Math.max(2, Math.min(MAX, max | 0 || MAX));   // sprint 1v1: místnost jen pro dva
     want = true; R.mode = mode; room = 1; retries = 0;
     clearInterval(tickT); tickT = unref(setInterval(R._tick, TICK));
     connect();
@@ -184,7 +186,7 @@
       for (k in p) if (k !== R.me) { var mt = meta(p[k]); if (mt) st[k] = mt; }
       if (!tracked && !stick) {   // výběr místnosti
         var list = sortedOf(st, false);
-        if (list.length >= MAX || (list.length && st[list[0].k].st === 'race')) { nextRoom(); return; }
+        if (list.length >= roomMax || (list.length && st[list[0].k].st === 'race')) { nextRoom(); return; }
       }
       present = st;
       if (!tracked) {

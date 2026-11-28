@@ -139,4 +139,11 @@ Je potřeba něco opravit před vydáním: na dresu německé reprezentace jsou 
   - Drobnost v zásadách: „Co vidí ostatní: jen tvou přezdívku a výsledky v žebříčku“ (online.js ř. 530) nezmiňuje veřejný odznak Gold (žebříček, plocha). 🟢 **Návrh:** změnit na `'jen tvou přezdívku (u Gold účtu i odznak GOLD) a výsledky v žebříčku. E-mail ani tvého vlastního trenéra nevidí nikdo jiný.'`
 - Celkově: nic, co by bránilo sloučení. Otevřené body beze změny.
 
-Poslední kontrola: 438d4e8e1011242c0b0a3a33a6ecc025ccf246dd + necommitnuté změny v3.6 2026-11-28
+## Kontrola updatu 438d4e8..f1c6d53 + necommitnuto (v3.7, 28. 11. 2026)
+- Chat na ploše: Gold účet smí poslat až 1000 znaků (ostatní 120). Limit u příjemce se řídí odznakem `gold` z `get_public_names` (server), ne tvrzením odesílatele – v pořádku. Dál se nic neukládá, jen broadcast v místnosti (max. 8), limit 1 zpráva za 2 s, čištění řídicích a bidi znaků zůstává. Zásady (online.js ř. 531) délku neuvádějí, úprava není potřeba.
+  - 🟢 Delší zprávy mírně zvyšují váhu otevřeného bodu Chat (ztlumení/nahlášení ve hře). Gold má zatím jen majitel a Albi, takže prakticky beze změny.
+- Online sprint 1v1 (`race-net.js` `R.join(mode, max)`, místnost pro 2): stejná signalizace Realtime a WebRTC/TURN, žádná nová data, tabulka ani služba. Zásady pokrývají („online závod“).
+- Úpravy zobrazení online závodu: bez právního dopadu.
+- Celkově: nic, co by bránilo sloučení. Otevřené body beze změny.
+
+Poslední kontrola: f1c6d53 + necommitnuté změny v3.7 2026-11-28

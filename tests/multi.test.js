@@ -192,3 +192,21 @@ test('chat: odeslání, příjem, čištění textu a limit 1 zpráva za 2 s', a
   assert.strictEqual(M.chat.length, 0);
   M._reset();
 });
+
+test('chat Gold: vlastní Gold účet pošle až 1000 znaků, od Gold hráče (podle serveru) přijde celá zpráva', async () => {
+  const { M, socks } = setup();
+  globalThis.Online.profile = () => ({ badge: 'gold' });
+  M.start(); await tick();
+  const ws = socks[0], j = okJoin(ws, { [A]: { metas: [{}] } });
+  await tick(30);   // jména (a Gold) ze serveru
+  const got = []; M.onChat = (c) => got.push(c);
+  assert.strictEqual(M.chatMax(), 1000);
+  assert.strictEqual(M.say('y'.repeat(1200)), true);
+  const out = ws.out.filter((m) => m.event === 'broadcast' && m.payload.event === 'c');
+  assert.strictEqual(out[0].payload.payload.m.length, 1000);
+  ws.push({ topic: j.topic, event: 'broadcast', payload: { type: 'broadcast', event: 'c', payload: { u: A, m: 'x'.repeat(900) } } });
+  assert.strictEqual(got[1].text.length, 900);
+  globalThis.Online.profile = () => ({ badge: null });
+  assert.strictEqual(M.chatMax(), 120);
+  M._reset();
+});
