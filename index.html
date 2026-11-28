@@ -4474,7 +4474,7 @@ function spComeRound(R,P,g,toGo,dt,out){R.spSwT-=dt;
   // stuck right behind him (he keeps closing the door): back off and take a run at it
   if(g>0.3&&g<2.2&&Math.abs(P.w-R.w)<0.55){R.spStuckT+=dt;if(R.spStuckT>0.7&&toGo>110){R.spStuckT=0;R.spBackT=1.1;R.spSide=0;}out({tw,vT:P.v+0.3});return;}   // boxed in: don't burn the legs into his back wheel
   R.spStuckT=Math.max(0,R.spStuckT-dt);out({tw});}
-function spFoul(R,why){const C=SP.cur;if(C.foul||(NETR.on&&!NETR.host&&!SP.netDec))return;   // online rozhoduje rozhodčí u hostiteleC.foul={R,why};const T={door:'sjel jsi dolů na soupeře vedle sebe',band:'předjíždění po modrém pásu',lane:'vedoucí jezdec opustil sprinterský pruh',cut:'vjezd do sprinterského pruhu bez náskoku délky kola',crash:'nebezpečná jízda – shodil jsi soupeře',shut:'zavřel jsi dveře – sjel jsi dolů před soupeře, který tě předjížděl zespodu',elbow:'opakované strkání do soupeře'};
+function spFoul(R,why){const C=SP.cur;if(C.foul||(NETR.on&&!NETR.host&&!SP.netDec))return;/* online rozhoduje rozhodčí u hostitele */C.foul={R,why};const T={door:'sjel jsi dolů na soupeře vedle sebe',band:'předjíždění po modrém pásu',lane:'vedoucí jezdec opustil sprinterský pruh',cut:'vjezd do sprinterského pruhu bez náskoku délky kola',crash:'nebezpečná jízda – shodil jsi soupeře',shut:'zavřel jsi dveře – sjel jsi dolů před soupeře, který tě předjížděl zespodu',elbow:'opakované strkání do soupeře'};
   if(R===player){showMsg('🟥 PŘEŘAZENÍ<small>'+T[why]+' – rozjížďku prohráváš</small>',3.4);tone(220,0.4,0.15,'sawtooth');angerJudges();}
   else showMsg('⚖️ '+R.name+' PŘEŘAZEN<small>'+T[why].replace('jsi ','')+' – rozjížďka je tvoje</small>',3.0);}
 function sprintUpdate(dt){const C=SP&&SP.cur;if(!C||phase==='ceremony'||phase==='menu'||phase==='countdown')return;
@@ -4483,7 +4483,8 @@ function sprintUpdate(dt){const C=SP&&SP.cur;if(!C||phase==='ceremony'||phase===
   if(NETR.on){if(NETR.host&&!C.decided&&(P.crashed||O.crashed||spGone(O))&&!C.fin.length){spDecide(P.crashed?O:P,true);return;}}   // online: pád nebo odpojení končí zápas
   else if(P.crashed&&!SP.over){SP.over=true;SP.winner=O;SP.heats.push({n:C.n,drawP:C.drawP,winner:O,t200:null,note:'pád'});C.decided=true;return;}
   if(SP.over&&C.decided){if(!FFWD&&!resultsShown&&(!P.crashed||NETR.on)){C.nextT+=dt;if(C.nextT>3.6){resultsShown=true;phase='done';startCeremony();}}return;}
-  if(C.decided&&NETR.on){C.nextT+=dt;const X=SP.netNext;if(X&&C.nextT>2&&!SP.busy){SP.busy=true;SP.netNext=null;SP.heat++;SP.drawP=X.dp;wipe(()=>{SP.busy=false;spStartHeat(false);countT=Math.max(1.5,(X.at-Date.now())/1000);NETR.goAt=RaceNet.hostNow()+countT*1000;});}return;}   // další rozjížďka v čase od hostitele
+  if(C.decided&&NETR.on){C.nextT+=dt;const X=SP.netNext;if(!X&&!SP.over&&C.nextT>10&&!SP.busy){C.nextT=0;if(spGone(O)){SP.over=true;SP.winner=P;}else if(NETR.host)netSpSend(C.win);}   // výsledek/čas další rozjížďky se ztratil (převzetí hostitele): pošli znovu, soupeř pryč = konec
+  if(X&&C.nextT>2&&!SP.busy){SP.busy=true;SP.netNext=null;SP.heat++;SP.drawP=X.dp;wipe(()=>{SP.busy=false;spStartHeat(false);countT=Math.max(1.5,(X.at-Date.now())/1000);NETR.goAt=RaceNet.hostNow()+countT*1000;});}return;}   // další rozjížďka v čase od hostitele
   if(C.decided){C.nextT+=dt;if(C.nextT>3.8&&!SP.busy&&!FFWD){SP.busy=true;SP.heat++;SP.drawP=SP.heat===2?3-SP.heats[0].drawP:Math.random()<0.5?1:2;wipe(()=>{SP.busy=false;spStartHeat(false);});}return;}
   // first half lap: no. 1 leads at least at walking pace until the opposite pursuit line (or until overtaken)
   if(C.phase1){const L=P.draw===1?P:O,F=L===P?O:P;
@@ -4511,9 +4512,9 @@ function sprintUpdate(dt){const C=SP&&SP.cur;if(!C||phase==='ceremony'||phase===
   if(spLaneHint(P,O,S200))showMsg('<small>⚠️ Jsi ve sprinterském pruhu – drž ho až do cíle!</small>',0.6);
   // the heat is decided when both are over the line (or a few seconds after the first)
   const oOut=O.crashed||O.dsq||spGone(O);if(NETR.on&&!NETR.host)return;
-  if(C.fin.length===2||(C.fin.length===1&&(raceTime-C.finT>4||oOut))){let W=NETR.on?C.fin.slice().sort((a,b)=>a.time-b.time)[0]:C.fin[0];if(C.foul)W=C.foul.R===P?O:P;spDecide(W);}}
+  if(C.fin.length===2||(C.fin.length===1&&(raceTime-C.finT>4||oOut))){let W=NETR.on?C.fin.slice().sort((a,b)=>spFinAt(a)-spFinAt(b))[0]:C.fin[0];if(C.foul)W=C.foul.R===P?O:P;spDecide(W);}}
 function spLaneHint(P,O,S200){return P.spLaneIn&&!P.finished&&P.w>SP_LANE-0.15&&P.s>=S200&&gapTo(P,O)<0&&msgT<=0;}
-function spDecide(W,over){const C=SP.cur,P=player,O=SP.opp;if(C.decided||(NETR.on&&!NETR.host&&!SP.netDec))return;C.decided=true;C.nextT=0;const L=W===P?O:P;
+function spDecide(W,over){const C=SP.cur,P=player,O=SP.opp;if(C.decided||(NETR.on&&!NETR.host&&!SP.netDec))return;C.decided=true;C.win=W;C.nextT=0;const L=W===P?O:P;
   const iw=W===P?0:1;SP.score[iw]++;const t=W.t200!=null&&W.finished?W.time-W.t200:null;
   const margin=W.finished&&L.finished?L.time-W.time:null;
   SP.heats.push({n:C.n,drawP:C.drawP,winner:W,t200:t,margin,foul:C.foul?C.foul.R:null,why:C.foul?C.foul.why:null,pJump:C.pJump,
@@ -4864,12 +4865,16 @@ function netResRedo(){if(!resultsShown||OMNI||mode!=='scratch')return;showResult
 function netFinish(R,at){if(R.netFinAt!=null||!window.RaceNet)return;const go=NETR.goAt||(RaceNet.race&&RaceNet.race.at)||0;
   if(at>RaceNet.hostNow()+1500||(go&&at<go+(mode==='sprint'?25000:60000))||R.s<FIN-25)return;
   R.finished=true;R.netFinAt=at;R.time=go?(at-go)/1000:raceTime;netResRedo();}
-// online sprint: hostitel pošle výsledek rozjížďky a čas další, druhý ho jen převezme
+// čas dojezdu v hodinách hostitele (můj se přepočítá i před netTick)
+function spFinAt(R){return R.player?(window.RaceNet?RaceNet.hostNow():Date.now())-(raceTime-R.time)*1000:R.netFinAt!=null?R.netFinAt:1e15;}
 // soupeř odpadl: přes 5 s žádná data (na startu, než data dorazí, se nepočítá)
 function spGone(O){return !!(NETR.on&&O.netStale&&raceTime>6&&Date.now()-(O.netStaleT||0)>5000);}
+// online sprint: hostitel pošle výsledek rozjížďky a čas další, druhý ho jen převezme
 function netSpSend(W){const C=SP.cur,me=RaceNet.me,key=R=>R===player?me:R.netKey;let dp=SP.drawP;if(!SP.over)dp=SP.heat===1?3-C.drawP:Math.random()<0.5?1:2;
   const at=RaceNet.hostNow()+7000;RaceNet.event('spd',{n:C.n,w:key(W),f:C.foul?key(C.foul.R):null,y:C.foul?C.foul.why:null,o:SP.over?1:0,dp:3-dp,at});if(!SP.over)SP.netNext={at:RaceNet.toLocal(at),dp};}
-function netSpGot(from,d){const C=SP&&SP.cur;if(mode!=='sprint'||!C||from!==RaceNet.host||NETR.host||d.n!==C.n||C.decided)return;const me=RaceNet.me,who=k=>k===me?player:SP.opp;
+function netSpGot(from,d){const C=SP&&SP.cur;if(mode!=='sprint'||!C||from!==RaceNet.host||NETR.host||d.n!==C.n)return;
+  if(C.decided){if(!SP.over&&!SP.netNext&&isFinite(d.at)&&(d.dp===1||d.dp===2))SP.netNext={at:RaceNet.toLocal(+d.at),dp:d.dp};return;}   // opakované poslání po převzetí
+  const me=RaceNet.me,who=k=>k===me?player:SP.opp;
   SP.netDec=true;try{if(d.f&&typeof d.y==='string')spFoul(who(d.f),d.y);spDecide(who(d.w),d.o===1);}finally{SP.netDec=false;}
   if(!SP.over&&isFinite(d.at)&&(d.dp===1||d.dp===2))SP.netNext={at:RaceNet.toLocal(+d.at),dp:d.dp};}
 function netEvent(from,k,d){if(!NETR.on||!d)return;
@@ -4895,7 +4900,8 @@ function netTick(dt){const N=window.RaceNet;if(!NETR.on||!N)return;const now=Dat
       if(!q){if(!R.netStale){R.netStale=true;R.netStaleT=now;R.model.g.visible=false;}continue;}
       if(R.netStale){R.netStale=false;R.model.g.visible=true;}s=q.s+q.l*N.LAP+q.v*N.DELAY/1000;   // vzorek je o DELAY zpět: posuň ho do přítomnosti, jinak by jezdec v háku vypadal metry za mnou
       w=q.w;v=q.v;R.power=q.f*500;if(q.fl&1){if(!R.crashed){R.s=s;R.w=w;R.v=v;netCrash(R,!!(q.fl&4));}continue;}if(R.crashed)netRemounted(R,s,w);}
-    const k1=1-Math.exp(-dt*12);if(Math.abs(s-R.s)>8){R.s=s;R.w=w;}else{R.s+=v*dt;R.s+=(s-R.s)*k1;R.w+=(w-R.w)*k1;}   // jede rychlostí a jen dorovnává chybu (vyhlazení bez zpoždění)
+    const k1=1-Math.exp(-dt*12),w0=R.w;if(Math.abs(s-R.s)>8){R.s=s;R.w=w;}else{R.s+=v*dt;R.s+=(s-R.s)*k1;R.w+=(w-R.w)*k1;}   // jede rychlostí a jen dorovnává chybu (vyhlazení bez zpoždění)
+    if(dt>0)R.dw=(R.dw||0)+((R.w-w0)/dt-(R.dw||0))*0.3;   // příčná rychlost pro rozhodčího (přeřazení ve sprintu)
     R.v=v;R.h=surfY(R.s,R.w);R.crank+=R.v/7.6*2*PI*dt;R.prevS=R.s;}
   netTags();}
 function netEnd(){clearTimeout(NETR.endT);NETR.endT=null;netTagsOff();if(window.RaceNet)RaceNet.leave();NETR.on=false;NETR.host=false;
@@ -4930,7 +4936,7 @@ $('btnNetSprint').onclick=()=>{const sp=$('btnNetSprint').querySelector('span');
 $('netGoBtn').onclick=()=>{netHostStart();tone(880,0.1,0.06,'triangle');};
 $('netBack').onclick=netLobbyClose;
 $('netBotsBtn').onclick=()=>{NET_NOBOTS=!NET_NOBOTS;try{localStorage.setItem('motol_netnobots',NET_NOBOTS?'1':'0');}catch(e){}if(window.RaceNet&&RaceNet.setNoBots)RaceNet.setNoBots(NET_NOBOTS);tone(660,0.06,0.05,'triangle');netLobbyUI();};
-if(location.hash==='#debug')window.__net={tick:netTick,order:netOrder,start:netHostStart,sp:()=>SP};
+if(location.hash==='#debug')window.__net={tick:netTick,order:netOrder,start:netHostStart,sp:()=>SP,foul:(R,w)=>spFoul(R,w)};
 // ---------- PLOCHA ONLINE: the other logged-in players on the floor (multi.js, Supabase Realtime; online.js lets in only logged-in players with a nickname) ----------
 // we send our position 3x a second while moving (every 3 s standing still), the others are drawn as plain figures (or Albi, a:1) with their nickname over the head;
 // they are solid (mpPush in walkMove), on the rollers they ride a bike, chat messages show as a bubble over the head and in the list top left
@@ -4978,7 +4984,7 @@ function mpPush(x,z,o){let px=0,pz=0,hit=false;if(!WALK.mp)return false;for(cons
     const dx=x-F.x,dz=z-F.z,d=Math.hypot(dx,dz),R=MP_R+WR;if(d>=R)continue;const pen=R-d;if(d>1e-4){px+=dx/d*pen;pz+=dz/d*pen;}else{px+=pen;}hit=true;}
   if(hit){o[0]=px;o[1]=pz;}return hit;}
 // chat bubble over the head (5 s)
-function mpBubbleTex(text){const c=mkCanvas(512,128),g=c.getContext('2d');g.font='700 30px system-ui';const words=[].concat(...text.split(' ').map(w=>{const o=[];while(g.measureText(w).width>440&&w.length>1){let n=w.length;while(n>1&&g.measureText(w.slice(0,n)).width>440)n--;o.push(w.slice(0,n));w=w.slice(n);}o.push(w);return o;})),L=[];let cur='';
+function mpBubbleTex(text){text=text.slice(0,200);const c=mkCanvas(512,128),g=c.getContext('2d');g.font='700 30px system-ui';const words=[].concat(...text.split(' ').map(w=>{const o=[];while(g.measureText(w).width>440&&w.length>1){let n=w.length;while(n>1&&g.measureText(w.slice(0,n)).width>440)n--;o.push(w.slice(0,n));w=w.slice(n);}o.push(w);return o;})),L=[];let cur='';
   for(const w of words){const t=cur?cur+' '+w:w;if(g.measureText(t).width>440&&cur){L.push(cur);cur=w;}else cur=t;if(L.length>=2)break;}if(L.length<2&&cur)L.push(cur);if(L.length===2&&words.join(' ').length>L.join(' ').length+1)L[1]=L[1].replace(/.?$/,'…');
   const w=Math.min(500,Math.max(...L.map(l=>g.measureText(l).width))+40),x0=256-w/2,h=L.length*36+26;
   g.fillStyle='rgba(255,255,255,.95)';g.beginPath();g.moveTo(x0+14,4);g.arcTo(x0+w,4,x0+w,4+h,14);g.arcTo(x0+w,4+h,x0,4+h,14);g.arcTo(x0,4+h,x0,4,14);g.arcTo(x0,4,x0+w,4,14);g.fill();
