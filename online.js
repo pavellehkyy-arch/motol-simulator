@@ -570,7 +570,8 @@
       }
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
       box.appendChild(h('h2', { text: '📧 Zadej kód' }));
-      box.appendChild(h('p', { text: 'Poslali jsme kód na ' + ctx.email + '. Mrkni i do spamu.' }));
+      box.appendChild(h('p', { text: 'Poslali jsme kód na ' + ctx.email + '.' }));
+      box.appendChild(h('p', { style: 'background:rgba(255,200,0,.15);border:1px solid rgba(255,200,0,.6);border-radius:8px;padding:8px 10px;font-weight:600', text: '⚠️ Kód nepřišel? Zkontroluj složku Hromadné a Spam (na Gmailu i Promoakce). Někdy dorazí až za minutu.' }));
       box.appendChild(inp);
       box.appendChild(h('div', { class: 'om', text: ctx.msg }));
       box.appendChild(h('button', { class: 'ob', text: 'Přihlásit', on: { click: go } }));
