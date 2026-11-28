@@ -3559,7 +3559,7 @@ function makeMedic(front){const r=makeHuman({skin:[0xdcae8a,0xc98e65,0xe0ad85][M
   for(const a of r.arms){if(!r.scan)ring(refl,0.041,0.035,-0.22,a.shp);a.shp.rotation.z=a.sx*0.15;}   // reflective arm bands; hands out to the stretcher poles
   if(!r.scan){const col=new THREE.Mesh(G_LIMB,mat(0xc8102e));col.scale.set(0.072,0.05,0.07);col.position.set(0,0.555,-0.004);r.torso.add(col);}   // jacket collar round the neck
   return {g:r.g,body:r.body,torso:r.torso,head:r.head,legs:r.legs,arms:r.arms,front,y:0,step:null,lead:front?0:1};}
-function startRescue(o){o=o||{};   // o.walk: you jumped off the ladder on the infield – they pick you up at o.tgt and you ride the stretcher yourself
+function startRescue(o){o=o||{};if(RESC)clearRescue();   // o.walk: you jumped off the ladder on the infield – they pick you up at o.tgt and you ride the stretcher yourself
   const cause=player.crash&&player.crash.cause;DIAG=o.walk?pick(['Zlomená prdel','Vyvrtnutý kotník ze žebříku','Naražená kostrč a ješitnost','Otřes mozku a pýchy']):pick(DIAGS[cause]||['Zlomená prdel']);
   let ph=null,fig;if(o.walk)fig=new THREE.Group();else if(ALBI_ME){fig=new THREE.Group();ph=RESC_ALBI||(RESC_ALBI=makePhotoHuman());ph.g.position.set(0,0,0);ph.g.rotation.set(0,0,0);ph.g.visible=true;fig.add(ph.g);ph.t=0;poseHuman(ph,downPose({},0),1);}else fig=makeStanding(player,0);/* playing as Albi: his photo scan lies on the stretcher */const C=rescueCrew(fig);const crew=C.crew,st=C.stretcher,m1=C.meds[0],m2=C.meds[1];scene.add(crew);
   JUDGES.updateMatrixWorld();const start=new THREE.Vector3(PODX+5,0,4);JUDGES.localToWorld(start);start.y=FLOOR_Y;crew.position.copy(start);
@@ -3644,8 +3644,9 @@ function poseMedic(R,m,i,dt,moving,crouch){
   for(const a of m.arms){if(m.front){a.shp.rotation.x=0.22-0.45*crouch-lean+sw;a.el.rotation.x=-0.1;}else{a.shp.rotation.x=-0.42-0.3*crouch-lean+sw;a.el.rotation.x=-0.32;}}
   m.head.rotation.x=-lean*0.7-0.25*crouch;
   return m.y+bob-0.27*crouch;}
+function rescAlbiTick(dt){const R=RESC;if(R&&R.ph&&R.fig.visible){R.ph.t+=dt;poseHuman(R.ph,downPose(R.phT,R.ph.t),1-Math.exp(-dt*8));}}   // Albi on the stretcher breathes (race, results and ceremony)
 function updateRescue(dt){if(!RESC)return;const R=RESC;R.t+=dt;const c=R.crew;
-  if(R.ph&&R.fig.visible){R.ph.t+=dt;poseHuman(R.ph,downPose(R.phT,R.ph.t),1-Math.exp(-dt*8));}
+  rescAlbiTick(dt);
   const stepping=R.meds.some(m=>m.step);
   const moveTo=(tg,spd)=>{spd*=stepping?0.5:1;const d=new THREE.Vector3(tg.x-c.position.x,0,tg.z-c.position.z),L=d.length();R.spd=0;
     if(L>0.05){let da=Math.atan2(d.x,d.z)-c.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));c.rotation.y+=da*Math.min(1,dt*7);
@@ -4837,7 +4838,7 @@ wui.addEventListener('wheel',e=>{if((phase!=='walk'&&phase!=='ceremony')||e.ctrl
 const WKEY={KeyW:'f',ArrowUp:'f',KeyS:'b',ArrowDown:'b',KeyA:'l',ArrowLeft:'l',KeyD:'r',ArrowRight:'r',KeyQ:'tl',KeyE:'tr',ShiftLeft:'run',ShiftRight:'run'};
 window.__walkKeys=()=>{WALK.k={};};
 addEventListener('resize',()=>{if(phase==='walk'&&!WALK.joy)joyHome();});
-addEventListener('keydown',e=>{if(phase==='ceremony'&&e.code==='Space'&&RESC&&!RESC.onWalk&&!e.repeat&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){e.preventDefault();e.stopImmediatePropagation();walkStart(true);return;}   // lying on the stretcher at the ceremony: Space hops off onto the infield
+addEventListener('keydown',e=>{if(phase==='ceremony'&&e.code==='Space'&&RESC&&!RESC.onWalk&&!e.repeat&&cerT>1&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){e.preventDefault();e.stopImmediatePropagation();walkStart(true);return;}   // lying on the stretcher at the ceremony: Space hops off onto the infield
   if(phase==='ceremony'&&WKEY[e.code]&&!cerPanel()&&!(e.target&&e.target.closest&&e.target.closest('#onlineOv'))){WALK.k[WKEY[e.code]]=true;return;}if(phase!=='walk')return;if(e.target&&e.target.closest&&e.target.closest('#onlineOv'))return;if(e.target&&e.target.id==='mpChatIn'){if(e.code==='Escape'){e.preventDefault();mpChatOpen(false);}e.stopImmediatePropagation();return;}if(e.code==='KeyT'&&!e.repeat&&WALK.mp&&!WALK.ride&&!typing(e)){e.preventDefault();e.stopImmediatePropagation();mpChatOpen(true);return;}if(e.code==='Escape'&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(WALK.ride){rideStop();return;}if(WALK.pick){bikePickClose();return;}if(WALK.act)return;if(WALK.zone){walkClose(WALK.zone);}else $('walkMenu').onclick();return;}if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat){if(WALK.ride)rideStop();else walkJump();}return;}if((e.code==='Enter'||e.code==='KeyF')&&!e.repeat&&WALK.ac&&!WALK.ride){e.preventDefault();e.stopImmediatePropagation();walkAction();return;}const k=WKEY[e.code];if(k){WALK.k[k]=true;e.preventDefault();}e.stopImmediatePropagation();},true);
 addEventListener('keyup',e=>{if(phase!=='walk'&&phase!=='ceremony')return;const k=WKEY[e.code];if(k)WALK.k[k]=false;},true);
 $('btnWalk').onclick=()=>{WALK.mp=false;wipe(walkStart);};
@@ -5124,7 +5125,7 @@ function frame(now){requestAnimationFrame(frame);if(ldF<3&&++ldF===3&&window.__l
   if(RCOACH)RCOACH.g.visible=phase!=='walk'&&phase!=='ceremony'&&phase!=='menu';   // the boss on the barrier only during a race; on the floor he stands by the booths
   if(phase==='menu'){menuTick(dt);if(window.__co)window.__co(camera,riders);renderer.render(scene,camera);return;}
   if(phase==='walk'){walkTick(dt);renderer.render(scene,camera);return;}
-  if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);walkCerTick();renderer.render(scene,camera);return;}
+  if(phase==='ceremony'){if(mode!=='kilo')simStep(dt,false);placeModels(dt);updateCeremony(dt);rescAlbiTick(dt);walkCerTick();renderer.render(scene,camera);return;}
   if(phase==='intro'){updateIntro(dt);placeModels(dt);updateBoss(dt);renderer.render(scene,camera);return;}
   if(phase==='countdown'&&mode==='keirin'){if(!paused)keirinPre(dt*TS);}
   else if(phase==='countdown'){countT-=dt*TS;const n=Math.ceil(countT-1);if(n!==lastBeep){lastBeep=n;const solo=mode==='kilo'||mode==='teamsprint';if(solo||n>0)beep(n<=0);if(solo){drawKBoard(n);gateLamps(n);}else refCount(n);if(n<=0){if(mode==='sprint')spRelease();else if(mode==='teamsprint'){releaseHolders();startGun();}else if(!solo){releaseHolders();showMsg('<small>Neutrální kolo – v balíku, mírné tempo, start bude výstřelem</small>',2.6);}else startGun();if(GATE&&solo)GATE.userData.open=0.001;}}if(countT<=1){phase='race';msgT=0;}}
