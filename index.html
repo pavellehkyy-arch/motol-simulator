@@ -1008,10 +1008,10 @@ function bikeBody(g,o){const B=bikeGeos(),W=wheelMats(),fk=FRAME_KS.includes(o.f
       for(const [y0,y1] of [[0.32+0.131,0.34+0.047],[0.32-0.131,0.34-0.047]]){const c=M(B.chain,'chain');place2(c,V(cx,y0,-0.04),V(cx,y1,-0.5));}}
     for(const sx of [-1,1]){const dec=M(B.decal||(B.decal=new THREE.PlaneGeometry(0.3,0.06)),'decal');dec.position.set(sx*0.0225,0.47,0.215);dec.rotation.order='YXZ';dec.rotation.set(-0.62,sx>0?PI/2:-PI/2,0);}});
   const mats={fr:bikeMat(o.frame,95),ac:bikeMat(o.accent,95),decal:bikeDecal(o.accent),black:W.black,silver:W.silver,saddle:W.saddle,carbon:W.carbon,chain:W.chain};
-  for(const [r,geo] of L.parts){const m=new THREE.Mesh(geo,mats[r]);m.userData.bb=1;if(r==='fr'||r==='ac'||r==='decal')m.userData.bp=r;g.add(m);}}   // bp: repainted when you pick a bike off the rack (paintBike)
-function frameOn(M,fk){const bg=M&&M.bike;if(!bg||!bg.userData.bo||bg.userData.fk===(fk||'std'))return;let sh=false;
-  for(const c of bg.children.slice())if(c.userData.bb){sh=sh||c.castShadow;bg.remove(c);}
-  bikeBody(bg,Object.assign({},bg.userData.bo,{fk}));if(sh)for(const c of bg.children)if(c.userData.bb)c.castShadow=true;bg.userData.paint=null;}
+  for(const [r,geo] of L.parts){const m=new THREE.Mesh(geo,mats[r]);m.userData.bb=r;if(r==='fr'||r==='ac'||r==='decal')m.userData.bp=r;g.add(m);}}   // bp: repainted when you pick a bike off the rack (paintBike)
+function frameOn(M,fk){const bg=M&&M.bike;if(!bg||!bg.userData.bo||bg.userData.fk===(fk||'std'))return;const S={};
+  for(const c of bg.children.slice())if(c.userData.bb){if(c.castShadow)S[c.userData.bb]=1;bg.remove(c);}
+  bikeBody(bg,Object.assign({},bg.userData.bo,{fk}));for(const c of bg.children)if(c.userData.bb&&S[c.userData.bb])c.castShadow=true;bg.userData.paint=null;}
 function place2(m,a,b){_dv.subVectors(b,a);const L=_dv.length()||0.001;m.position.copy(a).addScaledVector(_dv,0.5);m.scale.set(1,L,1);m.quaternion.setFromUnitVectors(UPV,_dv.multiplyScalar(1/L));}
 const _decals={};function bikeDecal(c){if(_decals[c])return _decals[c];const cv=mkCanvas(512,64),q=cv.getContext('2d');q.clearRect(0,0,512,64);
   const col=new THREE.Color(c);const lum=col.r*0.3+col.g*0.59+col.b*0.11;q.fillStyle='#'+col.getHexString();q.font='italic 900 60px system-ui,Arial';q.textAlign='center';q.textBaseline='middle';q.fillText('MOTOL',256,34);
@@ -2535,8 +2535,8 @@ function botAI(R,dt){const RP=aiPace();
   // madison: whoever is racing rides the black line – the shortest, fastest way round; only up for a moment to pass, never up on the banking
   if(mode==='madison'&&!(wreck&&!wreck.mad)){const passing=wantPass&&ahead&&ahead.w<1.0&&(gap<3.5||lapAhead&&gap<8);tw=passing?Math.min(tw,ahead.w+0.8):R.pullT>0?1.0:(ahead&&gap<8&&ahead.w<0.6?ahead.w:0.27);tw=Math.min(tw,1.1);}
   if(PASSM&&!R.player&&player.model.g.visible&&!player.crashed){const P=player,gp=gapTo(P,R),dw=R.w-P.w;   // you're coming round him: he holds his line, never moves across into you
-    if(gp>-0.6&&gp<6&&Math.abs(dw)<1.4&&P.v>R.v-0.5&&!R.dodge&&!wreck&&!(R.pullT>0)&&(R.holdPT=(R.holdPT||0)+dt)<3)tw=R.w;   // no mirroring: he doesn't climb with you either (max 3 s, so a wheel-sucker can't pin him)
-    else if(!(gp>-0.6&&gp<6))R.holdPT=0;}
+    const pv=P.dw||0,mv=tw-R.w;   // never across into you, and when you swerve out to pass he doesn't go with you
+    if(gp>-0.6&&gp<5&&Math.abs(dw)<1.4&&P.v>R.v-0.5&&!R.dodge&&!wreck&&!(R.passT>0&&R.passO!==player)&&((Math.abs(dw)>0.3&&mv*Math.sign(dw)<0)||(Math.abs(pv)>0.15&&mv*pv>0)))tw=R.w;}
   if(R.held&&neutral&&(raceTime<6||R.v<6)&&!wreck)tw=clamp(R.w,0.4,0.75);   // let go low by his holder: rides straight off in his line, no climbing up the banking
   R.targetW=clamp(tw,mode==='madison'?0.25:0.4,mode==='madison'?3.2:TW-1.0);
   if(R.pushedT>0&&R.lastShover&&Math.random()<dt*1.2*R.aggr)elbow(R,Math.sign(R.lastShover.w-R.w)||1);   // shoves back
@@ -4969,11 +4969,11 @@ function mpBadge(){const M=window.Multi,st=M?M.status:'off';
   $('mpBadge').textContent=st==='on'?mpWho(M.others())+'  ↑'+M.stats.tx+' ↓'+M.stats.rx+(M.stats.bad?' ✕'+M.stats.bad:''):st==='connecting'?'👥 Připojuji…':st==='error'?'👥 Spojení vypadlo, zkouším znovu…':st==='full'?'👥 Plocha je plná, zkus to později':'👥 Online plocha teď nejde';}
 // gestures on the online floor: g 1 = high five (come up to someone, 🙌), 2 = wave (👋); sent in `p` as g, the others raise the arm too
 const GEST_T=1.6;
-function gestPose(T,g,t){if(!g)return;const k=clamp(Math.min(t/0.25,(GEST_T-t)/0.3),0,1);if(k<=0)return;const m=(q,v)=>{T[q]=(T[q]||0)+(v-(T[q]||0))*k;};
-  if(g===1){m('a1x',-2.2);m('a1z',0.28);m('e1',-0.25);m('lean',0.05);}else{m('a1x',-2.7);m('a1z',0.6+0.4*Math.sin(t*11));m('e1',-0.75);}}
+function gestPose(T,g,t,c){c=c==null?t:c;if(!g)return;const k=clamp(Math.min(t/0.25,(GEST_T-t)/0.3),0,1);if(k<=0)return;const m=(q,v)=>{T[q]=(T[q]||0)+(v-(T[q]||0))*k;};
+  if(g===1){m('a1x',-2.2);m('a1z',0.28);m('e1',-0.25);m('lean',0.05);}else{m('a1x',-2.7);m('a1z',0.6+0.4*Math.sin(c*11));m('e1',-0.75);}}
 function mpNearFig(P,d0){let b=null,bd=d0||1.7;for(const id in MP.figs){const F=MP.figs[id];if(F.st!==0||F.ride)continue;const d=Math.hypot(F.x-P.x,F.z-P.z);if(d<bd){bd=d;b=F;}}return b;}
-function gestStart(g,F){if(phase!=='walk'||WALK.ride||WALK.sit||WALK.climb!=null||WALK.act||WALK.air)return;WALK.gest={g,t:0,F:F||null,hit:false};if(F)WALK.head=Math.atan2(F.x-WALK.pos.x,F.z-WALK.pos.z);MP.sendT=0;}
-function gestTick(dt){const G=WALK.gest;if(!G)return;G.t+=dt;if(G.t>GEST_T||WALK.spd>0.6||WALK.ride||WALK.sit||WALK.air){WALK.gest=null;return;}
+function gestStart(g,F){if(phase!=='walk'||WALK.ride||WALK.sit||WALK.climb!=null||WALK.act||WALK.air||WALK.down||WALK.onSt)return;WALK.spd=0;WALK.gest={g,t:0,F:F||null,hit:false};if(F)WALK.head=Math.atan2(F.x-WALK.pos.x,F.z-WALK.pos.z);MP.sendT=0;}
+function gestTick(dt){const G=WALK.gest;if(!G)return;G.t+=dt;if(G.t>GEST_T||(G.t>0.25&&WALK.spd>0.6)||WALK.ride||WALK.sit||WALK.air||WALK.act||WALK.climb!=null||WALK.down||WALK.onSt){WALK.gest=null;return;}
   if(G.g===1&&!G.hit&&G.t>0.25){const F=mpNearFig(WALK.pos,1.9);if(F&&F.g===1){G.hit=true;slap();walkSay('🙌 Plác!',1.2);}}}   // both hands up at once = a proper slap
 function mpState(){return WALK.ride?5:(WALK.down||WALK.onSt)?3:WALK.climb!=null?2:(WALK.sit||(WALK.act&&WALK.act.sit))?1:WALK.air?4:0;}
 function mpTick(dt){const M=window.Multi;if(!M)return;
@@ -4995,7 +4995,7 @@ function mpTick(dt){const M=window.Multi;if(!M)return;
     if(p.st===3)downPose(T,r.t);
     else if(p.st===2){F.ph+=Math.abs(dy)*k*9;climbPose(T,F.ph,Math.abs(dy)>0.02?1:0);}
     else if(p.st===1){heroGait(T,0,0,0,r.t,0);sitPose(T,1,r.t);}
-    else{heroGait(T,F.ph,a,run,r.t,0);gestPose(T,F.g,F.gt);}
+    else{heroGait(T,F.ph,a,run,r.t,0);gestPose(T,F.g,F.gt,r.t);}
     poseHuman(r,T,1-Math.exp(-dt*12));const lie=p.st===3;
     if(p.st===5){if(!F.ride)mpRideOn(F,id,p);}else if(F.ride)mpRideOff(F);
     const onR=!!F.ride;r.g.visible=!onR&&p.st!==5;F.tag.visible=onR||p.st!==5;
@@ -5278,7 +5278,7 @@ function walkTick(dt){menuTick(dt);animCoach(dt);albiTick(dt);if(WALK.mp){mpTick
   if(shopTag)shopTag.position.y=1.45+Math.sin(idleT*2.2)*0.08;
   if(near!==WALK.zone){if(WALK.zone)walkClose(WALK.zone);WALK.zone=near;if(near)walkOpen(near);}
   // the action button: right up to a bike on the rollers / the bottle / the gel
-  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P),K=R?null:rackNear(P);if(R)ac={k:'roll',R};else if(K)ac=WALK.pick?null:{k:'rack',K};else if(advNear(P))ac={k:'talk'};else if(WALK.mp&&!WALK.gest&&mpNearFig(P))ac={k:'hi5',F:mpNearFig(P)};else if(WALK.zone==='albi')ac={k:'albi'};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
+  if(WALK.acCD>0)WALK.acCD-=dt;let ac=null;if(!busy&&!WALK.air&&!(WALK.acCD>0)){const R=rollerNear(P),K=R?null:rackNear(P);if(R)ac={k:'roll',R};else if(K)ac=WALK.pick?null:{k:'rack',K};else if(advNear(P))ac={k:'talk'};else if(WALK.mp&&!WALK.gest&&(ac=mpNearFig(P)))ac={k:'hi5',F:ac};else if(WALK.zone==='albi')ac={k:'albi'};else{const S=snackNear(P);if(S)ac={k:S.kind,S};}}
   else if(WALK.sit&&WALK.sit.up<0&&WALK.sit.t>0.8&&!WALK.act&&!(WALK.acCD>0)){const S=snackNear(P);if(S)ac={k:S.kind,S};}   // sitting next to it: have it without getting up
   if(WALK.pick&&(busy||rackNear(P)!==WALK.pick))bikePickClose();   // walked away from the rack
   advTick(dt,P);snackTags();
