@@ -280,7 +280,7 @@ body.cerwalk #walkAct,body.cerwalk #rideUI,body.cerwalk #bikePick{display:none!i
 <div id="menu" class="screen">
   <div class="card mcard">
     <h1 id="title"><span class="t1">MOTOL</span><span class="t2">SIMULATOR</span></h1>
-    <div class="sub">v3.5</div>
+    <div class="sub">v3.6</div>
     <div class="vk"><span>💰</span><span id="vkTotal">0</span></div>
     <div id="iabHint" style="display:none;background:rgba(255,209,102,.18);border:1px solid #ffd166;border-radius:10px;padding:8px 10px;font-size:12.5px;margin:0 0 12px;text-align:left">📱 Nejlépe hra běží v Safari/Chrome: vpravo nahoře <b>⋯</b> → <b>Otevřít v prohlížeči</b>.</div>
     <div class="modes mgrid m3b">
@@ -2904,7 +2904,7 @@ window.renderShop=()=>{try{renderShop();}catch(e){}applyGear();};   // online.js
 const RIDE={M:null,v:0,eff:0.45,crank:0,t:0,st:0,su:0,sp:0,br:0,last:null};   // riding on the rollers on the walk (see PREP)
 let SPV=null;applyGear();
 // play as Albi (switched by Albi on the floor, remembered in localStorage motol_albi): on the floor his photo-scan body, in the race his name and skin
-let ALBI_ME=false;try{ALBI_ME=localStorage.getItem('motol_albi')==='1';}catch(e){}
+let ALBI_ME=false,ALBI_GOLD=null;try{ALBI_ME=localStorage.getItem('motol_albi')==='1';}catch(e){}   // Albi only for Gold accounts (v3.6): online.js tells us via applyGold
 const ALBI_SKIN=0xe2b896;let PL_SKIN=null;
 function riderSkin(M,from,to){if(!M||from===to)return;const sw=new Map([[skinMat(from),skinMat(to)]]);for(const k in SKINMM)if(k.startsWith(String(from))&&isNaN(+k.charAt(String(from).length)))sw.set(SKINMM[k],skinMuscle(to,k.slice(String(from).length)));   // plain skin and the muscle-textured limbs
   M.g.traverse(o=>{if(sw.has(o.material))o.material=sw.get(o.material);else if(Array.isArray(o.material))o.material=o.material.map(m=>sw.get(m)||m);});}
@@ -4717,7 +4717,11 @@ function heroBuild(albi){if(albi)return WALK.rAlbi||(WALK.rAlbi=makePhotoHuman()
   return WALK.rMe=makeHuman({top:0xf6f6f4,topMat:new THREE.MeshLambertMaterial({color:0xf6f6f4,map:tx}),pants:0x111111,shoes:0xf0f0f0,hair:0x3b2a1e});}   // you: the world champion – blue-red-blue bands right round the white jersey (chest loft v = height)
 function heroSet(){const old=WALK.r,r=heroBuild(ALBI_ME);if(old===r)return;r.t=r.t||0;
   if(old){r.g.position.copy(old.g.position);r.g.rotation.copy(old.g.rotation);r.g.visible=old.g.visible;scene.remove(old.g);old.g.visible=false;}scene.add(r.g);WALK.r=r;}
-function albiSwap(){if(WALK.ride||WALK.act||WALK.sit||WALK.climb!=null||WALK.onSt||WALK.down)return;ALBI_ME=!ALBI_ME;try{localStorage.setItem('motol_albi',ALBI_ME?'1':'0');}catch(e){}
+window.applyGold=function(g){ALBI_GOLD=!!g;if(g||!ALBI_ME)return;ALBI_ME=false;try{localStorage.setItem('motol_albi','0');}catch(e){}   // not Gold (any more): back to yourself
+  try{albiRace();if(phase==='walk'&&WALK.r){heroSet();albiShow(true);}MP.last=null;}catch(e){}};
+function albiSwap(){if(WALK.ride||WALK.act||WALK.sit||WALK.climb!=null||WALK.onSt||WALK.down)return;
+  if(!ALBI_ME&&ALBI_GOLD!==true){WALK.acCD=0.8;tone(330,0.12,0.06,'triangle');walkSay('⭐ Hrát za Albiho můžou jen <b>Gold</b> účty (prémiové).',3);return;}
+  ALBI_ME=!ALBI_ME;try{localStorage.setItem('motol_albi',ALBI_ME?'1':'0');}catch(e){}
   albiRace();heroSet();albiShow(true);MP.last=null;WALK.acCD=0.8;tone(660,0.1,0.06,'triangle');setTimeout(()=>tone(990,0.14,0.06,'triangle'),110);
   walkSay(ALBI_ME?'🔄 Teď jsi <b>Albi</b>, na ploše i v závodě.':'🙋 Hraješ zase za sebe.',2.5);}
 let ALBI=null;
@@ -4984,7 +4988,7 @@ function mpTick(dt){const M=window.Multi;if(!M)return;
     if(moved||MP.keepT<=0){const s={x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+WALK.head.toFixed(2),v:+(WALK.ride?RIDE.v:WALK.spd).toFixed(2),st,c:WALK.ride?Math.round(RIDE.eff*100):0,a:ALBI_ME?1:0};if(rc)s.r=rc;if(WALK.gest)s.g=WALK.gest.g;if(M.send(s)){MP.last=s;MP.keepT=rc?1:3;}}if(rc)MP.sendT=0.2;}
   if(M.prune)M.prune();
   const seen=MP.seen,now=Date.now();for(const q in seen)delete seen[q];let n=0;
-  for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id];let F=MP.figs[id];if(F&&F.albi!==!!p.a){mpDrop(id);F=null;}if(!F){F=MP.figs[id]=mpFig(id,!!p.a);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}F.st=p.st;if(p.g&&p.st===0){if(F.g!==p.g){F.g=p.g;F.gt=0;}F.gt=Math.min(GEST_T-0.3,F.gt+dt);}else F.g=0;
+  for(const id in M.peers){if(n>=MP_MAX)break;n++;seen[id]=1;const p=M.peers[id],nm0=M.name(id),al=!!p.a&&!!(nm0&&nm0.gold);let F=MP.figs[id];if(F&&F.albi!==al){mpDrop(id);F=null;}if(!F){F=MP.figs[id]=mpFig(id,al);F.x=p.x;F.y=p.y;F.z=p.z;F.h=p.h;}F.st=p.st;if(p.g&&p.st===0){if(F.g!==p.g){F.g=p.g;F.gt=0;}F.gt=Math.min(GEST_T-0.3,F.gt+dt);}else F.g=0;
     const nm=M.name(id),nk=nm?nm.nick+(nm.gold?'★':''):'Hráč';if(F.nick!==nk){F.nick=nk;mpTagTex(F.tag,nm?nm.nick:'Hráč',!!(nm&&nm.gold));}
     // between messages: glide towards the last position, a little ahead along the way they were walking
     const mv=p.st===0||p.st===4,ex=mv?p.v*Math.min(0.3,(now-p.t)/1000):0,tx=p.x+Math.sin(p.h)*ex,tz=p.z+Math.cos(p.h)*ex,k=1-Math.exp(-dt*10),dy=p.y-F.y;
