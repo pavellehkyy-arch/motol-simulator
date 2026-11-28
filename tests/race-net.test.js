@@ -425,7 +425,7 @@ test('převzetí po 2 s ticha od hostitele', async () => {
   kill(A, B);
 });
 
-test('ICE se nespojí do 10 s: jeden restart, pak záloha přes Supabase Realtime', async () => {
+test('ICE se nespojí do 6 s: hned záloha přes Supabase Realtime (bez druhého pokusu)', async () => {
   let t = 1;
   const S = makeServer(), net = makeNet();
   const A = player(S, net, { uid: U('1'), now: () => t, noConnect: true });
@@ -436,14 +436,14 @@ test('ICE se nespojí do 10 s: jeden restart, pak záloha přes Supabase Realtim
   await until(() => S.sigs().some((s) => s.ty === 'answer'));
   await tick(20);
   assert.strictEqual(A.linkState(B.me), 'connecting');
-  t += 15100; A._tick(); B._tick();
-  await until(() => S.sigs().some((s) => s.ty === 'offer' && s.n === 1), 2000, 'nová nabídka');
-  assert.strictEqual(A.linkState(B.me), 'connecting');
-  t += 15100; A._tick(); B._tick();
+  t += 5000; A._tick(); B._tick();
+  assert.strictEqual(A.linkState(B.me), 'connecting');   // 5 s ještě čeká
+  t += 1100; A._tick(); B._tick();
   assert.strictEqual(A.linkState(B.me), 'open');
   assert.ok(A.viaServer(B.me) && A.relayed(B.me));
   assert.strictEqual(links[links.length - 1], 'open');
-  assert.strictEqual(S.sigs().filter((s) => s.ty === 'offer').length, 2);
+  await tick(20);
+  assert.strictEqual(S.sigs().filter((s) => s.ty === 'offer').length, 1);
   // data jdou přes server: stav (binárně v base64) i spolehlivé události; druhá strana se přidá sama
   const evs = []; B.onEvent = (f, k, d) => evs.push([f, k, d]);
   t += 300; A.send({ s: 12.5, w: 1, v: 10, e: 0.9, f: 0.5, l: 0, fl: 0 }); A.event('ahoj', { x: 1 });
@@ -513,4 +513,21 @@ test('odchod: leave zavře spojení i kanál, status off', async () => {
   B._reset();
   assert.strictEqual(B.status, 'off');
   assert.strictEqual(S.subs.length, 0);
+});
+
+test('vzhled jezdce přes presence: setLook před i po připojení, moc velký nebo nesmyslný = null', async () => {
+  const S = makeServer(), net = makeNet();
+  const A = player(S, net, { uid: U('1') }), B = player(S, net, { uid: U('2') });
+  A.setLook({ hk: 'tt', wh: ['disc', 5], al: 1 });
+  A.join('scratch'); await until(() => A.status === 'lobby');
+  B.join('scratch'); await until(() => B.status === 'lobby' && B.members().length === 2);
+  await until(() => B.look(A.me) !== null, 2000, 'vzhled A');
+  assert.deepStrictEqual(plain(B.look(A.me)), { hk: 'tt', wh: ['disc', 5], al: 1 });
+  assert.strictEqual(A.look(B.me), null);
+  B.setLook({ hk: 'aero' });   // změna po připojení: nový track
+  await until(() => A.look(B.me) && A.look(B.me).hk === 'aero', 2000, 'vzhled B');
+  B.setLook({ x: 'y'.repeat(400) });
+  await until(() => A.look(B.me) === null, 2000, 'velký vzhled zahozen');
+  B.setLook([1, 2]); assert.strictEqual(B.look(B.me), null);
+  kill(A, B);
 });
